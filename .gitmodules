@@ -1,0 +1,9 @@
+[submodule "oatpp/oatpp"]
+	path = oatpp/oatpp
+	url = https://github.com/oatpp/oatpp.git
+[submodule "oatpp/oatpp-sqlite"]
+	path = oatpp/oatpp-sqlite
+	url = https://github.com/oatpp/oatpp-sqlite.git
+[submodule "oatpp/oatpp-swagger"]
+	path = oatpp/oatpp-swagger
+	url = https://github.com/oatpp/oatpp-swagger.git
