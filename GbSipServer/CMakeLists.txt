@@ -120,12 +120,12 @@ set(ALL_LIB
 
 
 
-D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/eXosip.lib
-D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/libcares.lib
-D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osip2.lib
-D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osipparser2.lib
+#D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/eXosip.lib
+#D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/libcares.lib
+#D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osip2.lib
+#D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osipparser2.lib
 
-#libsip 
+libsip 
 Dnsapi.lib   
 delayimp.lib
 ws2_32.lib

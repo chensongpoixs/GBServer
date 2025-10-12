@@ -29,7 +29,7 @@
 
 
 #include "rtc_base/logging.h"
-
+#include <ctime>
 extern "C"
 {
 #include "utils/HTTPDigest.h"
@@ -100,6 +100,11 @@ namespace gbsip_server
 	}
 	SipServer::~SipServer()
 	{
+		if (sip_context_)
+		{
+			eXosip_quit(sip_context_);
+			//eXosip_free
+		}
 	}
 	bool SipServer::init(const SipServerInfo & info)
 	{
@@ -213,6 +218,8 @@ namespace gbsip_server
 		int ret = eXosip_call_build_ack(sip_context_, sip_event->did, &msg);
 		if (!ret && msg) {
 			eXosip_call_send_ack(sip_context_, sip_event->did, msg);
+			// ack 信息
+			//sip_event->ack->req_uri->username;
 		}
 		else {
 			RTC_LOG(LS_INFO) << "eXosip_call_send_ack  error:" << ret;
@@ -322,6 +329,18 @@ namespace gbsip_server
 				RTC_LOG(LS_INFO) << "Camera registration succee,ip:" << sip_client->ip << ", port:" << sip_client->port << ", device:" << sip_client->device;
 				
 				client_map_.insert(std::make_pair(sip_client->device, sip_client));
+				//DeviceDto  ;
+				auto devicedto = oatpp::Object<DeviceDto>::createShared();;
+
+				//osip_message_get_user_agent(sip_context_, );
+
+				devicedto->deviceID = sip_client->device;
+				devicedto->UpdatedAt = std::time(NULL);
+				devicedto->CreatedAt = std::time(NULL);
+				devicedto->RemoteIP = sip_client->ip;
+				devicedto->RemotePort = sip_client->port;
+				devicedto->online = 1;
+				device_db_->createDevice(std::move(devicedto));
 
 				//request_invite(sip_client->device, sip_client->ip, sip_client->port);
 
@@ -332,12 +351,12 @@ namespace gbsip_server
 				sip_client.reset();
 			}
 
-			//osip_free(algorithm);
-			//osip_free(username);
-			//osip_free(realm);
-			//osip_free(nonce);
-			//osip_free(nonce_count);
-			//osip_free(uri);
+			osip_free(algorithm);
+			osip_free(username);
+			osip_free(realm);
+			osip_free(nonce);
+			osip_free(nonce_count);
+			osip_free(uri);
 		}
 		else {
 			response_register_401unauthorized(sip_event);
@@ -482,6 +501,6 @@ namespace gbsip_server
 		}
 
 		osip_www_authenticate_free(header);
-	//	osip_free(dest);
+		osip_free(dest);
 	}
 }
