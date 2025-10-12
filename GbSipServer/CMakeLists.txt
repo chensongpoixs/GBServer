@@ -8,7 +8,7 @@ MESSAGE(STATUS  "####################################")
 set(CMAKE_CXX_STANDARD 17)
 
 
-set(DEPS_DIR  "D:/dep/c_dep")
+#set(DEPS_DIR  "D:/dep/c_dep")
 
 #add_definitions(
 				#	-DWIN32
@@ -34,12 +34,15 @@ add_definitions(
 
 
  include_directories(
+	 ../../libwebrtc
+	#../../deps/libyuv/include
+	 ../../deps/abseil-cpp/
 	.
-	./libsip
-	./libsip/c-ares 
-	./libsip/eXosip2
-	./libsip/osip2
-	./libsip/osipparser2
+	../../deps/libsip
+	../../deps/libsip/c-ares 
+	../../deps/libsip/eXosip2
+	../../deps/libsip/osip2
+	../../deps/libsip/osipparser2
 	./utils 
 	./swagger
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
@@ -52,7 +55,7 @@ add_definitions(
 	 
 )
 link_directories( 
-.
+
 ${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
 
 )
@@ -95,12 +98,13 @@ file(GLOB GbSipServer_source
 #
 #add_subdirectory(curl-7.81.0)
 #add_subdirectory(D:/Work/rtc/crtcserver/deps/curl-7.81.0)
-add_subdirectory(libsip)
+#add_subdirectory(libsip)
  
 add_executable(${PROJECT_NAME}     ${GbSipServer_source} 
 
-${swagger_source})
- 
+							${swagger_source}
+								)
+ add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
 
@@ -115,6 +119,39 @@ ws2_32.lib
  oatpp-sqlite
  oatpp-swagger
  sqlite
+
+ # rtc_base
+ logging
+
+ async_resolver_interface
+ async_socket
+ bitstream_reader
+ callback_list
+ checks
+ ip_address
+ net_helpers
+ network_constants
+ null_socket_server
+ platform_thread
+platform_thread_types
+ rate_limiter
+ rtc_base
+ rtc_base_approved
+ rtc_base_win
+ rtc_base_wgc
+ rtc_event
+ rtc_numerics
+ rtc_task_queue
+ rtc_task_queue_win
+ socket
+ socket_address
+ stringutils
+ threading
+ timeutils
+ weak_ptr
+ win32
+
+
 
 
 			)
@@ -144,6 +181,6 @@ endforeach()
 
 
 
-#set_property(TARGET ${PROJECT_NAME}  				PROPERTY FOLDER  ${DIR_NAME_GBServer} ) 
+set_property(TARGET ${PROJECT_NAME}  				PROPERTY FOLDER  ${DIR_NAME_GBServer} ) 
 
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

@@ -9,4 +9,4 @@ set(DIR_NAME_GBServer  ${PROJECT_NAME})
  
 
 
-#add_subdirectory(GbSipServer) 
+add_subdirectory(GbSipServer) 

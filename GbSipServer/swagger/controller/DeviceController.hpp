@@ -93,6 +93,9 @@ public:
   ENDPOINT("GET", "devices/{id}", getDeviceById,
            PATH(Int32, id))
   {
+	//  printf("[%s][%d] start \n", __FUNCTION__, __LINE__);
+	//  std::this_thread::sleep_for(std::chrono::seconds(120));
+	//  printf("[%s][%d] end \n", __FUNCTION__, __LINE__);
     return createDtoResponse(Status::CODE_200, m_deviceService.getDeviceById(id));
   }
   
