@@ -32,23 +32,24 @@ public:
     OATPP_LOGd("DeviceDb", "Migration - OK. Version={}.", version);
 
   }
-  //QUERY(createDevice,
-//      "INSERT INTO t_device"
-//      "(device_id, type, device_name, channel_count, password, catalog_subscribe, online, sip_transport, "
-  //    "media_transport, media_transport_mode, last_register_at, last_keepalive_at, update_at, create_at, role) VALUES "
-//      "(:device.deviceid, :device.type, :device.devicename, :device.channelcount , "
-  //    ":device.password, :device:catalogsubscribe, :device.online, device:siptransport, "
-  //    ":device.mediatransport, :device.mediatransportmode, device:lastregisterat, "
-  //    ":device:lastkeepaliveat,  device:updateat, device:createat, :device.role);",
-//      PARAM(oatpp::Object<DeviceDto>, device))
-
-
   QUERY(createDevice,
-        "INSERT INTO t_device"
-        "(deviceid, online, role) VALUES "
-        "(:device.deviceid, :device.online, :device.role);",
-        PARAM(oatpp::Object<DeviceDto>, device))
+      "INSERT INTO t_device"
+      "(deviceid, type, devicename, channelcount, password, catalogsubscribe, online, siptransport, "
+      "mediatransport, mediatransportmode, lastregisterat, lastkeepaliveat, updatedat, createdat, role) VALUES "
+      "(:device.deviceid, :device.type, :device.devicename, :device.channelcount , "
+      ":device.password, :device.catalogsubscribe, :device.online, :device.siptransport, "
+      ":device.mediatransport, :device.mediatransportmode, :device.lastregisterat, "
+      ":device.lastkeepaliveat,  :device.updatedat, :device.createdat, :device.role);",
+      PARAM(oatpp::Object<DeviceDto>, device))
 
+
+  //QUERY(createDevice,
+  //      "INSERT INTO t_device"
+  //      "(deviceid, devicename, type, channelcount, password, catalogsubscribe, online, role) VALUES "
+  //      "(:device.deviceid, :device.devicename, :device.type, "
+  ///  ":device.channelcount, :device.password, :device.catalogsubscribe,  :device.online, :device.role);",
+  //      PARAM(oatpp::Object<DeviceDto>, device)) 
+  //
   QUERY(updateDevice,
         "UPDATE t_device "
         "SET "

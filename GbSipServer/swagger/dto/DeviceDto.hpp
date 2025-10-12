@@ -56,23 +56,23 @@ CREATE TABLE t_device (
 	  */
   DTO_FIELD(Int32, id);
   DTO_FIELD(String, deviceID, "deviceid") = "21321321321321";  //设备编号
-  //DTO_FIELD(String, DeviceName, "devicename"); //设备名称
-  //DTO_FIELD(Int32, Type, "type"); //设备类型, "GB" - 国标设备, "Decode" - 解码器
-  //DTO_FIELD(Int32, ChannelCount, "channelcount"); // 通道数
-  //DTO_FIELD(String, password, "password");
-  //DTO_FIELD(Int32, CatalogSubscribe, "catalogsubscribe");// 目录订阅是否开启
+  DTO_FIELD(String, deviceName, "devicename") = "hik"; //设备名称
+  DTO_FIELD(Int32, Type, "type") = 0; //设备类型, "GB" - 国标设备, "Decode" - 解码器
+  DTO_FIELD(Int32, ChannelCount, "channelcount") = 0; // 通道数
+  DTO_FIELD(String, password, "password") = "12345678";
+  DTO_FIELD(Int32, CatalogSubscribe, "catalogsubscribe") = 0;// 目录订阅是否开启
   DTO_FIELD(Int32, online, "online") = 0; //是否在线
-  //DTO_FIELD(Int32, SipTransport, "siptransport");//信令传输模式 允许值: UDP, TCP
-  //DTO_FIELD(Int32, MediaTransport, "mediatransport");//流传输模式(TCP/UDP)
-  //DTO_FIELD(Int32, MediaTransportMode, "mediatransportmode");//流传输模式(主动/被动)允许值: passive, active
-  //DTO_FIELD(Int32, LastRegisterAt, "lastregisterat");// 最近注册
-  //DTO_FIELD(Int32, LastKeepaliveAt, "lastkeepaliveat");//最近心跳
-  //DTO_FIELD(Int32, UpdatedAt, "updatedat"); //更新时间
-  //DTO_FIELD(Int32, CreatedAt, "createdat"); //	创建时间
-  //DTO_FIELD(Int32, Longitude, "longitude" ); // 经度 默认值: 0
-  //DTO_FIELD(Int32, Latitude, "latitude"); // 纬度
-  //DTO_FIELD(Int32, RemoteIP, "remoteip"); // 出口IP
-  //DTO_FIELD(Int32, RemotePort, "remoteport"); // 端口
+  DTO_FIELD(Int32, SipTransport, "siptransport") = 0;//信令传输模式 允许值: UDP, TCP
+  DTO_FIELD(Int32, MediaTransport, "mediatransport")  =0;//流传输模式(TCP/UDP)
+  DTO_FIELD(Int32, MediaTransportMode, "mediatransportmode") = 0;//流传输模式(主动/被动)允许值: passive, active
+  DTO_FIELD(Int32, LastRegisterAt, "lastregisterat") = 0;// 最近注册
+  DTO_FIELD(Int32, LastKeepaliveAt, "lastkeepaliveat") = 30;//最近心跳
+  DTO_FIELD(Int32, UpdatedAt, "updatedat") = 0; //更新时间
+  DTO_FIELD(Int32, CreatedAt, "createdat") = 0; //	创建时间
+  DTO_FIELD(Int32, Longitude, "longitude" ) = 0; // 经度 默认值: 0
+  DTO_FIELD(Int32, Latitude, "latitude") = 0; // 纬度
+  DTO_FIELD(String, RemoteIP, "remoteip") = "192.168.1.64"; // 出口IP
+  DTO_FIELD(Int32, RemotePort, "remoteport") = 15060; // 端口
  //CatalogSubscribe	Boolean	 目录订阅是否开启
 
   //AlarmSubscribe	Boolean	 报警订阅是否开启
