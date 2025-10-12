@@ -60,19 +60,21 @@ ${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
 
 FILE(GLOB  swagger_source
 
-		swagger/controller/StaticController.hpp
-        swagger/controller/UserController.hpp
-        swagger/db/UserDb.hpp
-        swagger/dto/PageDto.hpp
-        swagger/dto/StatusDto.hpp
-        swagger/dto/UserDto.hpp
-        swagger/service/UserService.cpp
-        swagger/service/UserService.hpp
-        swagger/AppComponent.hpp
-        swagger/DatabaseComponent.hpp
-        swagger/SwaggerComponent.hpp
-        swagger/ErrorHandler.cpp
-        swagger/ErrorHandler.hpp
+		swagger/controller/*.cpp 
+        swagger/controller/*.hpp
+		swagger/controller/*.h
+        swagger/db/*.hpp
+		swagger/db/*.cpp 
+		swagger/db/*.h
+        swagger/dto/*.h
+        swagger/dto/*.hpp
+        swagger/dto/*.cpp 
+		swagger/service/*.h
+        swagger/service/*.cpp
+        swagger/service/*.hpp
+		swagger/*.h
+        swagger/*.hpp 
+        swagger/*.cpp 
 )
  
 file(GLOB GbSipServer_source
@@ -83,6 +85,9 @@ file(GLOB GbSipServer_source
 		 
 		*.h
 	*.cpp 
+	
+	sql/*.sql 
+	
         )
 		
 

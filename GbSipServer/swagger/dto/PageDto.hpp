@@ -3,7 +3,7 @@
 #define CRUD_PAGEDTO_HPP
 
 #include "UserDto.hpp"
-
+#include "swagger/dto/DeviceDto.hpp"
 #include OATPP_CODEGEN_BEGIN(DTO)
 
 template<class T>
@@ -23,7 +23,11 @@ class UsersPageDto : public PageDto<oatpp::Object<UserDto>> {
   DTO_INIT(UsersPageDto, PageDto<oatpp::Object<UserDto>>)
 
 };
+class DevicesPageDto : public PageDto<oatpp::Object<DeviceDto>> {
 
+	DTO_INIT(DevicesPageDto, PageDto<oatpp::Object<DeviceDto>>)
+
+};
 #include OATPP_CODEGEN_END(DTO)
 
 #endif //CRUD_PAGEDTO_HPP
