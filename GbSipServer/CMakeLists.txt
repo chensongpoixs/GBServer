@@ -20,6 +20,16 @@ set(CMAKE_CXX_STANDARD 17)
 #)
 
 add_definitions(
+
+
+#-D_WINSOCK_DEPRECATED_NO_WARNINGS
+#-D_CRT_SECURE_NO_DEPRECATE
+#-D_CRT_NONSTDC_NO_WARNINGS
+#-DWIN32
+#-D_DEBUG
+#-D_CONSOLE
+
+
         ## define path to swagger-ui static resources folder
         -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
 
@@ -104,11 +114,18 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
 
 							${swagger_source}
 								)
- add_dependencies(${PROJECT_NAME} libsip)
+# add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
 
-libsip 
+
+
+D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/eXosip.lib
+D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/libcares.lib
+D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osip2.lib
+D:/Work/cmedia_server/BXC_SipServer/3rdparty/windows/exosip/platform/vsnet/v142/x64/Debug/osipparser2.lib
+
+#libsip 
 Dnsapi.lib   
 delayimp.lib
 ws2_32.lib

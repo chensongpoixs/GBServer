@@ -26,8 +26,11 @@ extern "C" {
 #include <eXosip2/eXosip.h>
 }
 #include <unordered_map>
-
-
+#include <memory>
+#include <memory>
+#include "swagger/db/DeviceDb.hpp"
+#include "oatpp/network/Server.hpp"
+#include "AppComponent.hpp"
 namespace gbsip_server
 {
 
@@ -46,6 +49,16 @@ namespace gbsip_server
 	};
 
 
+	struct SipClient
+	{
+		std::string ip;
+		uint16_t     port;
+		std::string device;
+		bool    isreg;
+		uint16_t   rtp_port;
+	};
+
+
 	class SipServer
 	{
 	public:
@@ -53,13 +66,14 @@ namespace gbsip_server
 	public:
 		SipServer();
 		~SipServer();
-
+	public:
+		OATPP_COMPONENT(std::shared_ptr<DeviceDb>,  device_db_);
 	public:
 		bool init(const SipServerInfo & info);
 		bool Start();
 
 
-
+		void request_invite() { request_invite_ = true; };
 
 	public:
 
@@ -78,8 +92,19 @@ namespace gbsip_server
 		
 		void HandlerSipInSubscriptionNew(eXosip_event_t * sip_event);
 		 
+	public:
 
 
+		void  request_info(eXosip_event_t * sip_event);
+		void  response_info(eXosip_event_t * sip_event);
+
+		void  response_register(eXosip_event_t *sip_event);
+		void   response_message_answer(eXosip_event_t * sip_event, int32_t code);
+
+
+		int32_t   request_invite(const std::string&  device, const std::string& ip, uint16_t port);
+		void     response_message(eXosip_event_t * sip_event);
+		void response_register_401unauthorized(eXosip_event_t * sip_event);
 	private:
 		std::atomic<bool>  stoped_;
 		SipServerInfo    sip_server_info_;
@@ -88,6 +113,10 @@ namespace gbsip_server
 		
 		
 		std::unordered_map<int32_t, SipEventCallback>        sip_event_callback_map_;
+
+
+		std::unordered_map<std::string, std::shared_ptr<SipClient>>        client_map_;
+		bool request_invite_ = false;
 	};
 }
 
