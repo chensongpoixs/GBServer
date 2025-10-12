@@ -120,6 +120,24 @@ ws2_32.lib
  oatpp-swagger
  sqlite
 
+ # absl 
+ abseil_dll
+		absl_cordz_functions
+		absl_cordz_handle
+		absl_cordz_info
+		absl_cordz_sample_token
+		absl_flags
+		absl_flags_commandlineflag_internal
+		absl_flags_internal
+		absl_flags_marshalling
+		absl_flags_parse
+		absl_flags_private_handle_accessor
+		absl_flags_program_name
+		absl_flags_reflection
+		absl_flags_usage
+		absl_flags_usage_internal
+		absl_low_level_hash
+		absl_random_internal_distribution_test_util
  # rtc_base
  logging
 
@@ -138,7 +156,7 @@ platform_thread_types
  rtc_base
  rtc_base_approved
  rtc_base_win
- rtc_base_wgc
+ #rtc_base_win_wgc
  rtc_event
  rtc_numerics
  rtc_task_queue
@@ -151,7 +169,27 @@ platform_thread_types
  weak_ptr
  win32
 
+ base64
+ sigslot 
 
+ iphlpapi.lib
+		#crypto32.lib 
+		ws2_32   
+		crypt32
+		Shell32.lib
+		 advapi32
+              iphlpapi
+              psapi
+              shell32
+              user32
+              userenv
+              ws2_32
+			  mswsock.lib
+			  #  webrtc  timeGetTime  
+			  winmm.lib
+			  #ucrt.lib
+			  #  libuv.lib  的依赖库
+			  dbghelp.lib
 
 
 			)
