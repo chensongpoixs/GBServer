@@ -28,7 +28,7 @@ extern "C" {
 #include <unordered_map>
 #include <memory>
 #include <memory>
-#include "swagger/db/DeviceDb.hpp"
+#include "db/DeviceDb.hpp"
 #include "oatpp/network/Server.hpp"
 #include "AppComponent.hpp"
 namespace gbsip_server

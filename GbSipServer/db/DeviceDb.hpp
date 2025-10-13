@@ -7,7 +7,7 @@
 
 #include "dto/UserDto.hpp"
 #include "oatpp-sqlite/orm.hpp"
-#include "swagger/dto/DeviceDto.hpp"
+#include "dto/DeviceDto.hpp"
 #include "oatpp/base/Log.hpp"
 #include "rtc_base/logging.h"
 #include OATPP_CODEGEN_BEGIN(DbClient) //<- Begin Codegen

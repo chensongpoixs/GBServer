@@ -17,7 +17,7 @@
 
 ******************************************************************************/
 #include "service/DeviceServer.hpp"
-#include "swagger/service/DeviceServer.hpp"
+#include "service/DeviceServer.hpp"
 
 
 oatpp::Object<DeviceDto> DeviceService::createDevice(const oatpp::Object<DeviceDto>& dto) {

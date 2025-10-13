@@ -3,7 +3,7 @@
 #define CRUD_PAGEDTO_HPP
 
 #include "UserDto.hpp"
-#include "swagger/dto/DeviceDto.hpp"
+#include "dto/DeviceDto.hpp"
 #include OATPP_CODEGEN_BEGIN(DTO)
 
 template<class T>

@@ -20,7 +20,7 @@
 #define _C_DEVICE_Controller_hpp
 
 #include "service/UserService.hpp"
-#include "swagger/service/DeviceServer.hpp"
+#include "service/DeviceServer.hpp"
 #include "oatpp/web/server/api/ApiController.hpp"
 #include "oatpp/web/mime/ContentMappers.hpp"
 #include "oatpp/macro/codegen.hpp"

@@ -1,12 +1,12 @@
 ﻿
 
-project(GbSipServer)
+project(GbMediaServer)
 cmake_minimum_required(VERSION 2.8)
 MESSAGE(STATUS  "####################################")
 MESSAGE(STATUS  "#############${PROJECT_NAME}###############")
 MESSAGE(STATUS  "####################################")
+#set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
-
 
 #set(DEPS_DIR  "D:/dep/c_dep")
 
@@ -22,24 +22,7 @@ set(CMAKE_CXX_STANDARD 17)
 add_definitions(
 
 
-#-D_WINSOCK_DEPRECATED_NO_WARNINGS
-#-D_CRT_SECURE_NO_DEPRECATE
-#-D_CRT_NONSTDC_NO_WARNINGS
-#-DWIN32
-#-D_DEBUG
-#-D_CONSOLE
-
-
-        ## define path to swagger-ui static resources folder
-        -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
-
-        ## SQLite database file
-        -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
-        ## SQLite database test file
-        -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
-
-        ## Path to database migration scripts
-        -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
+ 
 )
 
 
@@ -47,57 +30,22 @@ add_definitions(
 	 ../../libwebrtc
 	#../../deps/libyuv/include
 	 ../../deps/abseil-cpp/
-	.
-	../../deps/libsip
-	../../deps/libsip/c-ares 
-	../../deps/libsip/eXosip2
-	../../deps/libsip/osip2
-	../../deps/libsip/osipparser2
-	./utils 
-	../libswagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-swagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite/sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	 
 	 
 )
-link_directories( 
-
-${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
-
-)
+#link_directories( 
+# 
+#)
 
 
-FILE(GLOB  swagger_source
-
-		controller/*.cpp 
-        controller/*.hpp
-		controller/*.h
-        db/*.hpp
-		db/*.cpp 
-		db/*.h
-        dto/*.h
-        dto/*.hpp
-        dto/*.cpp 
-		service/*.h
-        service/*.cpp
-        service/*.hpp
-		
-)
  
-file(GLOB GbSipServer_source
+file(GLOB GbMediaServer_source
         
-		utils/*.cpp 
-		utils/*.h 
-		utils/*.c 
+		  
 		 
 		*.h
 	*.cpp 
-	
-	sql/*.sql 
+	 
 	
         )
 		
@@ -108,28 +56,24 @@ file(GLOB GbSipServer_source
 #add_subdirectory(D:/Work/rtc/crtcserver/deps/curl-7.81.0)
 #add_subdirectory(libsip)
  
-add_executable(${PROJECT_NAME}     ${GbSipServer_source} 
-
-							${swagger_source}
-								)
+add_executable(${PROJECT_NAME}     ${GbMediaServer_source}  )
 add_dependencies(${PROJECT_NAME} libswagger)
- add_dependencies(${PROJECT_NAME} libsip)
+# add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
-
  
 libswagger
-libsip 
+#libsip 
 Dnsapi.lib   
 delayimp.lib
 ws2_32.lib
  Qwave.lib
 
  #
- oatpp
- oatpp-sqlite
- oatpp-swagger
- sqlite
+ #oatpp
+ #oatpp-sqlite
+ #oatpp-swagger
+ #sqlite
 
  # absl 
  abseil_dll
@@ -210,9 +154,9 @@ target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
 #set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /SAFESEH:NO")
 
 
-set(AllFile ${GbSipServer_source} 
+set(AllFile ${GbMediaServer_source} 
 
-	${swagger_source}
+	 
 )
 foreach(fileItem ${AllFile})       
     # Get the directory of the source file
