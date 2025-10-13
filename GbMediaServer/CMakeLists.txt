@@ -25,6 +25,65 @@ add_definitions(
  
 )
 
+add_definitions(
+
+
+#-D_WINSOCK_DEPRECATED_NO_WARNINGS
+#-D_CRT_SECURE_NO_DEPRECATE
+#-D_CRT_NONSTDC_NO_WARNINGS
+#-DWIN32
+#-D_DEBUG
+#-D_CONSOLE
+
+
+        ## define path to swagger-ui static resources folder
+        -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
+
+        ## SQLite database file
+        -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
+        ## SQLite database test file
+        -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
+
+        ## Path to database migration scripts
+        -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
+)
+
+
+ include_directories(
+	. 
+	#../libswagger
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-swagger
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite/sqlite
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	 
+)
+link_directories( 
+
+${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
+
+)
+
+
+FILE(GLOB  swagger_source
+
+		controller/*.cpp 
+        controller/*.hpp
+		controller/*.h
+        db/*.hpp
+		db/*.cpp 
+		db/*.h
+        dto/*.h
+        dto/*.hpp
+        dto/*.cpp 
+		service/*.h
+        service/*.cpp
+        service/*.hpp
+		
+)
 
  include_directories(
 	 ../../libwebrtc
@@ -45,6 +104,7 @@ file(GLOB GbMediaServer_source
 		 
 		*.h
 	*.cpp 
+	*.hpp 
 	 
 	
         )
@@ -56,13 +116,13 @@ file(GLOB GbMediaServer_source
 #add_subdirectory(D:/Work/rtc/crtcserver/deps/curl-7.81.0)
 #add_subdirectory(libsip)
  
-add_executable(${PROJECT_NAME}     ${GbMediaServer_source}  )
-add_dependencies(${PROJECT_NAME} libswagger)
+add_executable(${PROJECT_NAME}     ${GbMediaServer_source}   ${swagger_source})
+#add_dependencies(${PROJECT_NAME} libswagger)
 # add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
  
-libswagger
+#libswagger
 #libsip 
 Dnsapi.lib   
 delayimp.lib
@@ -70,10 +130,10 @@ ws2_32.lib
  Qwave.lib
 
  #
- #oatpp
- #oatpp-sqlite
- #oatpp-swagger
- #sqlite
+ oatpp
+ oatpp-sqlite
+ oatpp-swagger
+ sqlite
 
  # absl 
  abseil_dll
@@ -156,7 +216,7 @@ target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
 
 set(AllFile ${GbMediaServer_source} 
 
-	 
+	 ${swagger_source}
 )
 foreach(fileItem ${AllFile})       
     # Get the directory of the source file

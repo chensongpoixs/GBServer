@@ -54,7 +54,7 @@ add_definitions(
 	../../deps/libsip/osip2
 	../../deps/libsip/osipparser2
 	./utils 
-	../libswagger
+	#../libswagger
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
@@ -112,13 +112,13 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
 
 							${swagger_source}
 								)
-add_dependencies(${PROJECT_NAME} libswagger)
+#add_dependencies(${PROJECT_NAME} libswagger)
  add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
 
  
-libswagger
+#libswagger
 libsip 
 Dnsapi.lib   
 delayimp.lib

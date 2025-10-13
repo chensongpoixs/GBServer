@@ -16,8 +16,7 @@
 
 
 ******************************************************************************/
-#include "service/DeviceServer.hpp"
-#include "service/DeviceServer.hpp"
+#include "service/DeviceService.hpp" 
 
 
 oatpp::Object<DeviceDto> DeviceService::createDevice(const oatpp::Object<DeviceDto>& dto) {

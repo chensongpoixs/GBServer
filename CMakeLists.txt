@@ -29,6 +29,6 @@ include_directories(
 	 
 )
 
-add_subdirectory(libswagger)
+#add_subdirectory(libswagger)
 add_subdirectory(GbSipServer)
 add_subdirectory(GbMediaServer) 
