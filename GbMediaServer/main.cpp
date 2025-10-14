@@ -23,7 +23,7 @@
 
 #include "AppComponent.hpp"
 
-#include "controller/RtcController.hpp"
+#include "controller/RtcApiController.hpp"
 #include "controller/StaticController.hpp"
 #include "oatpp/web/server/interceptor/AllowCorsGlobal.hpp"
 #include "oatpp-swagger/Controller.hpp"
@@ -62,7 +62,7 @@ void run() {
 
 	//docEndpoints.append(router->addController(UserController::createShared())->getEndpoints());
 	//	oatpp::web::server::api::Endpoints DevicedocEndpoints;
-	docEndpoints.append(router->addController(RtcController::createShared())->getEndpoints());
+	docEndpoints.append(router->addController(RtcApiController::createShared())->getEndpoints());
 
 	router->addController(oatpp::swagger::Controller::createShared(docEndpoints));
 	//router->addController(oatpp::swagger::Controller::createShared(docEndpoints));

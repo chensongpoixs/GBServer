@@ -19,7 +19,7 @@
 #ifndef CRUD_PAGEDTO_HPP
 #define CRUD_PAGEDTO_HPP
 
-#include "RtcDto.hpp"
+#include "RtcApiDto.hpp"
 #include OATPP_CODEGEN_BEGIN(DTO)
 
 template<class T>
@@ -34,9 +34,9 @@ class PageDto : public oatpp::DTO {
 
 };
 
-class RtcPageDto : public PageDto<oatpp::Object<RtcDto>> {
+class RtcApiPageDto : public PageDto<oatpp::Object<RtcApiDto>> {
 
-  DTO_INIT(RtcPageDto, PageDto<oatpp::Object<RtcDto>>)
+  DTO_INIT(RtcApiPageDto, PageDto<oatpp::Object<RtcApiDto>>)
 
 };
  

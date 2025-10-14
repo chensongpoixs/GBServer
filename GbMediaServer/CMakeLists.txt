@@ -19,11 +19,7 @@ set(CMAKE_CXX_STANDARD 17)
 				#	-D_AFXDLL
 #)
 
-add_definitions(
 
-
- 
-)
 
 add_definitions(
 
@@ -117,7 +113,7 @@ file(GLOB GbMediaServer_source
 #add_subdirectory(libsip)
  
 add_executable(${PROJECT_NAME}     ${GbMediaServer_source}   ${swagger_source})
-#add_dependencies(${PROJECT_NAME} libswagger)
+add_dependencies(${PROJECT_NAME} libmedia_transfer_protocol)
 # add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
@@ -206,7 +202,10 @@ platform_thread_types
 			  #  libuv.lib  的依赖库
 			  dbghelp.lib
 
+			  libmedia_transfer_protocol
 
+			  libcrypto
+		libssl
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )

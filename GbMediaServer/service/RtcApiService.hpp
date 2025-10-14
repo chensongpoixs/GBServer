@@ -1,4 +1,4 @@
-/*
+﻿/*
 *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
 *
 *  Please visit https://chensongpoixs.github.io for detail
@@ -11,23 +11,34 @@
 */
 /*****************************************************************************
 				  Author: chensong
-				  date:  2025-10-12
+				  date:  2025-09-17
 
 
 
 ******************************************************************************/
-#include "service/RtcService.hpp"
-//#include "service/DeviceServer.hpp"
 
-
-oatpp::Object<RtcDto> RtcService::createRtc(const oatpp::Object<RtcDto>& dto) {
-
-	//auto dbResult = m_database->createDevice(dto);
-	//OATPP_ASSERT_HTTP(dbResult->isSuccess(), Status::CODE_500, dbResult->getErrorMessage());
-
-	//auto dievceId = oatpp::sqlite::Utils::getLastInsertRowId(dbResult->getConnection());
-
-	return     RtcDto::createShared(); //getDeviceById(dievceId);
-
-}
+#ifndef _C_Rtc_API_SERVICE_HPP
+#define _C_Rtc_API_SERVICE_HPP
  
+//#include "db/RtcDb.hpp"
+#include "dto/PageDto.hpp"
+#include "dto/RtcApiDto.hpp"
+
+#include "dto/StatusDto.hpp"
+
+#include "oatpp/web/protocol/http/Http.hpp"
+#include "oatpp/macro/component.hpp"
+
+class RtcApiService {
+private:
+	typedef oatpp::web::protocol::http::Status Status;
+private:
+	//OATPP_COMPONENT(std::shared_ptr<DeviceDb>, m_database); // Inject database component
+public:
+
+	oatpp::Object<RtcApiDto> createRtcApi(const oatpp::Object<RtcApiDto>& dto);
+	 
+
+};
+
+#endif //_C_DEVICE_SERVICE_HPP

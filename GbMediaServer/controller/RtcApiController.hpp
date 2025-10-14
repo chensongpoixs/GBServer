@@ -16,48 +16,48 @@
 
 
 ******************************************************************************/
-#ifndef _C_RTC_Controller_hpp
-#define _C_RTC_Controller_hpp
+#ifndef _C_RTC_API_Controller_hpp
+#define _C_RTC_API_Controller_hpp
  
-#include "service/RtcService.hpp"
+#include "service/RtcApiService.hpp"
 #include "oatpp/web/server/api/ApiController.hpp"
 #include "oatpp/web/mime/ContentMappers.hpp"
 #include "oatpp/macro/codegen.hpp"
-#include "dto/RtcDto.hpp"
+#include "dto/RtcApiDto.hpp"
  
 #include OATPP_CODEGEN_BEGIN(ApiController) //<- Begin Codegen
 
 /**
  * Device REST controller.
  */
-class RtcController : public oatpp::web::server::api::ApiController {
+class RtcApiController : public oatpp::web::server::api::ApiController {
 public:
-	RtcController(OATPP_COMPONENT(std::shared_ptr<oatpp::web::mime::ContentMappers>, apiContentMappers))
+	RtcApiController(OATPP_COMPONENT(std::shared_ptr<oatpp::web::mime::ContentMappers>, apiContentMappers))
     : oatpp::web::server::api::ApiController(apiContentMappers)
   {}
 private:
-  RtcService m_rtcService; // Create rtc service.
+  RtcApiService m_rtcApiService; // Create rtc service.
 public:
 
-  static std::shared_ptr<RtcController> createShared(
+  static std::shared_ptr<RtcApiController> createShared(
     OATPP_COMPONENT(std::shared_ptr<oatpp::web::mime::ContentMappers>, apiContentMappers) // Inject ContentMappers
   ){
-    return std::make_shared<RtcController>(apiContentMappers);
+    return std::make_shared<RtcApiController>(apiContentMappers);
   }
   
-  ENDPOINT_INFO(createRtc) {
-    info->summary = "Create new Rtc";
+  ENDPOINT_INFO(createRtcApi) {
+    info->summary = "Create new RtcApi";
 
-    info->addConsumes<Object<RtcDto>>("application/json");
+    info->addConsumes<Object<RtcApiDto>>("application/json");
 
-    info->addResponse<Object<RtcDto>>(Status::CODE_200, "application/json");
+    info->addResponse<Object<RtcApiDto>>(Status::CODE_200, "application/json");
     info->addResponse<Object<StatusDto>>(Status::CODE_404, "application/json");
     info->addResponse<Object<StatusDto>>(Status::CODE_500, "application/json");
   }
-  ENDPOINT("POST", "Rtc", createRtc,
-           BODY_DTO(Object<RtcDto>, rtcDto))
+  ENDPOINT("POST", "RtcApi", createRtcApi,
+           BODY_DTO(Object<RtcApiDto>, rtcApiDto))
   {
-    return createDtoResponse(Status::CODE_200, m_rtcService.createRtc(rtcDto));
+    return createDtoResponse(Status::CODE_200, m_rtcApiService.createRtcApi(rtcApiDto));
   }
   
   

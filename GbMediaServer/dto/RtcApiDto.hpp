@@ -30,9 +30,9 @@
 //     VALUE(ADMIN, 1, "ROLE_ADMIN")
 //)
 
-class RtcDto : public oatpp::DTO {
+class RtcApiDto : public oatpp::DTO {
   
-  DTO_INIT(RtcDto, DTO)
+  DTO_INIT(RtcApiDto, DTO)
 	  /*
 	  
 CREATE TABLE t_device (
@@ -54,7 +54,7 @@ CREATE TABLE t_device (
 	role        VARCHAR
 );
 	  */
-   DTO_FIELD(Int32, type) = 0; //sdp
+   DTO_FIELD(String, type, "type") = "offer"; //sdp
    DTO_FIELD(String, sdp, "sdp") = ""; //sdp
   //DTO_FIELD(Int32, id);
   //DTO_FIELD(String, deviceID, "deviceid") = "21321321321321";  //设备编号
