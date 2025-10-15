@@ -23,7 +23,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_definitions(
 
-
+		#-D_AFXDLL
 #-D_WINSOCK_DEPRECATED_NO_WARNINGS
 #-D_CRT_SECURE_NO_DEPRECATE
 #-D_CRT_NONSTDC_NO_WARNINGS
@@ -47,6 +47,7 @@ add_definitions(
 
  include_directories(
 	. 
+	./swagger
 	#../libswagger
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
 	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
@@ -66,18 +67,22 @@ ${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
 
 FILE(GLOB  swagger_source
 
-		controller/*.cpp 
-        controller/*.hpp
-		controller/*.h
-        db/*.hpp
-		db/*.cpp 
-		db/*.h
-        dto/*.h
-        dto/*.hpp
-        dto/*.cpp 
-		service/*.h
-        service/*.cpp
-        service/*.hpp
+		swagger/controller/*.cpp 
+        swagger/controller/*.hpp
+		swagger/controller/*.h
+        swagger/db/*.hpp
+		swagger/db/*.cpp 
+		swagger/db/*.h
+        swagger/dto/*.h
+        swagger/dto/*.hpp
+        swagger/dto/*.cpp 
+		swagger/service/*.h
+        swagger/service/*.cpp
+        swagger/service/*.hpp
+		swagger/*.h 
+		swagger/*.cpp 
+		swagger/*.hpp
+
 		
 )
 
@@ -96,7 +101,13 @@ FILE(GLOB  swagger_source
  
 file(GLOB GbMediaServer_source
         
-		  
+			server/*.h
+			server/*.cpp 
+	 user/*.h 
+	 user/*.cpp 
+	 utils/*.h 
+	 utils/*.cpp 
+
 		 
 		*.h
 	*.cpp 
@@ -118,72 +129,77 @@ add_dependencies(${PROJECT_NAME} libmedia_transfer_protocol)
 
 set(ALL_LIB 
  
-#libswagger
-#libsip 
-Dnsapi.lib   
-delayimp.lib
-ws2_32.lib
- Qwave.lib
+			#libswagger
+			#libsip 
+			Dnsapi.lib   
+			delayimp.lib
+			ws2_32.lib
+			 Qwave.lib
+			 crypt32.lib
+			iphlpapi.lib
+			secur32.lib
+			 #
+			 oatpp
+			 oatpp-sqlite
+			 oatpp-swagger
+			 sqlite
+			crypt32.lib
+			iphlpapi.lib
+			secur32.lib
+			 # absl 
+			 abseil_dll
+		#absl_cordz_functions
+		#absl_cordz_handle
+		#absl_cordz_info
+		#absl_cordz_sample_token
+		#absl_flags
+		#absl_flags_commandlineflag_internal
+		#absl_flags_internal
+		#absl_flags_marshalling
+		#absl_flags_parse
+		#absl_flags_private_handle_accessor
+		#absl_flags_program_name
+		#absl_flags_reflection
+		#absl_flags_usage
+		#absl_flags_usage_internal
+		#absl_low_level_hash
+		#absl_random_internal_distribution_test_util
+		
+		 
+				 # rtc_base
+				 logging
 
- #
- oatpp
- oatpp-sqlite
- oatpp-swagger
- sqlite
+				 async_resolver_interface
+				 async_socket
+				 bitstream_reader
+				 callback_list
+				 checks
+				 ip_address
+				 net_helpers
+				 network_constants
+				 null_socket_server
+				 platform_thread
+				platform_thread_types
+				 rate_limiter
+				 rtc_base
+				 rtc_base_approved
+				 rtc_base_win
+				 #rtc_base_win_wgc
+				 rtc_event
+				 rtc_numerics
+				 rtc_task_queue
+				 rtc_task_queue_win
+				 socket
+				 socket_address
+				 stringutils
+				 threading
+				 timeutils
+				 weak_ptr
+				 win32
 
- # absl 
- abseil_dll
-		absl_cordz_functions
-		absl_cordz_handle
-		absl_cordz_info
-		absl_cordz_sample_token
-		absl_flags
-		absl_flags_commandlineflag_internal
-		absl_flags_internal
-		absl_flags_marshalling
-		absl_flags_parse
-		absl_flags_private_handle_accessor
-		absl_flags_program_name
-		absl_flags_reflection
-		absl_flags_usage
-		absl_flags_usage_internal
-		absl_low_level_hash
-		absl_random_internal_distribution_test_util
- # rtc_base
- logging
-
- async_resolver_interface
- async_socket
- bitstream_reader
- callback_list
- checks
- ip_address
- net_helpers
- network_constants
- null_socket_server
- platform_thread
-platform_thread_types
- rate_limiter
- rtc_base
- rtc_base_approved
- rtc_base_win
- #rtc_base_win_wgc
- rtc_event
- rtc_numerics
- rtc_task_queue
- rtc_task_queue_win
- socket
- socket_address
- stringutils
- threading
- timeutils
- weak_ptr
- win32
-
- base64
- sigslot 
-
- iphlpapi.lib
+				 base64
+				 sigslot 
+				  iphlpapi.lib
 		#crypto32.lib 
 		ws2_32   
 		crypt32
@@ -206,12 +222,36 @@ platform_thread_types
 
 			  libcrypto
 		libssl
+				 libp2p_peerconnection
+				 libmedia_transfer_protocol
+
+	 			yield
+				mutex
+				sequence_checker_internal
+
+				yield_policy
+				libice
+				libmedia_codec
+				task_queue
+				libwebrtc
+				async_resolver_interface
+				async_socket
+				#async_dns_resolver
+				wrapping_async_dns_resolver
+				stringutils
+
+
+				###########################
+
+				 
+
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
 
 #set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /SAFESEH:NO")
-
+			# Console (/SUBSYSTEM:CONSOLE)
+#set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE /SAFESEH:NO")
 
 set(AllFile ${GbMediaServer_source} 
 

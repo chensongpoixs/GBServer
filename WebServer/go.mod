@@ -1,3 +1,3 @@
-module signaling
+module WebServer
 
 go 1.16

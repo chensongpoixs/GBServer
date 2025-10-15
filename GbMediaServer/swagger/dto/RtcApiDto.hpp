@@ -57,8 +57,8 @@ CREATE TABLE t_device (
    DTO_FIELD(String, type, "type") = "offer"; //sdp
    DTO_FIELD(String, sdp, "sdp") = ""; //sdp
   //DTO_FIELD(Int32, id);
-  //DTO_FIELD(String, deviceID, "deviceid") = "21321321321321";  //设备编号
-  //DTO_FIELD(String, deviceName, "devicename") = "hik"; //设备名称
+  DTO_FIELD(String, streamUrl, "streamurl") = "webrtc://chensong.com:9091/live/chensong";  //设备编号
+  DTO_FIELD(String, clientId, "clientid") = "clientid"; //设备名称
   //DTO_FIELD(Int32, Type, "type") = 0; //设备类型, "GB" - 国标设备, "Decode" - 解码器
   //DTO_FIELD(Int32, ChannelCount, "channelcount") = 0; // 通道数
   //DTO_FIELD(String, password, "password") = "12345678";

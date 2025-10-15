@@ -10,8 +10,8 @@ var stopPullBtn = document.getElementById("stopPullBtn");
 pullBtn.addEventListener("click", startPull);
 stopPullBtn.addEventListener("click", stopPull);
 
-var UserName = $("#PullUserName").val();
-var streamName = $("#PullStreamName").val();
+var StreamUrl = $("#StreamUrl").val();
+var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
 var video = 1;//$("#video").val();
 var offer = "";
@@ -46,7 +46,9 @@ xhr.setRequestHeader('Content-Type', 'application/json');
 // 创建要发送的数据对象
 var data = {
    type: 'offer',
-   sdp: offerSdp
+   sdp: offerSdp,
+   streamurl: StreamUrl,
+   clientid: clientId
 };
 console.log('JSON.stringify(data) :' + JSON.stringify(data));
 // 发送请求并将数据转换为JSON字符串

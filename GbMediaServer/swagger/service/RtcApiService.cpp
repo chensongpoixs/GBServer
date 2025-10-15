@@ -18,20 +18,21 @@
 ******************************************************************************/
 #include "service/RtcApiService.hpp"
 //#include "service/DeviceServer.hpp"
-
-#include "libmedia_transfer_protocol/play/play_rtc.h"
+#include "user/play_rtc_user.h"
+//#include "user/play_rtc.h"
+#include "server/rtc_service.h"
 oatpp::Object<RtcApiDto> RtcApiService::createRtcApi(const oatpp::Object<RtcApiDto>& dto) {
 
 	//auto dbResult = m_database->createDevice(dto);
 	//OATPP_ASSERT_HTTP(dbResult->isSuccess(), Status::CODE_500, dbResult->getErrorMessage());
-	libmedia_transfer_protocol::PlayRtc play_rtc;
-	play_rtc.ProcessOfferSdp(dto->sdp);
-	std::string answer = play_rtc.BuildAnswerSdp();
-	//auto dievceId = oatpp::sqlite::Utils::getLastInsertRowId(dbResult->getConnection());
-	auto data = RtcApiDto::createShared();
-	data->sdp = answer;
-	data->type = "answer";
-	return     data; //getDeviceById(dievceId);
+	//gb_media_server::PlayRtcUser play_rtc;
+	//play_rtc.ProcessOfferSdp(dto->sdp);
+	//std::string answer = play_rtc.BuildAnswerSdp();
+	////auto dievceId = oatpp::sqlite::Utils::getLastInsertRowId(dbResult->getConnection());
+	//auto data = RtcApiDto::createShared();
+	//data->sdp = answer;
+	//data->type = "answer";
+	return     gb_media_server::RtcService::GetInstance().CreateOfferAnswer(dto); //getDeviceById(dievceId);
 
 }
  
