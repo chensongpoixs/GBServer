@@ -25,6 +25,8 @@
 #include "user/player_user.h"
 #include "rtc_base/string_encode.h"
 #include "utils/time_corrector.h"
+#include "libmedia_transfer_protocol/librtc/stun.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
 namespace  gb_media_server
 {
 	oatpp::Object<RtcApiDto>   RtcService::CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto)
@@ -53,18 +55,23 @@ namespace  gb_media_server
 
 			s->AddPlayer(std::dynamic_pointer_cast<PlayerUser>(user));
 
-			auto webrtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-			if (!webrtc_user->ProcessOfferSdp(dto->sdp))
+			auto rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
+			if (!rtc_user->ProcessOfferSdp(dto->sdp))
 			{
 				GBMEDIASERVER_LOG(LS_ERROR) << "parse sdp error. session name:" << session_name;
 				return RtcApiDto::createShared();
 			}
 
-			auto answer_sdp = webrtc_user->BuildAnswerSdp();
+			auto answer_sdp = rtc_user->BuildAnswerSdp();
 			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
 			auto answer_ = RtcApiDto::createShared();
 			answer_->sdp = answer_sdp;
 			answer_->type = "answer";
+			{
+				std::lock_guard<std::mutex> lock(users_lock_);
+				name_users_.emplace(std::make_pair(rtc_user->LocalUFrag(), rtc_user));
+				GBMEDIASERVER_LOG(LS_INFO) << "insert : user: " << rtc_user->LocalUFrag();
+			}
 			return answer_;
 		}
 
@@ -95,18 +102,23 @@ namespace  gb_media_server
 
 			s->AddPlayer(std::dynamic_pointer_cast<PlayerUser>(user));
 
-			auto webrtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-			if (!webrtc_user->ProcessOfferSdp(dto->sdp))
+			auto rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
+			if (!rtc_user->ProcessOfferSdp(dto->sdp))
 			{
 				GBMEDIASERVER_LOG(LS_ERROR) << "parse sdp error. session name:" << session_name;
 				return RtcApiDto::createShared();
 			}
 
-			auto answer_sdp = webrtc_user->BuildAnswerSdp();
+			auto answer_sdp = rtc_user->BuildAnswerSdp();
 			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
 			auto answer_ = RtcApiDto::createShared();
 			answer_->sdp = answer_sdp;
 			answer_->type = "answer";
+			{
+				std::lock_guard<std::mutex> lock(users_lock_);
+				name_users_.emplace(std::make_pair(rtc_user->LocalUFrag(), rtc_user));
+				GBMEDIASERVER_LOG(LS_INFO) << "insert : user: " << rtc_user->LocalUFrag();
+			}
 			return answer_;
 		});
 	}
@@ -114,7 +126,56 @@ namespace  gb_media_server
 
 	void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		//GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		libmedia_transfer_protocol::librtc::Stun  stun;
+		if (!stun.Decode((const uint8_t *)data, len))
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << " stun parse failed !!!" << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+			return;
+		}
+		std::shared_ptr< PlayRtcUser>  rtc_user;
+		std::lock_guard<std::mutex> lk(lock_);
+		auto iter = name_users_.find(stun.LocalUFrag());
+		if (iter != name_users_.end())
+		{
+			rtc_user = iter->second;
+			stun.SetPassword(rtc_user->LocalPasswd());
+			//rtc_user->SetConnection(socket);
+			//rtc_user->SetSockAddr(addr);
+
+			stun.SetMessageType(libmedia_transfer_protocol::librtc::kStunMsgBindingResponse);
+			uint32_t  mapped_addr = 0;
+
+			//mapped_addr = libmedia_transfer_protocol::ByteReader<uint32_t>::ReadBigEndian(&(const uint8_t *)(&(addr.ipaddr().ipv4_address().S_un.S_addr)));
+			stun.SetMappedAddr(ntohl(addr.ipaddr().ipv4_address().s_addr));
+			stun.SetMappedPort(addr.port());
+
+			rtc::Buffer packet = stun.Encode();
+			//if (packet)
+			{
+				//rtc::PacketOptions options;
+				
+				socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
+				//auto naddr = webrtc_user->GetSockAddr();
+				//packet->SetExt(naddr);
+				//server->SendPacket(packet);
+			}
+		}
+		else
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: "<< stun.LocalUFrag();
+		}
+
+
+		//if (rtc_user)
+		//{
+		//	auto iter1 = users_.find(addr.ipaddr().ToString());
+		//	if (iter1 == users_.end())
+		//	{
+		//		users_.emplace(addr.ipaddr().ToString(), rtc_user);
+		//	}
+		//}
+		
 	}
 	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
@@ -128,22 +189,7 @@ namespace  gb_media_server
 	{
 		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 	}
-	void RtcService::OnStun(rtc::Socket * socket, const rtc::Buffer& buffer, const rtc::SocketAddress & addr, const int64_t & ms)
-	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" <<socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
-	}
-	void RtcService::OnDtls(rtc::Socket * socket, const rtc::Buffer& buffer, const rtc::SocketAddress & addr, const int64_t & ms)
-	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
-	}
-	void RtcService::OnRtp(rtc::Socket * socket, const rtc::Buffer &buffer, const rtc::SocketAddress & addr, const int64_t & ms)
-	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
-	}
-	void RtcService::OnRtcp(rtc::Socket * socket, const rtc::Buffer &buffer, const rtc::SocketAddress & addr, const int64_t & ms)
-	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
-	}
+	 
 	std::string RtcService::GetSessionNameFromUrl(const std::string &url)
 	{
 		//webrtc://chensong.com:9091/live/test

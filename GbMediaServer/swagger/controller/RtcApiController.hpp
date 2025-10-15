@@ -57,6 +57,8 @@ public:
   ENDPOINT("POST", "RtcApi", createRtcApi,
            BODY_DTO(Object<RtcApiDto>, rtcApiDto))
   {
+	//  m_defaultAuthorizationHandler->getRealm();
+
     return createDtoResponse(Status::CODE_200, m_rtcApiService.createRtcApi(rtcApiDto));
   }
   

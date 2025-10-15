@@ -2,14 +2,14 @@
 
 
 
-var rtc_api_server = "http://192.168.1.2:8001";
+
 var remoteVideo = document.getElementById("remoteVideo");
 var pullBtn = document.getElementById("StartpullBtn");
 var stopPullBtn = document.getElementById("stopPullBtn");
 
 pullBtn.addEventListener("click", startPull);
 stopPullBtn.addEventListener("click", stopPull);
-
+var rtc_api_server = $("#PullHttpUrl").val();
 var StreamUrl = $("#StreamUrl").val();
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();

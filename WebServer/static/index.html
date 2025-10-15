@@ -48,7 +48,8 @@
     <h2>Rtc推拉流系统</h2>
     <div>
         <div class="push" style="float:left;">
-            <h3>推流：</h3>
+            <h3>推流http地址： <input id="PushhttpUrl" value="http://chensong.com"   style='width:300px'>
+			</h3>
             <form>
                 推流选项：
                 <input type="radio" name="select" id="pushScreenRadio" checked="checked" /> 推流屏幕
@@ -60,7 +61,7 @@
 			<input type="checkbox" id="audioCheckbox" checked="checked">音频</input>
 			</br>
 			webrtc:
-            <input id="StreamUrl" value="webrtc://chensong.com/live/chensong"   style='width:300px'>
+            <input id="StreamUrl" value="webrtc://192.168.1.2:8001/live/chensong"   style='width:300px'>
            
             
 			
@@ -79,13 +80,13 @@
         </div>
         
         <div class="pull" style="float:left;margin-left:30px;">
-            <h3>拉流：</h3>
+            <h3>拉流http地址：<input id="PullhttpUrl" value="http://chensong.com"   style='width:300px'></h3>
             <br/>
 			 clientID:
             <input id="clientId" value="chensong">
               </br>
             webrtc:
-            <input id="StreamUrl" value="webrtc://chensong.com/live/chensong"  style='width:300px'>
+            <input id="StreamUrl" value="webrtc://192.168.1.2:8001/live/chensong"  style='width:300px'>
             
            
             <div style="margin-top:5px">
