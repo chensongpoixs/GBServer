@@ -30,11 +30,13 @@
 #include "libmedia_transfer_protocol/librtc/rtc_sdp.h"
 #include "libmedia_transfer_protocol/librtc/dtls_certs.h"
 #include "user/player_user.h"
+#include "libmedia_transfer_protocol/librtc/dtls.h"
+#include "rtc_base/socket_address.h"
 namespace gb_media_server {
 	class Connection;
 	class Stream;
 	class Session;
-	class PlayRtcUser : public  PlayerUser
+	class PlayRtcUser : public  PlayerUser  , public sigslot::has_slots<>
 	{
 	public:
 		explicit PlayRtcUser( std::shared_ptr<Connection> &ptr,  std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
@@ -50,6 +52,17 @@ namespace gb_media_server {
 	public:
 
 
+		void SetRemoteSocketAddress(const rtc::SocketAddress & addr);
+		void OnDtlsRecv(const char *buf, size_t size);
+
+	public:
+		//sigslot::signal3<const char *, size_t, Dtls*>
+		void OnDtlsSendPakcet(const char *data, size_t len, libmedia_transfer_protocol::librtc::Dtls* dtls);
+		void OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls *dtls);
+		//sigslot::signal1<  Dtls*>
+		//	SignalDtlsHandshakeDone;
+	public:
+
 		virtual   UserType   GetUserType() const  override;
 	private:
 		static std::string GetUFrag(int size);
@@ -60,7 +73,12 @@ namespace gb_media_server {
 		libmedia_transfer_protocol::librtc::RtcSdp sdp_;
 		//Dtls dtls_;
 
-		libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
+		//libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
+		libmedia_transfer_protocol::librtc::Dtls   dtls_;
+
+		bool dtls_done_{ false };
+
+		rtc::SocketAddress             remote_address_;
 	};
 }
 

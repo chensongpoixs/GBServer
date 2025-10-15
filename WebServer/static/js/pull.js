@@ -9,7 +9,7 @@ var stopPullBtn = document.getElementById("stopPullBtn");
 
 pullBtn.addEventListener("click", startPull);
 stopPullBtn.addEventListener("click", stopPull);
-var rtc_api_server = $("#PullHttpUrl").val();
+
 var StreamUrl = $("#StreamUrl").val();
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
@@ -35,7 +35,8 @@ function stopPull() {
 }
 
 function sendOffer(offerSdp) {
-    console.log("send offer: /RtcApi/send  offer ");
+	var rtc_api_server = $("#PullhttpUrl").val();
+    console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 
 	// 创建一个新的XMLHttpRequest对象
 var xhr = new XMLHttpRequest();

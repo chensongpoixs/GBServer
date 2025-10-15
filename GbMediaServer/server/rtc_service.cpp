@@ -142,7 +142,7 @@ namespace  gb_media_server
 			stun.SetPassword(rtc_user->LocalPasswd());
 			//rtc_user->SetConnection(socket);
 			//rtc_user->SetSockAddr(addr);
-
+			rtc_user->SetRemoteSocketAddress(addr);
 			stun.SetMessageType(libmedia_transfer_protocol::librtc::kStunMsgBindingResponse);
 			uint32_t  mapped_addr = 0;
 
@@ -167,19 +167,27 @@ namespace  gb_media_server
 		}
 
 
-		//if (rtc_user)
-		//{
-		//	auto iter1 = users_.find(addr.ipaddr().ToString());
-		//	if (iter1 == users_.end())
-		//	{
-		//		users_.emplace(addr.ipaddr().ToString(), rtc_user);
-		//	}
-		//}
+		if (rtc_user)
+		{
+			auto iter1 = users_.find(addr.ipaddr().ToString());
+			if (iter1 == users_.end())
+			{
+				users_.emplace(addr.ipaddr().ToString(), rtc_user);
+			}
+		}
 		
 	}
 	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		{
+			std::lock_guard<std::mutex> lock(lock_);
+			auto iter1 = users_.find(addr.ipaddr().ToString());
+			if (iter1 != users_.end())
+			{
+				iter1->second->OnDtlsRecv(data, len);
+			}
+		}
 	}
 	void RtcService::OnRtp(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{

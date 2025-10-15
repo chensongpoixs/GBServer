@@ -19,6 +19,11 @@
 #include "user/play_rtc_user.h"
 #include <random>
 #include "user/user.h"
+#include "server/session.h"
+
+#include "rtc_base/logging.h"
+#include "rtc_base/buffer.h"
+#include "server/gb_media_service.h"
 namespace gb_media_server
 {
 	PlayRtcUser::PlayRtcUser(  std::shared_ptr<Connection> &ptr,   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
@@ -34,14 +39,20 @@ namespace gb_media_server
 		sdp_.SetLocalPasswd(local_passwd_);
 		sdp_.SetAudioSsrc(audio_ssrc);
 		sdp_.SetVideoSsrc(video_ssrc);
-		dtls_certs_.Init();
-		sdp_.SetFingerprint(dtls_certs_.Fingerprint());
+		//dtls_certs_.Init();
+		dtls_.Init();
+		dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);
+		dtls_.SignalDtlsHandshakeDone.connect(this, &PlayRtcUser::OnDtlsHandshakeDone);
+		sdp_.SetFingerprint(dtls_.Fingerprint());
 		// 本地ip port 
 		sdp_.SetServerAddr("192.168.1.2");
 		sdp_.SetServerPort(9001);
-		sdp_.SetStreamName("23423432432"/*s->SessionName()*/);
+		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 	}
-	PlayRtcUser:: ~PlayRtcUser(){}
+	PlayRtcUser:: ~PlayRtcUser(){
+		dtls_.SignalDtlsSendPakcet.disconnect(this);
+		dtls_.SignalDtlsHandshakeDone.disconnect(this);
+	}
 
  
 	bool PlayRtcUser::ProcessOfferSdp(const std::string &sdp) {
@@ -57,7 +68,7 @@ namespace gb_media_server
 		return sdp_.GetRemoteUFrag();
 	}
 	std::string PlayRtcUser::BuildAnswerSdp() {
-		sdp_.SetFingerprint(dtls_certs_.Fingerprint());
+		sdp_.SetFingerprint(dtls_.Fingerprint());
 		return sdp_.Encode();
 	}
 
@@ -85,6 +96,36 @@ namespace gb_media_server
 		  return rand(mt);
 	  }
 
+
+	  void PlayRtcUser::SetRemoteSocketAddress(const rtc::SocketAddress & addr)
+	  {
+		  remote_address_ = addr;
+	  }
+	  void PlayRtcUser::OnDtlsRecv(const char *buf, size_t size)
+	  {
+		  dtls_.OnRecv(buf, size);
+	  }
+	  void PlayRtcUser::OnDtlsSendPakcet(const char * data, size_t size, libmedia_transfer_protocol::librtc::Dtls * dtls)
+	  {
+		  GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << size;
+		  //PacketPtr packet = Packet::NewPacket(size);
+		  //memcpy(packet->Data(), data, size);
+		  //packet->SetPacketSize(size);
+		  //
+		  //packet->SetExt(addr_);
+		  //auto server = sLiveService->GetWebrtcServer();
+		  //server->SendPacket(packet);
+
+		  rtc::Buffer buffer(data, size);
+		  GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(buffer, remote_address_, rtc::PacketOptions());
+
+	  }
+
+	  void PlayRtcUser::OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls * dtls)
+	  {
+		  GBMEDIASERVER_LOG(LS_INFO) << "dtls handshake done.";
+		  dtls_done_ = true;
+	  }
 
 	  UserType   PlayRtcUser::GetUserType() const
 	  {

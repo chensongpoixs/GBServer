@@ -86,6 +86,11 @@ namespace  gb_media_server
 		rtc::Thread* network_thread() { return network_thread_.get(); }
 		const rtc::Thread* network_thread() const { return network_thread_.get(); }
 #endif 
+
+		 libmedia_transfer_protocol::librtc::RtcServer* GetRtcServer()const
+		{
+			return rtc_server_.get();
+		}
 	private:
 		//EventLoopThreadPool * pool_{ nullptr };
 		//std::vector<TcpServer*> servers_;

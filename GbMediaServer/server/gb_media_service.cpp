@@ -118,6 +118,8 @@ namespace  gb_media_server
 		});
 		
 	}
+
+	
 	void GbMediaService::Stop()
 	{
 	}
