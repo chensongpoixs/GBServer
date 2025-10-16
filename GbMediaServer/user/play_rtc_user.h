@@ -33,11 +33,14 @@
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
+#include "libmedia_codec/x264_encoder.h"
+#include "libcross_platform_collection_render/track_capture/ctrack_capture.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
 namespace gb_media_server {
 	class Connection;
 	class Stream;
 	class Session;
-	class PlayRtcUser : public  PlayerUser  , public sigslot::has_slots<>
+	class PlayRtcUser : public  PlayerUser  , public  libmedia_codec::EncodeImageObser, public sigslot::has_slots<>
 	{
 	public:
 		explicit PlayRtcUser( std::shared_ptr<Connection> &ptr,  std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
@@ -62,6 +65,9 @@ namespace gb_media_server {
 		void OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls *dtls);
 		//sigslot::signal1<  Dtls*>
 		//	SignalDtlsHandshakeDone;
+
+	public:
+		virtual void   SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f) override;
 	public:
 
 		virtual   UserType   GetUserType() const  override;
@@ -81,6 +87,16 @@ namespace gb_media_server {
 
 		rtc::SocketAddress             remote_address_;
 		libmedia_transfer_protocol::librtc::SrtpSession   srtp_session_;
+
+
+
+#if 1
+		std::unique_ptr< rtc::Thread>        video_encoder_thread_;
+		std::unique_ptr< libmedia_codec::X264Encoder>                          x264_encoder_;
+		rtc::scoped_refptr<libcross_platform_collection_render::CapturerTrackSource>     capturer_track_source_;
+#endif //
+		uint32_t      video_seq_ = 100;
+		const libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 	};
 }
 

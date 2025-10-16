@@ -10,5 +10,5 @@ export GO111MODULE=on
 export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 
-#go build -o signaling src/*.go
+#go build -o WebServer src/*.go
 go run  src/*.go
