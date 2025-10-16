@@ -32,6 +32,7 @@
 #include "user/player_user.h"
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
+#include "libmedia_transfer_protocol/librtc/srtp_session.h"
 namespace gb_media_server {
 	class Connection;
 	class Stream;
@@ -79,6 +80,7 @@ namespace gb_media_server {
 		bool dtls_done_{ false };
 
 		rtc::SocketAddress             remote_address_;
+		libmedia_transfer_protocol::librtc::SrtpSession   srtp_session_;
 	};
 }
 

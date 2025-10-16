@@ -90,6 +90,7 @@ namespace  gb_media_server
 	}
 	void GbMediaService::Start(const char * ip, uint16_t port)
 	{
+		libmedia_transfer_protocol::librtc::SrtpSession::InitSrtpLibrary();
 		context_ = libp2p_peerconnection::ConnectionContext::Create();
 		//network_thread_ = rtc::Thread::CreateWithSocketServer();
 		//worker_thread_ = rtc::Thread::Create();

@@ -125,6 +125,7 @@ namespace gb_media_server
 	  {
 		  GBMEDIASERVER_LOG(LS_INFO) << "dtls handshake done.";
 		  dtls_done_ = true;
+		  srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 	  }
 
 	  UserType   PlayRtcUser::GetUserType() const

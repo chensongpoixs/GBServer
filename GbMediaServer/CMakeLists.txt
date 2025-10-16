@@ -244,6 +244,10 @@ set(ALL_LIB
 				###########################
 
 				 
+				 #AAC
+				 faad
+				 opus
+				 libsrtp2
 
 			)
  
