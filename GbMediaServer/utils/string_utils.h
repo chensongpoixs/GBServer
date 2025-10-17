@@ -16,8 +16,10 @@
 
 
  ******************************************************************************/
-#ifndef _C_WEB_SERVICE_H_
-#define _C_WEB_SERVICE_H_
+
+
+#ifndef _C_GB_MEDIA_SERVER_STRING_UTILS_H_
+#define _C_GB_MEDIA_SERVER_STRING_UTILS_H_
 
 #include "server/session.h"
 #include "libp2p_peerconnection/connection_context.h"
@@ -30,23 +32,16 @@
 
 namespace  gb_media_server
 {
-	class WebService  : public sigslot::has_slots<>
+	namespace string_utils 
 	{
-	public:
-		WebService();
-		~WebService();
-	
-	public:
 
-		bool StartWebServer(const char *ip = "127.0.0.1", uint16_t port = 8001);
+		size_t split(std::string source,
+			char delimiter,
+			std::vector<std::string>* fields);
 
-	public:
-		void OnRequest(libmedia_transfer_protocol::libhttp::TcpSession *conn, const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
-
-	private:
-
-		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;
-	};
+		std::string  GetSessionNameFromUrl(const std::string &url);
+	}
 }
 
-#endif // _C_WEB_SERVICE_H_
+
+#endif // _C_GB_MEDIA_SERVER_STRING_UTILS_H_

@@ -29,6 +29,7 @@
 
 //}
 #include "server/session.h"
+#include "utils/string_utils.h"
 
 namespace  gb_media_server
 {
@@ -45,7 +46,7 @@ namespace  gb_media_server
 			return iter->second;
 		}
 		std::vector<std::string> list;
-		split(session_name, '/', &list);
+		string_utils::split(session_name, '/', &list);
 		 
 		if (list.size() != 3)
 		{

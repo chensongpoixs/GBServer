@@ -43,12 +43,8 @@ namespace  gb_media_server
 		}
 
 
-
-		bool StartWebServer(const char *ip = "127.0.0.1", uint16_t port = 8001);
-
-	public:
-		void OnRequest(libmedia_transfer_protocol::libhttp:: TcpSession *conn, const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
-
+		void AddPlayUser(PlayRtcUserPtr uesr);
+		void RemovePlayUser(PlayRtcUserPtr uesr);
 	//	oatpp::Object<RtcApiDto>   CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto);
 	public:
 
@@ -87,12 +83,11 @@ namespace  gb_media_server
 	public:
 
 
-		static std::string GetSessionNameFromUrl(const std::string &url);
+	//	static std::string GetSessionNameFromUrl(const std::string &url);
 		std::mutex lock_;
 		std::unordered_map<std::string, PlayRtcUserPtr> name_users_;
 		std::mutex users_lock_;
 		std::unordered_map<std::string, PlayRtcUserPtr> users_;
-		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;
 	public:
 
 	};

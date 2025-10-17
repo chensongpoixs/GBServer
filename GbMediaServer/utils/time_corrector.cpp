@@ -162,21 +162,5 @@ namespace gb_media_server
 		//	return audio_corrected_timestamp_;
 		//}
 
-size_t split(std::string source,
-	char delimiter,
-	std::vector<std::string>* fields)
-{
-	//RTC_DCHECK(fields);
-	fields->clear();
-	size_t last = 0;
-	for (size_t i = 0; i < source.length(); ++i) {
-		if (source[i] == delimiter) {
-			fields->emplace_back(source.substr(last, i - last));
-			last = i + 1;
-		}
-	}
-	fields->emplace_back(source.substr(last));
-	return fields->size();
-}
 	
 }

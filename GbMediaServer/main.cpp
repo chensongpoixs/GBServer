@@ -26,7 +26,7 @@
 #include "server/gb_media_service.h"
 #include "libmedia_transfer_protocol/libsip/sip_server.h"
 #include "server/rtc_service.h"
-
+#include "server/web_service.h"
 
 
 	
@@ -175,8 +175,9 @@ int main(int argc, char *argv[])
 	}
 
 #endif // 
-
-	gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
+	gb_media_server::WebService  web_server_;
+	web_server_.StartWebServer("192.168.1.2", 8001);
+	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
 	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", 9001);
 	while (true)
 	{

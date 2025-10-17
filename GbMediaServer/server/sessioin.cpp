@@ -37,6 +37,8 @@
 #include "api/array_view.h"
 #include "utils/time_corrector.h"
 #include "absl/strings/string_view.h"
+#include "utils/string_utils.h"
+
 namespace  gb_media_server
 {
 	namespace
@@ -73,7 +75,7 @@ namespace  gb_media_server
 		}
 		//std::vector<std::string> list = tmms::base::StringUtils::SplitString(session_name, "/");
 		std::vector<std::string> list;
-		split(session_name, '/', & list);
+		string_utils::split(session_name, '/', & list);
 
 		std::shared_ptr<User> user = std::make_shared<User>(conn, stream_, shared_from_this());
 		//user->SetAppInfo(app_info_);
@@ -102,7 +104,7 @@ namespace  gb_media_server
 		//absl::string_view  p();
 		//std::string p = rtc::hex_encode(session_name);
 		//GBMEDIASERVER_LOG(LS_INFO) << p;
-		split(/*rtc::ArrayView*/( session_name ), '/', &list);
+		string_utils:: split(/*rtc::ArrayView*/( session_name ), '/', &list);
 		if (list.size() != 3)
 		{
 			GBMEDIASERVER_LOG(LS_ERROR) << "create publish user failed.Invalid session name:" << session_name;

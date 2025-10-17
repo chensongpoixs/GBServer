@@ -33,165 +33,27 @@
 namespace  gb_media_server
 {
 	RtcService::RtcService()
-		:http_server_(new libmedia_transfer_protocol::libhttp::HttpServer())
 	{
-		http_server_->SignalOnRequest.connect(this, &RtcService::OnRequest);
 	}
 	RtcService::~RtcService()
 	{
-		if (http_server_)
-		{
-			http_server_->SignalOnRequest.disconnect(this);
-		}
+		
 	}
+#if 0
 	bool RtcService::StartWebServer(const char * ip, uint16_t port)
 	 {
 		// http_server_  = (std::make_unique<libmedia_transfer_protocol::libhttp::HttpServer>());
 		
-		 return http_server_->Startup(ip, port);
+		 
 		// return false;
 	 }
 	 void RtcService::OnRequest(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
 		 const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		 const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet)
 	 {
-		 auto  http_ctx = conn->GetContext<libmedia_transfer_protocol::libhttp::HttpContext>(kHttpContext);
-		 if (!http_ctx)
-		 {
-			 GBMEDIASERVER_LOG(LS_WARNING) << "no found http context.something must be wrong.";
-			 return;
-		 }
-		 if (req->IsRequest())
-		 {
-			 GBMEDIASERVER_LOG(LS_INFO) << "req method:" << req->Method() << " path:" << req->Path();
-		 }
-		 else
-		 {
-			 GBMEDIASERVER_LOG(LS_INFO) << "req code:" << req->GetStatusCode() << " msg:" << libmedia_transfer_protocol::libhttp::HttpUtils::ParseStatusMessage(req->GetStatusCode());
-		 }
-
-		 auto headers = req->Headers();
-		 for (auto const &h : headers)
-		 {
-			 GBMEDIASERVER_LOG(LS_INFO) << h.first << ":" << h.second;
-		 }
-
-		 if (req->IsRequest())
-		 {
-			 if (req->Method() == libmedia_transfer_protocol::libhttp::kOptions)
-			 {
-				 auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttpOptionsResponse();
-				 http_ctx->PostRequest(res);
-				 http_ctx->WriteComplete(conn);
-				 return;
-			 }
-			 if (req->Path() == "/rtc/play/" && packet)
-			 {
-				 GBMEDIASERVER_LOG(LS_INFO) << "request:\n" << packet->Data();
-				 Json::CharReaderBuilder builder;
-				 Json::Value root;
-				 Json::String err;
-				 std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
-				 if (!reader->parse(packet->Data(), packet->Data() + packet->PacketSize(), &root, &err))
-				 {
-					 GBMEDIASERVER_LOG(LS_WARNING) << "parse json error.";
-					 auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-					 http_ctx->PostRequest(res);
-					 http_ctx->WriteComplete(conn);
-					 return;
-				 }
-
-				 auto type = root["type"].asString();
-				 auto streamurl = root["streamurl"].asString();
-				 auto clientip = root["clientid"].asString();
-				 auto sdp = root["sdp"].asString();
-
-				 std::string session_name = GetSessionNameFromUrl(streamurl);
-				 GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name;
-
-				 GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
-					 auto s = GbMediaService::GetInstance().CreateSession(session_name);
-					 if (!s)
-					 {
-						 GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
-						 http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-							 auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-							 http_ctx->PostRequest(res);
-							 http_ctx->WriteComplete(conn);
-						 });
-						 
-						 return;
-					 }
-					 // rtc::SocketAddress   server_addrs;
-					 // server_addrs.SetIP("192.168.1.2");
-					 // server_addrs.SetPort(10003);
-					 // auto socket = GbMediaService::GetInstance().network_thread()->socketserver()->CreateSocket(server_addrs.ipaddr().family(), SOCK_STREAM);
-					 auto  connection = std::make_shared<Connection>(conn->GetSocket());
-					 auto user = s->CreatePlayerUser(connection, session_name, "", UserType::kUserTypePlayerWebRTC);
-
-					 if (!user)
-					 {
-						 GBMEDIASERVER_LOG(LS_WARNING) << "cant create user session  name:" << session_name;
-						// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-						// http_ctx->PostRequest(res);
-						 http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-							 auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-							 http_ctx->PostRequest(res);
-							 http_ctx->WriteComplete(conn);
-						 });
-						 return;
-					 }
-
-					 s->AddPlayer(std::dynamic_pointer_cast<PlayerUser>(user));
-
-					 PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-					 if (!rtc_user->ProcessOfferSdp(sdp))
-					 {
-						 GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
-						 http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-							 auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-							 http_ctx->PostRequest(res);
-							 http_ctx->WriteComplete(conn);
-						 });
-						 return;
-					 }
-
-					 auto answer_sdp = rtc_user->BuildAnswerSdp();
-					 GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
-
-					 Json::Value result;
-					 result["code"] = 0;
-					 result["server"] = "WebServer";
-					 result["type"] = "answer";
-					 result["sdp"] = std::move(answer_sdp);
-					 result["sessionid"] = rtc_user->RemoteUFrag() + ":" + rtc_user->LocalUFrag();
-
-					 auto content = result.toStyledString();
-					 http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-						 auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-						 res->SetStatusCode(200);
-						 res->AddHeader("server", "WebServer");
-						 res->AddHeader("content-length", std::to_string(content.size()));
-						 res->AddHeader("content-type", "text/plain");
-						 res->AddHeader("Access-Control-Allow-Origin", "*");
-						 res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-						 res->AddHeader("Allow", "POST, GET, OPTIONS");
-						 res->AddHeader("Access-Control-Allow-Headers", "content-type");
-						 res->AddHeader("Connection", "close");
-						 res->SetBody(content);
-						 http_ctx->PostRequest(res);
-						
-						 http_ctx->WriteComplete(conn);
-					 });
-					
-					 std::lock_guard<std::mutex> lk(lock_);
-					 name_users_.emplace(rtc_user->LocalUFrag(), rtc_user);
-				 
-				 });
-				 
-			 }
-		 }
+		
 	 }
+#endif //
 #if 0
 	 oatpp::Object<RtcApiDto>   RtcService::CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto)
 	{
@@ -288,7 +150,20 @@ namespace  gb_media_server
 	}
 #endif 
 
-	void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
+	 void RtcService::AddPlayUser(PlayRtcUserPtr uesr)
+	 {
+		 std::lock_guard<std::mutex> lk(lock_);
+		 name_users_.emplace(uesr->LocalUFrag(), uesr);
+	 }
+
+	 void RtcService::RemovePlayUser(PlayRtcUserPtr uesr)
+	 {
+		 std::lock_guard<std::mutex> lk(lock_);
+		 name_users_.erase(uesr->LocalUFrag());
+		 users_.erase(uesr->LocalUFrag());
+	 }
+
+	 void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 		libmedia_transfer_protocol::librtc::Stun  stun;
@@ -328,6 +203,7 @@ namespace  gb_media_server
 		else
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: "<< stun.LocalUFrag();
+			//return;
 		}
 
 
@@ -362,36 +238,5 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 	}
 	 
-	std::string RtcService::GetSessionNameFromUrl(const std::string &url)
-	{
-		//webrtc://chensong.com:9091/live/test
-		//webrtc://chensong.com:9091/domain/live/test 
-		std::vector<std::string> list;
-		split(url, '/', &list);
-		if (list.size() < 5)
-		{
-			return "";
-		}
-		std::string domain, app, stream;
-		if (list.size() == 5)
-		{
-			domain = list[2];
-			app = list[3];
-			stream = list[4];
-		}
-		else if (list.size() == 6)
-		{
-			domain = list[3];
-			app = list[4];
-			stream = list[5];
-		}
-
-		auto pos = domain.find_first_of(':');
-		if (pos != std::string::npos)
-		{
-			domain = domain.substr(0, pos);
-		}
-
-		return domain + "/" + app + "/" + stream;
-	}
+	
 }

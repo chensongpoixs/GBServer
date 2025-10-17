@@ -30,7 +30,8 @@ add_definitions(
 #-DWIN32
 #-D_DEBUG
 #-D_CONSOLE
-
+		# 开启测试RTC播放  采集当前桌面画面传输
+		-DTEST_RTC_PLAY=1
 
         ## define path to swagger-ui static resources folder
         -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"

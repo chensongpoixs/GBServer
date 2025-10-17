@@ -40,9 +40,7 @@ purpose:		rtmp_header
 #include <string>
 namespace gb_media_server
 { 
-	size_t split(std::string source,
-		char delimiter,
-		std::vector<std::string>* fields);
+	
 		//class  TimeCorrector
 		//{
 		//public:

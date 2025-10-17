@@ -30,6 +30,7 @@
 #include <vector>
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_format.h"
 #include <memory>
+#include "server/rtc_service.h"
 
 namespace gb_media_server
 {
@@ -60,7 +61,8 @@ namespace gb_media_server
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
 	PlayRtcUser:: ~PlayRtcUser(){
-
+		GBMEDIASERVER_LOG_T_F(LS_INFO);
+#if TEST_RTC_PLAY
 		if (video_encoder_thread_)
 		{
 			video_encoder_thread_->Stop();
@@ -75,7 +77,7 @@ namespace gb_media_server
 			//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
 			capturer_track_source_->Stop();
 		}
-		
+#endif // 	
 		dtls_.SignalDtlsSendPakcet.disconnect(this);
 		dtls_.SignalDtlsHandshakeDone.disconnect(this);
 		dtls_.SignalDtlsClose.disconnect(this);
@@ -162,7 +164,7 @@ namespace gb_media_server
 		 // return;
 		  // 完成验证后进行发送
 
-#if 1
+#if TEST_RTC_PLAY
 		  x264_encoder_  = std::make_unique<libmedia_codec::X264Encoder>();
 		  x264_encoder_->SetSendFrame(this);
 		  x264_encoder_->Start();
@@ -178,6 +180,7 @@ namespace gb_media_server
 
 	  void PlayRtcUser::OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls * dtls)
 	  {
+#if TEST_RTC_PLAY
 		  if (video_encoder_thread_)
 		  {
 			  video_encoder_thread_->Stop();
@@ -193,14 +196,17 @@ namespace gb_media_server
 			  capturer_track_source_->Stop();
 		  }
 		 // GetSession()->CloseUser()
-
+#endif //
+		  std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
+		  RtcService::GetInstance().RemovePlayUser(slef);
 		  std::string session_name = GetSession()->SessionName();
 		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,[session_name]() {
+			  
 			  GbMediaService::GetInstance().CloseSession(session_name);
 		  });
 		 // 
 	  }
-
+#if TEST_RTC_PLAY
 	  void PlayRtcUser::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
 		  GBMEDIASERVER_LOG(LS_INFO);
@@ -268,7 +274,7 @@ namespace gb_media_server
 		 // GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(std::move(packets), remote_address_, rtc::PacketOptions());
 		 // transport_send_->EnqueuePacket(std::move(packets));
 	  }
-
+#endif //
 	  UserType   PlayRtcUser::GetUserType() const
 	  {
 		  return UserType::kUserTypePlayerWebRTC;
