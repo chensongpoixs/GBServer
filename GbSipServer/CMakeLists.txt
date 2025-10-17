@@ -118,14 +118,17 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
 
 set(ALL_LIB 
 
- 
+ crypt32.lib
+			iphlpapi.lib
+			secur32.lib
 #libswagger
 libsip 
 Dnsapi.lib   
 delayimp.lib
 ws2_32.lib
  Qwave.lib
-
+ libcrypto.lib 
+		libssl.lib 
  #
  oatpp
  oatpp-sqlite
@@ -203,7 +206,19 @@ platform_thread_types
 			  #  libuv.lib  的依赖库
 			  dbghelp.lib
 
-
+			  libp2p_peerconnection
+			  libwebrtc 
+			  rtc_event
+			  threading
+			  sequence_checker_internal
+			  mutex
+			  yield
+			  yield_policy
+			  task_queue
+			  default_task_queue_factory
+			  rtc_base
+			  libice
+			  wrapping_async_dns_resolver
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
