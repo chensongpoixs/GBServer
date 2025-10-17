@@ -1,4 +1,4 @@
-/*
+ï»¿/*
 *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
 *
 *  Please visit https://chensongpoixs.github.io for detail
@@ -53,7 +53,8 @@ public:
   
   
 	ENDPOINT_INFO(startStream) {
-	info->summary = "¿ªÊ¼Ö±²¥";
+	info->summary = "å¼€å§‹ç›´æ’­";
+	  
 
 	info->addConsumes<Object<StreamDto>>("application/json");
 
@@ -68,7 +69,7 @@ public:
   }
 
   ENDPOINT_INFO(stopStream) {
-	  info->summary = "Ö±²¥Á÷Í£Ö¹";
+	  info->summary = "ç›´æ’­æµåœæ­¢";
 
 	  info->addConsumes<Object<StreamDto>>("application/json");
 

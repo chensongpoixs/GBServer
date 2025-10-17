@@ -33,7 +33,8 @@ oatpp::Object<StreamDto> StreamService::startStream(const oatpp::Object<StreamDt
 	OATPP_ASSERT_HTTP(dbResult->isSuccess(), Status::CODE_500, dbResult->getErrorMessage());
 
 	auto items = dbResult->fetch<oatpp::Vector<oatpp::Object<DeviceDto>>>();
-	OATPP_ASSERT_HTTP(items->size() < 1, Status::CODE_404, "Device not found");
+	SIPSERVER_LOG(LS_INFO) << "items size:" << items->size();
+	OATPP_ASSERT_HTTP(items->size() == 1, Status::CODE_404, "Device not found");
 	 
 
 	// rquest  --> GbMediaServer open Rtp Server --> 
@@ -51,8 +52,13 @@ oatpp::Object<StreamDto> StreamService::startStream(const oatpp::Object<StreamDt
 		nlohmann::json response;
 		std::string result;
 		bool ret = httplib::PostReuest(http_media_api, "/api/openRtpServer", request.dump().c_str(), result);
-		// 
-		OATPP_ASSERT_HTTP(ret == false, Status::CODE_404, " rquest Media open Rtp failed !!! ");
+		//
+		if (!ret)
+		{
+			SIPSERVER_LOG(LS_WARNING) << "Request media api failed !!! open rtp server !!!";
+			return streamdto;
+		}
+		//OATPP_ASSERT_HTTP(ret == true, Status::CODE_404, " rquest Media open Rtp failed !!! ");
 		//streamdto->deviceID = dto->deviceID;
 		try
 			{
@@ -96,7 +102,7 @@ oatpp::Object<StreamDto> StreamService::stopStream(const oatpp::Object<StreamDto
 	OATPP_ASSERT_HTTP(dbResult->isSuccess(), Status::CODE_500, dbResult->getErrorMessage());
 
 	auto items = dbResult->fetch<oatpp::Vector<oatpp::Object<DeviceDto>>>();
-	OATPP_ASSERT_HTTP(items->size() < 1, Status::CODE_404, "Device not found");
+	OATPP_ASSERT_HTTP(items->size() == 1, Status::CODE_404, "Device not found");
 
 
 	// rquest  --> GbMediaServer open Rtp Server --> 
@@ -115,8 +121,11 @@ oatpp::Object<StreamDto> StreamService::stopStream(const oatpp::Object<StreamDto
 		std::string result;
 		bool ret = httplib::PostReuest(http_media_api, "/api/closeRtpServer", request.dump().c_str(), result);
 		// 
-		OATPP_ASSERT_HTTP(ret == false, Status::CODE_404, " rquest Media Close Rtp failed !!! ");
-
+		if (!ret)
+		{
+			SIPSERVER_LOG(LS_WARNING) << "Request media api failed !!! close rtp server !!!";
+			return streamdto;
+		}
 		try
 		{
 			response = nlohmann::json::parse(result);

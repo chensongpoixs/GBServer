@@ -166,9 +166,10 @@ namespace gbsip_server
 		//	eXosip_event_free(event_sip);
 		//}
 
-		network_thread()->PostDelayedTask(
-			webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
-
+	//	network_thread()->PostDelayedTask(
+	//		webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
+		network_thread()->PostDelayedTask(RTC_FROM_HERE, [this]() { LoopSip(); }, delay_);
+			 		//webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
 		return true;
 	}
 	void SipServer::LoopSip()
@@ -205,9 +206,9 @@ namespace gbsip_server
 			//this->sip_event_handle(evtp);
 			eXosip_event_free(event_sip);
 		}
-		network_thread()->PostDelayedTask(
-			webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
-		 
+		//network_thread()->PostDelayedTask(
+	//		webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
+		network_thread()->PostDelayedTask(RTC_FROM_HERE, [this]() { LoopSip(); }, delay_);
 	}
 	void SipServer::HandlerSipcallMessageNew(eXosip_event_t * sip_event)
 	{

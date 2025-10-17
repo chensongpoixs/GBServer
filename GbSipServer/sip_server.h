@@ -126,7 +126,7 @@ namespace gbsip_server
 		void     response_message(eXosip_event_t * sip_event);
 		void response_register_401unauthorized(eXosip_event_t * sip_event);
 	private:
-		webrtc::ScopedTaskSafety task_safety_;
+	 	webrtc::ScopedTaskSafety task_safety_;
 		rtc::scoped_refptr<libp2p_peerconnection::ConnectionContext>	context_;
 		std::atomic<bool>  stoped_;
 		SipServerInfo    sip_server_info_;
