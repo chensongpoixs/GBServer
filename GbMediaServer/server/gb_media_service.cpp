@@ -54,7 +54,7 @@ namespace  gb_media_server
 		}
 		auto s = std::make_shared<Session>(session_name);
 		//s->SetAppInfo(app_info);
-
+		//sessions_[session_name] = s;
 		sessions_.emplace(session_name, s);
 		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << " now:" << rtc::TimeMillis();
 		return s;

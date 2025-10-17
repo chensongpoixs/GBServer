@@ -51,6 +51,7 @@ namespace gb_media_server
 		dtls_.Init();
 		dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);
 		dtls_.SignalDtlsHandshakeDone.connect(this, &PlayRtcUser::OnDtlsHandshakeDone);
+		dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
 		sdp_.SetFingerprint(dtls_.Fingerprint());
 		// 本地ip port 
 		sdp_.SetServerAddr("192.168.1.2");
@@ -59,21 +60,31 @@ namespace gb_media_server
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
 	PlayRtcUser:: ~PlayRtcUser(){
-		dtls_.SignalDtlsSendPakcet.disconnect(this);
-		dtls_.SignalDtlsHandshakeDone.disconnect(this);
-		if (x264_encoder_)
-		{
-			x264_encoder_->Stop();
-		}
 
-		if (capturer_track_source_)
-		{
-			capturer_track_source_->Stop();
-		}
 		if (video_encoder_thread_)
 		{
 			video_encoder_thread_->Stop();
 		}
+		if (x264_encoder_)
+		{
+			//	x264_encoder_->SetSendFrame(nullptr);
+			x264_encoder_->Stop();
+		}
+		if (capturer_track_source_)
+		{
+			//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
+			capturer_track_source_->Stop();
+		}
+		
+		dtls_.SignalDtlsSendPakcet.disconnect(this);
+		dtls_.SignalDtlsHandshakeDone.disconnect(this);
+		dtls_.SignalDtlsClose.disconnect(this);
+		
+		
+		
+
+		
+		
 	}
 
  
@@ -150,6 +161,8 @@ namespace gb_media_server
 		  srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		 // return;
 		  // 完成验证后进行发送
+
+#if 1
 		  x264_encoder_  = std::make_unique<libmedia_codec::X264Encoder>();
 		  x264_encoder_->SetSendFrame(this);
 		  x264_encoder_->Start();
@@ -160,6 +173,32 @@ namespace gb_media_server
 		  capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
 		  capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
 		  capturer_track_source_->StartCapture();
+#endif // 1
+	  }
+
+	  void PlayRtcUser::OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls * dtls)
+	  {
+		  if (video_encoder_thread_)
+		  {
+			  video_encoder_thread_->Stop();
+		  }
+		  if (x264_encoder_)
+		  {
+			  //	x264_encoder_->SetSendFrame(nullptr);
+			  x264_encoder_->Stop();
+		  }
+		  if (capturer_track_source_)
+		  {
+			  //	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
+			  capturer_track_source_->Stop();
+		  }
+		 // GetSession()->CloseUser()
+
+		  std::string session_name = GetSession()->SessionName();
+		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,[session_name]() {
+			  GbMediaService::GetInstance().CloseSession(session_name);
+		  });
+		 // 
 	  }
 
 	  void PlayRtcUser::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)

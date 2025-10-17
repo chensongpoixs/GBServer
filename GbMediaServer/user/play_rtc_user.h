@@ -63,6 +63,7 @@ namespace gb_media_server {
 		//sigslot::signal3<const char *, size_t, Dtls*>
 		void OnDtlsSendPakcet(const char *data, size_t len, libmedia_transfer_protocol::librtc::Dtls* dtls);
 		void OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls *dtls);
+		void OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls *dtls);
 		//sigslot::signal1<  Dtls*>
 		//	SignalDtlsHandshakeDone;
 

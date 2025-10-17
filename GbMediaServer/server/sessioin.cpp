@@ -44,7 +44,8 @@ namespace  gb_media_server
 		static std::shared_ptr<User> user_null;
 	}
 	Session::Session(const std::string & session_name)
-		:session_name_(session_name)
+		:players_()
+		, session_name_(session_name)
 		//, stream_(nullptr, "")
 	{
 		stream_ = std::make_shared<Stream>( *this, session_name);
@@ -57,6 +58,7 @@ namespace  gb_media_server
 		//{
 		//	delete pull_;
 		//}
+		players_.clear();
 	}
 	std::shared_ptr<User> Session::CreatePublishUser(const std::shared_ptr<Connection> &conn,
 		const std::string &session_name,
@@ -227,7 +229,7 @@ namespace  gb_media_server
 		{
 			CloseUserNoLock(publisher_);
 		}
-		for (auto const &p : players_)
+		for (auto const   &p : players_)
 		{
 			CloseUserNoLock( (p));
 		}
@@ -283,7 +285,7 @@ namespace  gb_media_server
 						<< ",elapsed:" << user->ElapsedTime()
 						<< ",ReadyTime:" << ReadyTime()
 						<< ",stream time:" << SinceStart();
-					players_.erase(std::dynamic_pointer_cast<PlayerUser>(user));
+					//players_.erase(std::dynamic_pointer_cast<PlayerUser>(user));
 					user->Close();
 					player_live_time_ = rtc::TimeMillis();
 				}
