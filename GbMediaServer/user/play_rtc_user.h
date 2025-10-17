@@ -54,7 +54,8 @@ namespace gb_media_server {
 		explicit PlayRtcUser( std::shared_ptr<Connection> &ptr,  std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
 		virtual ~PlayRtcUser();
 
-
+	public:
+		void SetCapture(bool value);
 	public:
 		bool ProcessOfferSdp(const std::string &sdp);
 		const std::string &LocalUFrag() const;
@@ -111,6 +112,9 @@ namespace gb_media_server {
 #endif //
 		uint32_t      video_seq_ = 100;
 		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
+
+
+		 bool										capture_type_;//采集桌面画面播放
 	};
 }
 

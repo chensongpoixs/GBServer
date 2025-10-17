@@ -97,6 +97,8 @@ namespace  gb_media_server
 				auto streamurl = root["streamurl"].asString();
 				auto clientip = root["clientid"].asString();
 				auto sdp = root["sdp"].asString();
+				auto capture_value = root["caputretype"];
+				
 
 				std::string session_name = string_utils:: GetSessionNameFromUrl(streamurl);
 				GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name;
@@ -175,6 +177,11 @@ namespace  gb_media_server
 
 						http_ctx->WriteComplete(conn);
 					});
+					//采集桌面的画面
+					if (!capture_value.isNull()&&   capture_value.isInt())
+					{
+						rtc_user->SetCapture(capture_value.asInt() > 0 ? true: false);
+					}
 					//GbMediaService::GetInstance().GetRtcServer()->A
 					RtcService::GetInstance().AddPlayUser(rtc_user);
 
@@ -182,5 +189,8 @@ namespace  gb_media_server
 
 			}
 		}
+	}
+	void WebService::HandlerRtcPlay()
+	{
 	}
 }

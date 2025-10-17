@@ -37,6 +37,7 @@ namespace gb_media_server
 	PlayRtcUser::PlayRtcUser(  std::shared_ptr<Connection> &ptr,   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
 	:PlayerUser(ptr, stream, s)
 		, rtp_header_extension_map_()
+		, capture_type_(false)
 	{
 	
 		local_ufrag_ = GetUFrag(8);
@@ -63,19 +64,22 @@ namespace gb_media_server
 	PlayRtcUser:: ~PlayRtcUser(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 #if TEST_RTC_PLAY
-		if (video_encoder_thread_)
 		{
-			video_encoder_thread_->Stop();
-		}
-		if (x264_encoder_)
-		{
-			//	x264_encoder_->SetSendFrame(nullptr);
-			x264_encoder_->Stop();
-		}
-		if (capturer_track_source_)
-		{
-			//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-			capturer_track_source_->Stop();
+			if (capture_type_)
+				if (video_encoder_thread_)
+				{
+					video_encoder_thread_->Stop();
+				}
+			if (x264_encoder_)
+			{
+				//	x264_encoder_->SetSendFrame(nullptr);
+				x264_encoder_->Stop();
+			}
+			if (capturer_track_source_)
+			{
+				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
+				capturer_track_source_->Stop();
+			}
 		}
 #endif // 	
 		dtls_.SignalDtlsSendPakcet.disconnect(this);
@@ -90,6 +94,11 @@ namespace gb_media_server
 	}
 
  
+	void PlayRtcUser::SetCapture(bool value)
+	{
+		capture_type_ = value;
+	}
+
 	bool PlayRtcUser::ProcessOfferSdp(const std::string &sdp) {
 		return sdp_.Decode(sdp);
 	}
@@ -165,43 +174,50 @@ namespace gb_media_server
 		  // 完成验证后进行发送
 
 #if TEST_RTC_PLAY
-		  x264_encoder_  = std::make_unique<libmedia_codec::X264Encoder>();
-		  x264_encoder_->SetSendFrame(this);
-		  x264_encoder_->Start();
-		  video_encoder_thread_ = rtc::Thread::Create();
-		  video_encoder_thread_->SetName("video_encoder_thread", NULL);
-		  video_encoder_thread_->Start();
+		  if (capture_type_)
+		  {
+			  x264_encoder_ = std::make_unique<libmedia_codec::X264Encoder>();
+			  x264_encoder_->SetSendFrame(this);
+			  x264_encoder_->Start();
+			  video_encoder_thread_ = rtc::Thread::Create();
+			  video_encoder_thread_->SetName("video_encoder_thread", NULL);
+			  video_encoder_thread_->Start();
 
-		  capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
-		  capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
-		  capturer_track_source_->StartCapture();
+			  capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
+			  capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
+			  capturer_track_source_->StartCapture();
+		  }
+		
 #endif // 1
 	  }
 
 	  void PlayRtcUser::OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls * dtls)
 	  {
 #if TEST_RTC_PLAY
-		  if (video_encoder_thread_)
+		  if (capture_type_)
 		  {
-			  video_encoder_thread_->Stop();
-		  }
-		  if (x264_encoder_)
-		  {
-			  //	x264_encoder_->SetSendFrame(nullptr);
-			  x264_encoder_->Stop();
-		  }
-		  if (capturer_track_source_)
-		  {
-			  //	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-			  capturer_track_source_->Stop();
+			  if (video_encoder_thread_)
+			  {
+				  video_encoder_thread_->Stop();
+			  }
+			  if (x264_encoder_)
+			  {
+				  //	x264_encoder_->SetSendFrame(nullptr);
+				  x264_encoder_->Stop();
+			  }
+			  if (capturer_track_source_)
+			  {
+				  //	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
+				  capturer_track_source_->Stop();
+			  }
 		  }
 		 // GetSession()->CloseUser()
 #endif //
-		  std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
-		  RtcService::GetInstance().RemovePlayUser(slef);
+		   
 		  std::string session_name = GetSession()->SessionName();
-		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,[session_name]() {
-			  
+		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,[this, session_name]() {
+			  std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
+			  RtcService::GetInstance().RemovePlayUser(slef);
 			  GbMediaService::GetInstance().CloseSession(session_name);
 		  });
 		 // 

@@ -14,6 +14,7 @@ var StreamUrl = $("#StreamUrl").val();
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
 var video = $("#video").val();
+
 var offer = "";
 var pc;
 const config = {};
@@ -36,6 +37,8 @@ function stopPull() {
 
 function sendOffer(offerSdp) {
 	var rtc_api_server = $("#PullhttpUrl").val();
+	var captureType = $("#captureType").val() === 'on'? 1: 0;
+	console.log($("#captureType").val());
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 
 	// 创建一个新的XMLHttpRequest对象
@@ -49,7 +52,8 @@ var data = {
    type: 'offer',
    sdp: offerSdp,
    streamurl: StreamUrl,
-   clientid: clientId
+   clientid: clientId,
+   caputretype: captureType
 };
 console.log('JSON.stringify(data) :' + JSON.stringify(data));
 // 发送请求并将数据转换为JSON字符串

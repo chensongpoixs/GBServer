@@ -43,6 +43,11 @@ namespace  gb_media_server
 	public:
 		void OnRequest(libmedia_transfer_protocol::libhttp::TcpSession *conn, const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
 
+
+
+	public:
+
+		void HandlerRtcPlay();
 	private:
 
 		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;
