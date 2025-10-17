@@ -41,7 +41,7 @@ function sendOffer(offerSdp) {
 	// 创建一个新的XMLHttpRequest对象
 var xhr = new XMLHttpRequest();
 // 打开一个新的请求
-xhr.open('POST', rtc_api_server+'/RtcApi', true);
+xhr.open('POST', rtc_api_server+'/rtc/play/', true);
 // 设置请求头，指定发送的数据类型
 xhr.setRequestHeader('Content-Type', 'application/json');
 // 创建要发送的数据对象

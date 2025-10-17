@@ -40,7 +40,7 @@ namespace gb_media_server
 		{
 
 			start_timestamp_ = rtc::TimeMillis(); // tmms::base::TTime::NowMS();
-			user_id_ = "1892.2332.23.23";// ptr->LocalAddr().ToString();// ptr->PeerAddr().ToIpPort();
+			user_id_ = ptr->PeerAddr().ToString();// ptr->PeerAddr().ToIpPort();
 		}
 		 
 		const std::string & User::AppName() const

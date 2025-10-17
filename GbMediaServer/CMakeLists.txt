@@ -6,7 +6,7 @@ MESSAGE(STATUS  "####################################")
 MESSAGE(STATUS  "#############${PROJECT_NAME}###############")
 MESSAGE(STATUS  "####################################")
 #set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD 17)
 
 #set(DEPS_DIR  "D:/dep/c_dep")
 
@@ -47,44 +47,44 @@ add_definitions(
 
  include_directories(
 	. 
-	./swagger
+	#./swagger
 	#../libswagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-swagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite/sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-swagger
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite/sqlite
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
 	 
 )
 link_directories( 
 
-${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
+#${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
 
 )
 
-
-FILE(GLOB  swagger_source
-
-		swagger/controller/*.cpp 
-        swagger/controller/*.hpp
-		swagger/controller/*.h
-        swagger/db/*.hpp
-		swagger/db/*.cpp 
-		swagger/db/*.h
-        swagger/dto/*.h
-        swagger/dto/*.hpp
-        swagger/dto/*.cpp 
-		swagger/service/*.h
-        swagger/service/*.cpp
-        swagger/service/*.hpp
-		swagger/*.h 
-		swagger/*.cpp 
-		swagger/*.hpp
-
-		
-)
+#
+#FILE(GLOB  swagger_source
+#
+#		swagger/controller/*.cpp 
+#        swagger/controller/*.hpp
+#		swagger/controller/*.h
+#        swagger/db/*.hpp
+#		swagger/db/*.cpp 
+#		swagger/db/*.h
+#        swagger/dto/*.h
+#        swagger/dto/*.hpp
+#        swagger/dto/*.cpp 
+#		swagger/service/*.h
+#        swagger/service/*.cpp
+#        swagger/service/*.hpp
+#		swagger/*.h 
+#		swagger/*.cpp 
+#		swagger/*.hpp
+#
+#		
+#)
 
  include_directories(
 	 ../../libwebrtc
@@ -97,16 +97,20 @@ FILE(GLOB  swagger_source
 # 
 #)
 
+FILE(GLOB    Media_source
 
- 
-file(GLOB GbMediaServer_source
-        
+
 			server/*.h
 			server/*.cpp 
 	 user/*.h 
 	 user/*.cpp 
 	 utils/*.h 
 	 utils/*.cpp 
+)
+ 
+file(GLOB GbMediaServer_source
+        
+
 
 		 
 		*.h
@@ -115,20 +119,25 @@ file(GLOB GbMediaServer_source
 	 
 	
         )
-		
 
+#add_library(GbMedia STATIC  ${Media_source} 
+#
+#	#${swagger_source}
+#)
 
+#add_subdirectory(swagger)
 #
 #add_subdirectory(curl-7.81.0)
 #add_subdirectory(D:/Work/rtc/crtcserver/deps/curl-7.81.0)
 #add_subdirectory(libsip)
  
-add_executable(${PROJECT_NAME}     ${GbMediaServer_source}   ${swagger_source})
+add_executable(${PROJECT_NAME}     ${GbMediaServer_source}  ${Media_source}   )
 add_dependencies(${PROJECT_NAME} libmedia_transfer_protocol)
+#add_dependencies(${PROJECT_NAME}   libswagger)
 # add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
- 
+			#libswagger
 			#libswagger
 			#libsip 
 			Dnsapi.lib   
@@ -139,15 +148,16 @@ set(ALL_LIB
 			iphlpapi.lib
 			secur32.lib
 			 #
-			 oatpp
-			 oatpp-sqlite
-			 oatpp-swagger
-			 sqlite
+			# oatpp
+			# oatpp-sqlite
+			# oatpp-swagger
+			# sqlite
 			crypt32.lib
 			iphlpapi.lib
 			secur32.lib
 			 # absl 
 			 abseil_dll
+			# Meida_LIB
 		#absl_cordz_functions
 		#absl_cordz_handle
 		#absl_cordz_info
@@ -886,6 +896,8 @@ libcross_platform_collection_render
 		opus
 		api
 		video_coding_lib
+		libvpx.lib
+		libvpx_asm.lib
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
@@ -894,9 +906,10 @@ target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
 			# Console (/SUBSYSTEM:CONSOLE)
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE /SAFESEH:NO")
 
-set(AllFile ${GbMediaServer_source} 
-
-	 ${swagger_source}
+set(AllFile 
+${GbMediaServer_source} 
+            ${Media_source} 
+	# ${swagger_source}
 )
 foreach(fileItem ${AllFile})       
     # Get the directory of the source file
@@ -915,5 +928,5 @@ endforeach()
 
 
 set_property(TARGET ${PROJECT_NAME}  				PROPERTY FOLDER  ${DIR_NAME_GBServer} ) 
-
+#set_property(TARGET GbMedia 				PROPERTY FOLDER  ${DIR_NAME_GBServer} ) 
 #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

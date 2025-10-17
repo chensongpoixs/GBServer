@@ -96,7 +96,7 @@ namespace gb_media_server {
 		rtc::scoped_refptr<libcross_platform_collection_render::CapturerTrackSource>     capturer_track_source_;
 #endif //
 		uint32_t      video_seq_ = 100;
-		const libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
+		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 	};
 }
 

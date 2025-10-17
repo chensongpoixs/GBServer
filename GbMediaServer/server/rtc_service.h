@@ -24,7 +24,8 @@
 #include "server/session.h"
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
-#include "swagger/dto/RtcApiDto.hpp"
+#include "libmedia_transfer_protocol/libhttp/http_server.h"
+//#include "swagger/dto/RtcApiDto.hpp"
 namespace  gb_media_server
 {
 	using   PlayRtcUserPtr = std::shared_ptr<PlayRtcUser>;
@@ -32,8 +33,8 @@ namespace  gb_media_server
 	{
 	public:
 
-		RtcService() = default;
-		~RtcService() = default;
+		RtcService() ;
+	virtual	~RtcService() ;
 	public:
 		static RtcService & GetInstance()
 		{
@@ -41,10 +42,14 @@ namespace  gb_media_server
 			return instance;
 		}
 
+
+
+		bool StartWebServer(const char *ip = "127.0.0.1", uint16_t port = 8001);
+
 	public:
+		void OnRequest(libmedia_transfer_protocol::libhttp:: TcpSession *conn, const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
 
-
-		oatpp::Object<RtcApiDto>   CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto);
+	//	oatpp::Object<RtcApiDto>   CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto);
 	public:
 
 		void OnStun(rtc::AsyncPacketSocket* socket,
@@ -87,6 +92,7 @@ namespace  gb_media_server
 		std::unordered_map<std::string, PlayRtcUserPtr> name_users_;
 		std::mutex users_lock_;
 		std::unordered_map<std::string, PlayRtcUserPtr> users_;
+		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;
 	public:
 
 	};
