@@ -26,12 +26,18 @@
 #include "rtc_base/logging.h"
 #include "libmedia_transfer_protocol/libhttp/http_server.h"
 
-
+#include "libmedia_transfer_protocol/libhttp/http_context.h"
+#include "libmedia_transfer_protocol/libhttp/tcp_session.h"
 
 namespace  gb_media_server
 {
 	class WebService  : public sigslot::has_slots<>
 	{
+	private:
+		typedef  void (WebService::*HttpEventCallback)(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
 	public:
 		WebService();
 		~WebService();
@@ -41,16 +47,35 @@ namespace  gb_media_server
 		bool StartWebServer(const char *ip = "127.0.0.1", uint16_t port = 8001);
 
 	public:
-		void OnRequest(libmedia_transfer_protocol::libhttp::TcpSession *conn, const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
+		void OnRequest(libmedia_transfer_protocol::libhttp::TcpSession *conn, 
+			const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, 
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
 
 
 
 	public:
 
-		void HandlerRtcPlay();
+		void HandlerRtcPlay(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+
+		void HandlerOpenRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+		void HandlerCloseRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
 	private:
 
 		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;
+
+
+		std::unordered_map<std::string, HttpEventCallback>        http_event_callback_map_;
+
 	};
 }
 

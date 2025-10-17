@@ -37,7 +37,7 @@ namespace  gb_media_server
 	{
 		static std::shared_ptr < Session> session_null;
 	}
-	std::shared_ptr < Session> GbMediaService::CreateSession(const std::string &session_name)
+	std::shared_ptr < Session> GbMediaService::CreateSession(const std::string &session_name, bool split  )
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		auto iter = sessions_.find(session_name);
@@ -45,14 +45,20 @@ namespace  gb_media_server
 		{
 			return iter->second;
 		}
-		std::vector<std::string> list;
-		string_utils::split(session_name, '/', &list);
-		 
-		if (list.size() != 3)
+		if (split)
 		{
-			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "create session failed. Invalid session name:" << session_name;
-			return session_null;
+			std::vector<std::string> list;
+			string_utils::split(session_name, '/', &list);
+
+			if (list.size() != 3)
+			{
+				GBMEDIASERVER_LOG_T_F(LS_WARNING) << "create session failed. Invalid session name:" << session_name;
+				return session_null;
+			}
+
 		}
+		
+		
 		auto s = std::make_shared<Session>(session_name);
 		//s->SetAppInfo(app_info);
 		//sessions_[session_name] = s;
@@ -60,7 +66,7 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << " now:" << rtc::TimeMillis();
 		return s;
 	}
-	std::shared_ptr < Session> GbMediaService::FindSession(const std::string &session_name)
+	std::shared_ptr < Session> GbMediaService::FindSession(const std::string &session_name, bool split )
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		auto iter = sessions_.find(session_name);
@@ -70,7 +76,7 @@ namespace  gb_media_server
 		}
 		return session_null;
 	}
-	bool GbMediaService::CloseSession(const std::string &session_name)
+	bool GbMediaService::CloseSession(const std::string &session_name  )
 	{
 		std::shared_ptr < Session> s;
 		{

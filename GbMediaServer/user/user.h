@@ -52,6 +52,7 @@ namespace gb_media_server
 			kuserTypePublishMpegts,
 			kUserTypePublishPav,
 			kUserTypePublishWebRtc,
+			kUserTypePublishGB28181,
 			//kUserTypePublishPav,
 			kUserTypePlayerPav,
 			kUserTypePlayerFlv,
