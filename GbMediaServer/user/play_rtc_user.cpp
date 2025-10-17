@@ -168,54 +168,30 @@ namespace gb_media_server
 		//  return;
 		  // 视频的频率90000, 1s中90000份 1ms => 90
 		  uint32_t rtp_timestamp = encoded_image->Timestamp() * 90;
-
-		  /*	if (video_send_stream_) {
-				  video_send_stream_->OnSendingRtpFrame(rtp_timestamp,
-					  frame->capture_time_ms,
-					  frame->fmt.sub_fmt.video_fmt.idr);
-			  }
-	  */
-	  //RTPVideoHeader::RtpPacketizer::Config config;
+		   
 
 		  libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits   limits;
 		  libmedia_transfer_protocol::RTPVideoHeader   rtp_video_hreader;
-		  //rtc::Buffer encrypted_video_payload;
-		  //encrypted_video_payload.SetSize(encoded_image->size());
-	  //	encrypted_video_payload.SetData(encoded_image->size(), encoded_image->data());
-	  //	rtp_video_hreader.video_type_header = absl::variant<webrtc::RTPVideoHeaderH264>;
+		   
 		  webrtc::RTPVideoHeaderH264  h;
 		  // 多包和分包
 		  h.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;
 		  rtp_video_hreader.video_type_header = h;
 		  absl::optional<libmedia_codec::VideoCodecType> video_type = libmedia_codec::kVideoCodecH264;
-		//  return;
-		   //rtc::ArrayView<uint8_t>  ppp;
-		 // std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = libmedia_transfer_protocol::RtpPacketizer::Create(
-		//	  video_type, rtc::ArrayView<const uint8_t>(encoded_image->data(), encoded_image->size()),
-		//	  limits, rtp_video_hreader);
-		std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer =
-		  std::make_unique<libmedia_transfer_protocol::RtpPacketizerH264>(rtc::ArrayView<const uint8_t>(encoded_image->data(), encoded_image->size()),
-			  limits, webrtc::H264PacketizationMode::NonInterleaved);// libmedia_transfer_protocol::RtpPacketizer::Create(video_type,
-			 // rtc::ArrayView<const uint8_t>(encoded_image->data(), encoded_image->size()), lists, rtp_video_hreader);
-
-		   std::vector< std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>>  packets;
-		//  return;
-		 // while (true)
+	 
+		 std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = libmedia_transfer_protocol::RtpPacketizer::Create(
+		   video_type, rtc::ArrayView<const uint8_t>(encoded_image->data(), encoded_image->size()),
+		   limits, rtp_video_hreader);
+		 
+		  // std::vector< std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>>  packets;
+	 
 		  int32_t  number_packet = packetizer->NumPackets();
 		  for (int32_t i = 0; i < number_packet; ++i)
 		  {
 			   
-				  auto  single_packet =
-				  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
-				 // single_packet.reset();
-
-				  //std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>  single_packet;
-				 // single_packet.reset(new libmedia_transfer_protocol::RtpPacketToSend(&rtp_header_extension_map_));
-
-				  //single_packet.reset();
-				//  //auto single_packet = new libmedia_transfer_protocol::RtpPacketToSend (&rtp_header_extension_map_);
-				//
-			 
+			auto  single_packet =
+			std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
+				 
 			  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
 			  single_packet->SetTimestamp(rtp_timestamp);
 			  single_packet->SetSsrc(sdp_.VideoSsrc());
@@ -240,10 +216,17 @@ namespace gb_media_server
 		  //	SendPacket("audio",  single_packet.get() );
 			  //std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend> packet =
 			  //	std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(*single_packet);
-		     packets.push_back( std::move(single_packet));
+			//  srtp_session_.RtpProtect()
+			  rtc::Buffer f(single_packet->data(), single_packet->size());
+			  f.SetSize(single_packet->size());
+			  rtc::Buffer   bf = srtp_session_.RtpProtect(f);
+			  rtc::CopyOnWriteBuffer w(bf);
+
+			  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(w, remote_address_, rtc::PacketOptions());
+		     //packets.push_back( std::move(single_packet));
 		  }
 		//  return;
-		  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(std::move(packets), remote_address_, rtc::PacketOptions());
+		 // GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(std::move(packets), remote_address_, rtc::PacketOptions());
 		 // transport_send_->EnqueuePacket(std::move(packets));
 	  }
 

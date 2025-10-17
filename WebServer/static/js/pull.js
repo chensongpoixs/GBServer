@@ -13,13 +13,13 @@ stopPullBtn.addEventListener("click", stopPull);
 var StreamUrl = $("#StreamUrl").val();
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
-var video = 1;//$("#video").val();
+var video = $("#video").val();
 var offer = "";
 var pc;
 const config = {};
 var remoteStream;
 //本地视频流
-var localStream = null;
+//var localStream = null;
 var lastConnectionState = "";
 
 function startPull() {
@@ -99,13 +99,25 @@ function pullStream() {
 		  pc.addTransceiver("audio", { direction: "recvonly" });
 		    pc.addTransceiver("video", { direction: "recvonly" });
     pc.ontrack = function(e) {
-        remoteStream = e.stream;
-        remoteVideo.srcObject = e.stream;
+       // remoteStream = e.stream;
+       // remoteVideo.srcObject = e.stream;
+	   if (e.track)
+		{
+			console.log('Got track - ' + e.track.kind + ' id=' + e.track.id + ' readyState=' + e.track.readyState); 
+		}
 		//存放远端视频流
-	//remoteStream = e.streams[0];
+		if (e.track.kind == 'audio')
+		{
+			
+		}
+		else if (e.track.kind == 'video'&& remoteVideo.srcObject !== e.streams[0])
+		{
+			remoteStream = e.streams;
+		
+			// 远端视频标签与远端视频流绑定
+			remoteVideo.srcObject = e.streams[0];
+		}	
 	
-	// 远端视频标签与远端视频流绑定
-	//remoteVideo.srcObject = e.streams[0];
     }
     //将本地音视频流中所有tranck添加到PeerConnection对象中
 	//localStream.getTracks().forEach((track) => {
