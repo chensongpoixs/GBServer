@@ -26,7 +26,7 @@
 #include "oatpp/macro/codegen.hpp"
 #include "sip_server.h"
 
-extern std::shared_ptr<gbsip_server::SipServer>  sip_server;;
+//extern std::shared_ptr<gbsip_server::SipServer>  sip_server;;
 
 #include OATPP_CODEGEN_BEGIN(ApiController) //<- Begin Codegen
 
@@ -99,7 +99,7 @@ public:
 	//  printf("[%s][%d] start \n", __FUNCTION__, __LINE__);
 	//  std::this_thread::sleep_for(std::chrono::seconds(120));
 	//  printf("[%s][%d] end \n", __FUNCTION__, __LINE__);
-	  sip_server->request_invite();
+	//  sip_server->request_invite();
     return createDtoResponse(Status::CODE_200, m_deviceService.getDeviceById(id));
   }
   
@@ -116,7 +116,9 @@ public:
   {
     return createDtoResponse(Status::CODE_200, m_deviceService.getAllDevices(offset, limit));
   }
-  
+   
+
+
   
   ENDPOINT_INFO(deleteDevice) {
     info->summary = "Delete Device by deviceId";

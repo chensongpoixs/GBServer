@@ -34,7 +34,7 @@ extern "C"
 {
 #include "utils/HTTPDigest.h"
 }
-
+#include "rtc_base/task_utils/to_queued_task.h"
 
 #include <cstring>
 namespace gbsip_server
@@ -62,18 +62,12 @@ namespace gbsip_server
 
 	}
 	SipServer::SipServer()
-		: stoped_(true)
+		: context_(  libp2p_peerconnection::ConnectionContext::Create())
+		, stoped_(true)
 		, sip_server_info_()
 		, sip_context_(nullptr)
 	{
-#ifdef WIN32
-		WSADATA wsaData;
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-		{
-			 
-			return;
-		}
-#endif // WIN32
+
 
 
 		sip_event_callback_map_[EXOSIP_CALL_MESSAGE_NEW] = &SipServer::HandlerSipcallMessageNew;
@@ -91,11 +85,11 @@ namespace gbsip_server
 		//sip_event_callback_map_[EXOSIP_CALL_ANSWERED] = &SipServer::HandlerSipCallAnswered;
 		if (device_db_)
 		{
-			RTC_LOG(LS_INFO) << "device_db_  --> ok ";
+			SIPSERVER_LOG(LS_INFO) << "device_db_  --> ok ";
 		}
 		else
 		{
-			RTC_LOG(LS_WARNING) << "device_db_  failed";
+			SIPSERVER_LOG(LS_WARNING) << "device_db_  failed";
 		}
 	}
 	SipServer::~SipServer()
@@ -112,24 +106,24 @@ namespace gbsip_server
 
 		sip_context_ = eXosip_malloc();
 		if (!sip_context_) {
-			RTC_LOG(LS_WARNING) << "eXosip_malloc error";
+			SIPSERVER_LOG(LS_WARNING) << "eXosip_malloc error";
 			return -1;
 		}
 		if (eXosip_init(sip_context_)) {
-			RTC_LOG(LS_WARNING) << "eXosip_init error";
+			SIPSERVER_LOG(LS_WARNING) << "eXosip_init error";
 			return -1;
 		}
-		RTC_LOG(LS_INFO) << "udp bind :" << sip_server_info_.port;
+		SIPSERVER_LOG(LS_INFO) << "udp bind :" << sip_server_info_.port;
 		if (eXosip_listen_addr(sip_context_, IPPROTO_UDP, nullptr, sip_server_info_.port, AF_INET, 0)) {
-			RTC_LOG(LS_WARNING) << "eXosip_listen_addr error";
+			SIPSERVER_LOG(LS_WARNING) << "eXosip_listen_addr error";
 			return -1;
 		}
-		RTC_LOG(LS_INFO) << "udp ua :" << sip_server_info_.ua << ", server_id : " << sip_server_info_.sipServerId;
+		SIPSERVER_LOG(LS_INFO) << "udp ua :" << sip_server_info_.ua << ", server_id : " << sip_server_info_.sipServerId;
 		eXosip_set_user_agent(sip_context_, sip_server_info_.ua.c_str());
 		if (eXosip_add_authentication_info(sip_context_, sip_server_info_.sipServerId.c_str(), 
 			sip_server_info_.sipServerId.c_str(), sip_server_info_.SipSeverPass.c_str(), NULL,
 			sip_server_info_.SipServerRealm.c_str())) {
-			RTC_LOG(LS_WARNING) << "eXosip_add_authentication_info error";
+			SIPSERVER_LOG(LS_WARNING) << "eXosip_add_authentication_info error";
 			return -1;
 		}
 		stoped_ = false;
@@ -142,17 +136,57 @@ namespace gbsip_server
 		{
 			return false;
 		}
-		RTC_LOG(LS_INFO) << "Sip ServerStart ... ";
-		while (!stoped_)
+		SIPSERVER_LOG(LS_INFO) << "Sip ServerStart ... ";
+		//while (!stoped_)
+		//{
+		//	eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 20);
+		//	if (!event_sip) {
+		//		eXosip_automatic_action(sip_context_);
+		//		osip_usleep(100000);
+		//		continue;
+		//	}
+		//	 
+		//	eXosip_automatic_action(sip_context_);
+		//	auto event_iter = sip_event_callback_map_.find(event_sip->type);
+		//	if (event_iter != sip_event_callback_map_.end())
+		//	{
+		//		(this->*(event_iter->second))(event_sip);
+		//	}
+		//	else
+		//	{
+		//		RTC_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
+		//	
+		//	}
+		//	//if (request_invite_)
+		//	//{
+		//	//	request_invite("41010500002000000003", "192.168.1.64", 5060);
+		//	//	request_invite_ = false;
+		//	//}
+		//	//this->sip_event_handle(evtp);
+		//	eXosip_event_free(event_sip);
+		//}
+
+		network_thread()->PostDelayedTask(
+			webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
+
+		return true;
+	}
+	void SipServer::LoopSip()
+	{
+		if (stoped_)
 		{
-			eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 20);
-			if (!event_sip) {
-				eXosip_automatic_action(sip_context_);
-				osip_usleep(100000);
-				continue;
-			}
-			 
-			eXosip_automatic_action(sip_context_);
+			return;
+		}
+
+		eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 0);
+		eXosip_automatic_action(sip_context_);
+		if (!event_sip) {
+			
+			//osip_usleep(100000);
+			//continue;
+		}
+		else
+		{
 			auto event_iter = sip_event_callback_map_.find(event_sip->type);
 			if (event_iter != sip_event_callback_map_.end())
 			{
@@ -160,37 +194,36 @@ namespace gbsip_server
 			}
 			else
 			{
-				RTC_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
-			
+				SIPSERVER_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
+
 			}
-			if (request_invite_)
-			{
-				request_invite("41010500002000000003", "192.168.1.64", 5060);
-				request_invite_ = false;
-			}
+			//if (request_invite_)
+			//{
+			//	request_invite("41010500002000000003", "192.168.1.64", 5060);
+			//	request_invite_ = false;
+			//}
 			//this->sip_event_handle(evtp);
 			eXosip_event_free(event_sip);
 		}
-
-
-
-		return true;
+		network_thread()->PostDelayedTask(
+			webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
+		 
 	}
 	void SipServer::HandlerSipcallMessageNew(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "";
+		SIPSERVER_LOG(LS_INFO) << "";
 		request_info(sip_event);
 		response_info(sip_event);
 	}
 	void SipServer::HandlerSipCallClosed(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "";
+		SIPSERVER_LOG(LS_INFO) << "";
 		request_info(sip_event);
 		response_info(sip_event);
 	}
 	void SipServer::HandlerSipCallReleased(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "";
+		SIPSERVER_LOG(LS_INFO) << "";
 
 		request_info(sip_event);
 		response_info(sip_event);
@@ -198,17 +231,17 @@ namespace gbsip_server
 	}
 	void SipServer::HandlerSipCallInvite(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_CALL_INVITE type=: " <<sip_event->type <<" The server receives the Invite request actively sent by the client";
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_CALL_INVITE type=: " <<sip_event->type <<" The server receives the Invite request actively sent by the client";
 	}
 	void SipServer::HandlerSipCallProceeding(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_CALL_PROCEEDING type=: "<<sip_event->type <<" When the server receives the Invite (SDP) confirmation reply from the client";
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_CALL_PROCEEDING type=: "<<sip_event->type <<" When the server receives the Invite (SDP) confirmation reply from the client";
 		request_info(sip_event);
 		response_info(sip_event);
 	}
 	void SipServer::HandlerSipCallAnswered(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_CALL_ANSWERED type=:"<<sip_event->type <<" The server receives an invite (SDP) confirmation reply from the client";
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_CALL_ANSWERED type=:"<<sip_event->type <<" The server receives an invite (SDP) confirmation reply from the client";
 		request_info(sip_event);
 		response_info(sip_event);
 
@@ -222,17 +255,17 @@ namespace gbsip_server
 			//sip_event->ack->req_uri->username;
 		}
 		else {
-			RTC_LOG(LS_INFO) << "eXosip_call_send_ack  error:" << ret;
+			SIPSERVER_LOG(LS_INFO) << "eXosip_call_send_ack  error:" << ret;
 			 
 		}
 	}
 	void SipServer::HandlerSipCallServerFailure(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_CALL_SERVERFAILURE type:" << sip_event->type;
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_CALL_SERVERFAILURE type:" << sip_event->type;
 	}
 	void SipServer::HandlerSipMessageNew(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "";
+		SIPSERVER_LOG(LS_INFO) << "";
 		if (MSG_IS_REGISTER(sip_event->request)) {
 			response_register(sip_event);
 		}
@@ -240,40 +273,40 @@ namespace gbsip_server
 			response_message(sip_event);
 		}
 		else if (strncmp(sip_event->request->sip_method, "BYE", 3) != 0) {
-			RTC_LOG(LS_WARNING) << "sip_method: " << sip_event->request->sip_method;
+			SIPSERVER_LOG(LS_WARNING) << "sip_method: " << sip_event->request->sip_method;
 		}
 		else {
-			RTC_LOG(LS_WARNING) << "sip_method: " << sip_event->request->sip_method;
+			SIPSERVER_LOG(LS_WARNING) << "sip_method: " << sip_event->request->sip_method;
 		}
 	}
 	void SipServer::HandlerSipMessageAnswerd(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "";
+		SIPSERVER_LOG(LS_INFO) << "";
 		request_info(sip_event);
 	}
 	void SipServer::HandlerSipMessageRequestFailure(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_MESSAGE_REQUESTFAILURE type=: " <<sip_event->type <<" Receive feedback on sending failure after actively sending a message";
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_MESSAGE_REQUESTFAILURE type=: " <<sip_event->type <<" Receive feedback on sending failure after actively sending a message";
 		request_info(sip_event);
 		response_info(sip_event);
 	}
 	void SipServer::HandlerSipInSubscriptionNew(eXosip_event_t * sip_event)
 	{
-		RTC_LOG_F(LS_INFO) << "EXOSIP_IN_SUBSCRIPTION_NEW type=" << sip_event->type;
+		SIPSERVER_LOG(LS_INFO) << "EXOSIP_IN_SUBSCRIPTION_NEW type=" << sip_event->type;
 	}
 	void SipServer::request_info(eXosip_event_t * sip_event)
 	{
 		char *info;
 		size_t len = 0;
 		osip_message_to_str(sip_event->request, &info, &len);
-		RTC_LOG(LS_INFO) << " request type:" << sip_event->type << ", " << info; 
+		SIPSERVER_LOG(LS_INFO) << " request type:" << sip_event->type << ", " << info;
 	}
 	void SipServer::response_info(eXosip_event_t * sip_event)
 	{
 		char *info;
 		size_t len =0 ;
 		osip_message_to_str(sip_event->response, &info, &len);
-		RTC_LOG(LS_INFO) << " response type:" << sip_event->type << ", " << info;
+		SIPSERVER_LOG(LS_INFO) << " response type:" << sip_event->type << ", " << info;
 		 
 	}
 	void SipServer::response_register(eXosip_event_t * sip_event)
@@ -326,7 +359,7 @@ namespace gbsip_server
 			if (!memcmp(calc_response, Response, HASHHEXLEN)) {
 				response_message_answer(sip_event, 200);
 				 
-				RTC_LOG(LS_INFO) << "Camera registration succee,ip:" << sip_client->ip << ", port:" << sip_client->port << ", device:" << sip_client->device;
+				SIPSERVER_LOG(LS_INFO) << "Camera registration succee,ip:" << sip_client->ip << ", port:" << sip_client->port << ", device:" << sip_client->device;
 				
 				client_map_.insert(std::make_pair(sip_client->device, sip_client));
 				//DeviceDto  ;
@@ -379,11 +412,11 @@ namespace gbsip_server
 		}
 		else 
 		{
-			RTC_LOG(LS_INFO) << "code:" << code << ", returnCode:" << returnCode << ", regitster:" << bRegister;
+			SIPSERVER_LOG(LS_INFO) << "code:" << code << ", returnCode:" << returnCode << ", regitster:" << bRegister;
 			 
 		}
 	}
-	int32_t SipServer::request_invite(const std::string & device, const std::string & ip, uint16_t port)
+	int32_t SipServer::request_invite(const std::string & device, const std::string & remote_ip, uint16_t remote_port, uint16_t rtp_port)
 	{
 		char session_exp[1024] = { 0 };
 		osip_message_t *msg = nullptr;
@@ -396,7 +429,7 @@ namespace gbsip_server
 
 		sprintf(from, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
 		sprintf(contact, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
-		sprintf(to, "sip:%s@%s:%d", device.c_str(), ip.c_str(), port);
+		sprintf(to, "sip:%s@%s:%d", device.c_str(), remote_ip.c_str(), remote_port);
 		snprintf(sdp, 2048,
 			"v=0\r\n"
 			"o=%s 0 0 IN IP4 %s\r\n"
@@ -411,11 +444,11 @@ namespace gbsip_server
 			"a=setup:passive\r\n"
 			"a=connection:new\r\n"
 			"y=0100000001\r\n"
-			"f=\r\n", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.ip.c_str(), 10000);
+			"f=\r\n", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.ip.c_str(), rtp_port);
 
 		int ret = eXosip_call_build_initial_invite(sip_context_, &msg, to, from, nullptr, nullptr);
 		if (ret) { 
-			RTC_LOG(LS_WARNING) << "eXosip_call_build_initial_invite error:" << from << ", " << to << ", ret:" << ret;
+			SIPSERVER_LOG(LS_WARNING) << "eXosip_call_build_initial_invite error:" << from << ", " << to << ", ret:" << ret;
 			return -1;
 		}
 
@@ -458,13 +491,13 @@ namespace gbsip_server
 		auto iter = client_map_.find(DeviceID);
 		if (iter != client_map_.end())
 		{
-			RTC_LOG(LS_INFO) << " response mssage:  resis: " << DeviceID;
+			SIPSERVER_LOG(LS_INFO) << " response mssage:  resis: " << DeviceID;
 		 }
 		else
 		{
-			RTC_LOG(LS_INFO) << " response mssage:  not resis: " << DeviceID;
+			SIPSERVER_LOG(LS_INFO) << " response mssage:  not resis: " << DeviceID;
 		}
-		RTC_LOG(LS_INFO) << "CmdType:" << CmdType << ", DeviceID:" << DeviceID;;
+		SIPSERVER_LOG(LS_INFO) << "CmdType:" << CmdType << ", DeviceID:" << DeviceID;;
 		if (!strcmp(CmdType, "Catalog")) {
 			response_message_answer(sip_event, 200);
 			// 需要根据对方的Catelog请求，做一些相应的应答请求
@@ -494,10 +527,10 @@ namespace gbsip_server
 			eXosip_lock(sip_context_);
 			eXosip_message_send_answer(sip_context_, sip_event->tid, 401, reg);
 			eXosip_unlock(sip_context_);
-			RTC_LOG(LS_INFO) << "response_register_401unauthorized success";
+			SIPSERVER_LOG(LS_INFO) << "response_register_401unauthorized success";
 		}
 		else {
-			RTC_LOG(LS_WARNING) << "response_register_401unauthorized error"; 
+			SIPSERVER_LOG(LS_WARNING) << "response_register_401unauthorized error";
 		}
 
 		osip_www_authenticate_free(header);

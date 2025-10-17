@@ -31,6 +31,7 @@ extern "C" {
 #include "db/DeviceDb.hpp"
 #include "oatpp/network/Server.hpp"
 #include "AppComponent.hpp"
+#include "libp2p_peerconnection/connection_context.h"
 namespace gbsip_server
 {
 
@@ -66,6 +67,13 @@ namespace gbsip_server
 	public:
 		SipServer();
 		~SipServer();
+
+		static SipServer & GetInstance()
+		{
+			static SipServer   instance;
+			//GBMEDIASERVER_LOG_F(LS_INFO) << "instance: " << &instance;
+			return instance;
+		}
 	public:
 		OATPP_COMPONENT(std::shared_ptr<DeviceDb>,  device_db_);
 	public:
@@ -74,6 +82,18 @@ namespace gbsip_server
 
 
 		void request_invite() { request_invite_ = true; };
+
+
+
+		rtc::Thread* signaling_thread() { return context_->signaling_thread(); }
+		const rtc::Thread* signaling_thread() const { return context_->signaling_thread(); }
+		rtc::Thread* worker_thread() { return context_->worker_thread(); }
+		const rtc::Thread* worker_thread() const { return context_->worker_thread(); }
+		rtc::Thread* network_thread() { return context_->network_thread(); }
+		const rtc::Thread* network_thread() const { return context_->network_thread(); }
+
+
+		void LoopSip();
 
 	public:
 
@@ -102,10 +122,12 @@ namespace gbsip_server
 		void   response_message_answer(eXosip_event_t * sip_event, int32_t code);
 
 
-		int32_t   request_invite(const std::string&  device, const std::string& ip, uint16_t port);
+		int32_t   request_invite(const std::string&  device, const std::string& remote_ip, uint16_t remote_port, uint16_t rtp_port);
 		void     response_message(eXosip_event_t * sip_event);
 		void response_register_401unauthorized(eXosip_event_t * sip_event);
 	private:
+		webrtc::ScopedTaskSafety task_safety_;
+		rtc::scoped_refptr<libp2p_peerconnection::ConnectionContext>	context_;
 		std::atomic<bool>  stoped_;
 		SipServerInfo    sip_server_info_;
 		struct eXosip_t *sip_context_;
@@ -117,6 +139,7 @@ namespace gbsip_server
 
 		std::unordered_map<std::string, std::shared_ptr<SipClient>>        client_map_;
 		bool request_invite_ = false;
+		int32_t  delay_ = 50;
 	};
 }
 

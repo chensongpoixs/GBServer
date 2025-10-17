@@ -93,6 +93,47 @@ namespace httplib {
 		}
 		return false;
 	}
+	bool PostReuest(const char *url, 
+		const char * path, const std::string & body,
+		std::string & result)
+	{
+		httplib::Client cli(url);
+		//std::string path = "/index/api/getMediaInfo?secret=cSVAZnkeQ0h57lNs0ieUdRa2qQ4h6ytB&schema=rtsp&vhost=__defaultVhost__&app=" + app + "&stream=" + stream;// "http://" + m_host + ":" + std::to_string(m_port) + "/decoder/decoder.php";
+		auto res = cli.Post(path, body, "application/json");
+		if (res && res->status == 200)
+		{
+
+
+			printf("[%s][%s]\n", __FUNCTION__, res->body.c_str());
+			result = res->body;
+			//try
+			//{
+			//	response = nlohmann::json::parse(res->body);
+			//}
+			//catch (const std::exception&)
+			//{
+			//	printf("websocket protoo [msg = %s] json parse failed !!!", res->body.c_str());
+			//	return false;
+			//}
+			//
+			//if (response.find("code") != response.end())
+			//{
+			//	uint64_t code = response["code"].get<uint64_t>();
+			//	if (code != 0)
+			//	{
+			//		printf("[%s]\n", __FUNCTION__);
+			//		return false;
+			//	}
+			//	return true;
+			//}
+			//printf("[%s]\n", __FUNCTION__);
+			//return false;
+			//printf("[%s]\n", __FUNCTION__);
+			return true;
+			//return true;
+		}
+		return false;
+	}
 namespace detail {
 
 bool is_hex(char c, int &v) {

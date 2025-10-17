@@ -62,6 +62,9 @@ public:
         "SELECT * FROM t_device WHERE id=:id;",
         PARAM(oatpp::Int32, id))
 
+  QUERY(getDeviceByDeviceId,
+		  "SELECT * FROM t_device WHERE deviceid=:deviceId;",
+		  PARAM(oatpp::String, deviceId))
   QUERY(getAllDevices,
         "SELECT * FROM t_device LIMIT :limit OFFSET :offset;",
         PARAM(oatpp::UInt32, offset),

@@ -42,7 +42,7 @@ namespace  gb_media_server
 		static GbMediaService & GetInstance()
 		{
 			static GbMediaService   instance;
-			GBMEDIASERVER_LOG_F(LS_INFO) << "instance: "  << &instance;
+			//GBMEDIASERVER_LOG_F(LS_INFO) << "instance: "  << &instance;
 			return instance;
 		}
 

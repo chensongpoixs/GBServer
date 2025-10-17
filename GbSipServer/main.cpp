@@ -38,7 +38,7 @@
 
 #include <iostream>
 #include "rtc_base/logging.h"
-std::shared_ptr<gbsip_server::SipServer> sip_server;
+//std::shared_ptr<gbsip_server::SipServer> sip_server;
 void run() {
 
 	
@@ -103,15 +103,16 @@ void run() {
 	SipServerInfo.SipSeverPass = "12345678";
 	SipServerInfo.SipTimeout = 1800;
 	SipServerInfo.SipExpiry = 3600;
-
-	sip_server = std::make_shared<gbsip_server::SipServer >();
+	gbsip_server::SipServer::GetInstance().init(SipServerInfo);
+	gbsip_server::SipServer::GetInstance().Start();
+	//sip_server = std::make_shared<gbsip_server::SipServer >();
 	
-	sip_server->init(SipServerInfo);
-	std::thread([&]() {
-		sip_server->Start();
-	}).detach();
+	//sip_server->init(SipServerInfo);
+	//std::thread([&]() {
+	//	sip_server->Start();
+	//}).detach();
 	///OATPP_LOGd("Server", "Running on port {}...", connectionProvider->getProperty("port").toString())
-	RTC_LOG(LS_INFO) << "Web Server  run port:" << connectionProvider->getProperty("port").std_str() ;
+	SIPSERVER_LOG(LS_INFO) << "Web Server  run port:" << connectionProvider->getProperty("port").std_str() ;
 		server.run();
 
 	/* stop db connection pool */
@@ -123,7 +124,14 @@ void run() {
 
 int main(int argc, char *argv[])
 {
-	
+#ifdef WIN32
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+
+		return;
+	}
+#endif // WIN32
 	oatpp::Environment::init();
 	
 	run();

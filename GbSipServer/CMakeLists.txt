@@ -93,7 +93,8 @@ file(GLOB GbSipServer_source
 		utils/*.cpp 
 		utils/*.h 
 		utils/*.c 
-		 
+		 utils/*.hpp
+
 		*.h
 	*.cpp 
 	

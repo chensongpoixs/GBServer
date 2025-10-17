@@ -291,6 +291,8 @@ bool   GetRequest(const char * url, const char * media_url);
 
 
 
+bool PostReuest(const char * url, const char *path, const std::string & body, std::string & result);
+
 
 
 
