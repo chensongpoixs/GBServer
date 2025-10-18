@@ -63,6 +63,11 @@ namespace gb_media_server {
 
 
 		std::unique_ptr< libmedia_transfer_protocol::libmpeg::MpegDecoder>    mpeg_decoder_;
+
+
+		//rtc::Buffer recv_buffer_;
+		   uint8_t  * recv_buffer_;
+		int32_t recv_buffer_size_;
 	};
 }
 
