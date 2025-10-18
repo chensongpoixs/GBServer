@@ -115,7 +115,8 @@ namespace gb_media_server {
 		uint32_t      video_seq_ = 100;
 		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 
-
+		 rtc::CopyOnWriteBuffer                     sps_;
+		 rtc::CopyOnWriteBuffer						pps_;
 		 bool										capture_type_;//采集桌面画面播放
 	};
 }

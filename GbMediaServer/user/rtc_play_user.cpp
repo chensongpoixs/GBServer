@@ -322,7 +322,7 @@ namespace gb_media_server
 		  }
 		  uint32_t rtp_timestamp = 0;// rtc::TimeMillis() * 90; // encoded_image->Timestamp() * 90;
 		  //GBMEDIASERVER_LOG_T_F(LS_INFO);
-#if 1
+#if 0
 
 		  {
 			  static FILE * out_file_ptr = fopen("level_idc_31_test.h264", "wb+");
@@ -338,6 +338,8 @@ namespace gb_media_server
 		  std::vector<webrtc::H264::NaluIndex> nalus = webrtc::H264::FindNaluIndices(
 			  frame.data(), frame.size());
 		  size_t fragments_count = nalus.size();
+		  rtc::Buffer   new_frame(1024 *1024 *8);
+		  new_frame.SetSize(0);
 		  for (int32_t nal_index = 0; nal_index < fragments_count; ++nal_index)
 		  {
 			  // nalus[nal_index].payload_start_offset
@@ -350,19 +352,40 @@ namespace gb_media_server
 			  switch (nalu.type) {
 				  case webrtc::H264::NaluType::kSps: {
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "======"<<nal_index <<"============>SPS, size:" << nalus[nal_index].payload_size;
+					  //if (fragments_count == 1)
+					  {
+						  sps_ = rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size +4);
+						   // return;
+					  }
+					 
 					  break;
 				  }
 				  case webrtc::H264::NaluType::kPps: {
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=========" << nal_index << "=========>PPS, size:" << nalus[nal_index].payload_size;
+					  //if (fragments_count == 1)
+					  {
+						  pps_ = rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4);;
+						   
+					  }
 					  break;
 				  }
 				  case webrtc::H264::NaluType::kIdr:
 				  {
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>IDR, size:" << nalus[nal_index].payload_size;
+					  //if (fragments_count == 1)
+					  {
+						  new_frame.AppendData(sps_);
+						  new_frame.AppendData(pps_);
+						  new_frame.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+						  new_frame.SetSize(sps_.size() + pps_.size() + nalus[nal_index].payload_size + 4);
+						  //return;
+					  }
 					  break;
 				  }
 				  case webrtc::H264::NaluType::kSlice: {
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "======" << nal_index << "============>kSlice, size:" << nalus[nal_index].payload_size;
+					  new_frame.AppendData(frame);
+					  new_frame.SetSize(  frame.size());
 					  break;
 				  }
 													   // Slices below don't contain SPS or PPS ids.
@@ -373,6 +396,8 @@ namespace gb_media_server
 				  case webrtc::H264::NaluType::kSei:
 				  {
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>kAud, size:" << nalus[nal_index].payload_size;
+					  new_frame.AppendData(frame);
+					  new_frame.SetSize(frame.size());
 					  break;
 				  }
 				  case webrtc::H264::NaluType::kStapA:
@@ -380,10 +405,14 @@ namespace gb_media_server
 				  {
 
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "========" << nal_index << "==========>kFuA---kStapA  , size:" << nalus[nal_index].payload_size;
+					  new_frame.AppendData(frame);
+					  new_frame.SetSize(frame.size());
 					  break;
 				  } 
 				  default:{
 					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=====" << nal_index << "=============>default  packet  , size:" << nalus[nal_index].payload_size;
+					  new_frame.AppendData(frame);
+					  new_frame.SetSize(frame.size());
 					  break;
 				  }
 			   
@@ -404,7 +433,7 @@ namespace gb_media_server
 		  {
 			  std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = 
 				  libmedia_transfer_protocol::RtpPacketizer::Create(
-				  video_type, rtc::ArrayView<const uint8_t>(frame.data() /*+nalus[nal].payload_start_offset */,  frame.size() 
+				  video_type, rtc::ArrayView<const uint8_t>(new_frame.data() /*+nalus[nal].payload_start_offset */, new_frame.size()
 					   /*nalus[nal].payload_size*/ ),
 				  limits, rtp_video_hreader);
 
