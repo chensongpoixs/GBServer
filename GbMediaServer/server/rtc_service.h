@@ -20,7 +20,7 @@
 #define _C_RTC_SERVICE_H_
 
 #include "server/session.h"
-#include "user/play_rtc_user.h"
+#include "user/rtc_play_user.h"
 #include "server/session.h"
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"

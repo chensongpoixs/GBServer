@@ -30,7 +30,8 @@
 //}
 #include "server/session.h"
 #include "utils/string_utils.h"
-
+#include "user/gb28181_push_user.h"
+#include "server/connection.h"
 namespace  gb_media_server
 {
 	namespace
@@ -94,6 +95,64 @@ namespace  gb_media_server
 			s->Clear();
 		}
 		return true;
+	}
+	libmedia_transfer_protocol::libhttp::TcpServer * GbMediaService::OpenTcpServer(const std::string & stream_id, uint16_t port)
+	{
+		// workthread
+		RTC_DCHECK_RUN_ON(worker_thread());
+		auto iter =  rtp_server_.find(stream_id);
+		if (iter != rtp_server_.end())
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "open tcp rtp Server failed !!!  rtp map find  stsream_id:" << stream_id;
+			return nullptr;
+		}
+		//if (worker_thread()->IsCurrent())
+		auto rtp_server = std::make_unique< libmedia_transfer_protocol::libhttp::TcpServer>();
+		if (!rtp_server)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "open tcp rtp Server failed !!!  create socket failed   stsream_id:" << stream_id;
+			return nullptr;
+		}
+		rtp_server->SignalOnNewConnection.connect(this, &GbMediaService::OnNewConnection);
+		rtp_server->SignalOnRecv.connect(this, &GbMediaService::OnRecv);
+		rtp_server->SignalOnSent.connect(this, &GbMediaService::OnSent);
+		rtp_server->SignalOnDestory.connect(this, &GbMediaService::OnDestory);
+		bool ret =  rtp_server->network_thread()->Invoke<bool>(RTC_FROM_HERE, [&]() {
+
+			return rtp_server->Startup("0.0.0.0", port);
+		});
+		//auto pi =
+			rtp_server_.insert(std::make_pair(stream_id, std::move(rtp_server)));
+			 iter = rtp_server_.find(stream_id);
+			if (iter != rtp_server_.end())
+			{
+				return iter->second.get();
+			}
+
+			// insert failed !!!
+			return nullptr;
+		 //return rtp_server_.insert(std::make_pair(stream_id, std::move(rtp_server)).second.get();
+	}
+	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	{
+		GBMEDIASERVER_LOG(LS_INFO);
+	}
+	void GbMediaService::OnDestory(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	{
+		GBMEDIASERVER_LOG(LS_INFO);
+	}
+	void GbMediaService::OnRecv(libmedia_transfer_protocol::libhttp::TcpSession * conn, const rtc::CopyOnWriteBuffer & data)
+	{
+		//GBMEDIASERVER_LOG(LS_INFO) << "";
+		std::shared_ptr<gb_media_server::User> user = conn->GetContext<gb_media_server::User>(kUserContext);
+		if (user)
+		{
+			user->OnRecv( data);
+		}
+	}
+	void GbMediaService::OnSent(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	{
+		GBMEDIASERVER_LOG(LS_INFO);
 	}
 	void GbMediaService::Start(const char * ip, uint16_t port)
 	{

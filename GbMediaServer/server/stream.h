@@ -106,6 +106,7 @@ purpose:		GOPMGR
 #include <string>
 #include <atomic>
 #include <mutex>
+#include "rtc_base/copy_on_write_buffer.h"
 
 
 namespace gb_media_server
@@ -123,6 +124,10 @@ namespace gb_media_server
 
 
 		public:
+
+
+			void AddVideoFrame(const rtc::CopyOnWriteBuffer& frame);
+			void AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
 		//	void AddPacket(PacketPtr &&packet);
 
 			//void ProcessHls(PacketPtr & packet);

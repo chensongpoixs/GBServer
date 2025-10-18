@@ -41,6 +41,9 @@ purpose:		GOPMGR
 
 #include <atomic>
 
+#include "rtc_base/copy_on_write_buffer.h"
+
+
 
 namespace gb_media_server
 {
@@ -134,6 +137,9 @@ namespace gb_media_server
 			{
 				return user_id_;
 			}
+
+			//接受不同协议上层处理 实现
+			virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 		public:
 			//网络层接口
 			void Close();

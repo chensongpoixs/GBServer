@@ -21,7 +21,7 @@
 #include "rtc_base/logging.h"
 #include "server/connection.h"
 #include "server/gb_media_service.h"
-#include "user/play_rtc_user.h"
+#include "user/rtc_play_user.h"
 #include "user/player_user.h"
 #include "rtc_base/string_encode.h"
 #include "utils/time_corrector.h"

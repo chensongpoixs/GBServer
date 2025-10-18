@@ -25,6 +25,7 @@
 #include "server/gb_media_service.h"
 #include "server/rtc_service.h"
 #include "utils/string_utils.h"
+#include "user/rtc_play_user.h"
 namespace  gb_media_server
 {
 	WebService::WebService()
@@ -262,10 +263,22 @@ namespace  gb_media_server
 
 			return;
 		}
-		// rtc::SocketAddress   server_addrs;
-		// server_addrs.SetIP("192.168.1.2");
-		// server_addrs.SetPort(10003);
-		// auto socket = GbMediaService::GetInstance().network_thread()->socketserver()->CreateSocket(server_addrs.ipaddr().family(), SOCK_STREAM);
+		static uint16_t tcp_port = 20000;
+		
+		auto rtp = GbMediaService::GetInstance().OpenTcpServer(session_name, tcp_port);
+		if (!rtp)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create rtp server failed  session  name:" << session_name;
+			// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+			// http_ctx->PostRequest(res);
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+				//	conn->Close();
+			});
+			return;
+		}
 		auto  connection = std::make_shared<Connection>(conn->GetSocket());
 		auto user = s->CreatePublishUser(connection, session_name, "", UserType::kUserTypePublishGB28181);
 
@@ -282,14 +295,17 @@ namespace  gb_media_server
 			});
 			return;
 		}
+	//	++port;
 		s->SetPublisher(user);
+
+		rtp->SetContext(kUserContext, user);
 		//s->add(std::dynamic_pointer_cast<User>(user));
 		Json::Value result;
 		result["code"] = 0;
 		result["tcpmode"] = tcp_mode;
 		result["streamid"] = stream_id;
-		result["port"] = 10000;
-		
+		result["port"] = tcp_port;
+		++tcp_port;
 
 		auto content = result.toStyledString();
 		GBMEDIASERVER_LOG(LS_INFO) << " open rtp server info :" << content;

@@ -20,7 +20,7 @@
 #include "server/session.h"
 #include "rtc_base/logging.h"
 #include "user/user.h"
-#include "user/play_rtc_user.h"
+#include "user/rtc_play_user.h"
 #include "user/player_user.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/string_utils.h"
@@ -31,13 +31,14 @@
 #include "server/stream.h"
 #include "server/connection.h"
 #include "server/stream.h"
-#include "user/play_rtc_user.h"
+//#include "user/play_rtc_user.h"
 #include <memory>
 #include "user/user.h"
 #include "api/array_view.h"
 #include "utils/time_corrector.h"
 #include "absl/strings/string_view.h"
 #include "utils/string_utils.h"
+#include "user/gb28181_push_user.h"
 
 namespace  gb_media_server
 {
@@ -76,8 +77,39 @@ namespace  gb_media_server
 		//std::vector<std::string> list = tmms::base::StringUtils::SplitString(session_name, "/");
 		std::vector<std::string> list;
 		string_utils::split(session_name, '/', & list);
-
-		std::shared_ptr<User> user = std::make_shared<User>(conn, stream_, shared_from_this());
+		std::shared_ptr<User> user;
+		switch (type)
+		{
+			case gb_media_server::kUserTypePublishGB28181:
+			{
+				user = std::make_shared<Gb28181PushUser>(conn, stream_, shared_from_this());
+				break;
+			}
+			case gb_media_server::kUserTypePublishRtmp:
+			 
+			case gb_media_server::kuserTypePublishMpegts:
+			 
+			case gb_media_server::kUserTypePublishPav:
+			 
+			case gb_media_server::kUserTypePublishWebRtc:  
+			case gb_media_server::kUserTypePlayerPav:
+			 
+			case gb_media_server::kUserTypePlayerFlv:
+			 
+			case gb_media_server::kUserTypePlayerHls:
+			 
+			case gb_media_server::kUserTypePlayerRtmp:
+			 
+			case gb_media_server::kUserTypePlayerWebRTC:
+			 
+			case gb_media_server::kUserTypeUnknowed: 
+			default:
+			{
+				user = std::make_shared<User>(conn, stream_, shared_from_this());
+				break;
+			}
+		}
+		
 		//user->SetAppInfo(app_info_);
 		//user->SetDomainName(list[0]);
 		user->SetAppName(list[1]);

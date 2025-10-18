@@ -22,7 +22,7 @@
 #include "server/session.h"
 #include "libp2p_peerconnection/connection_context.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
-
+#include "libmedia_transfer_protocol/libhttp/tcp_server.h"
 #include "rtc_base/logging.h"
 
 namespace  gb_media_server
@@ -31,7 +31,7 @@ namespace  gb_media_server
 
 	//class Session;
 	//using SessionPtr = std::shared_ptr<Session>;
-	class GbMediaService
+	class GbMediaService : public sigslot::has_slots<>
 	{
 	public:
 		GbMediaService() = default;
@@ -51,6 +51,17 @@ namespace  gb_media_server
 		std::shared_ptr < Session> FindSession(const std::string &session_name, bool split = true);
 		bool CloseSession(const std::string &session_name);
 		//void OnTimer(const TaskPtr &t);
+
+
+		libmedia_transfer_protocol::libhttp::TcpServer*     OpenTcpServer(const std::string & stream_id, uint16_t port);
+
+
+
+
+		void OnNewConnection(libmedia_transfer_protocol::libhttp::TcpSession* conn);
+		void OnDestory(libmedia_transfer_protocol::libhttp::TcpSession* conn);
+		void OnRecv(libmedia_transfer_protocol::libhttp::TcpSession* conn, const rtc::CopyOnWriteBuffer& data);
+		void OnSent(libmedia_transfer_protocol::libhttp::TcpSession* conn);
 
 		//void OnNewConnection(const TcpConnectionPtr &conn) override;
 		//void OnConnectionDestroy(const TcpConnectionPtr &conn) override;
@@ -99,6 +110,10 @@ namespace  gb_media_server
 		std::unordered_map<std::string, std::shared_ptr < Session>> sessions_;
 
 		std::unique_ptr<libmedia_transfer_protocol::librtc::RtcServer>   rtc_server_;
+
+
+
+		std::unordered_map<std::string, std::unique_ptr<libmedia_transfer_protocol::libhttp::TcpServer> > rtp_server_;// rtp map 
 	//	std::unique_ptr<rtc::Thread>								network_thread_;
 	//	std::unique_ptr<rtc::Thread>                               worker_thread_;
 		//std::shared_ptr<WebrtcServer>  webrtc_server_;
