@@ -179,32 +179,34 @@ namespace gbsip_server
 			return;
 		}
 
-		eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 0);
-		eXosip_automatic_action(sip_context_);
-		if (!event_sip) {
-			
-			//osip_usleep(100000);
-			//continue;
-		}
-		else
+		while (!stoped_)
 		{
-			auto event_iter = sip_event_callback_map_.find(event_sip->type);
-			if (event_iter != sip_event_callback_map_.end())
+			eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 20);
+			eXosip_automatic_action(sip_context_);
+			if (event_sip)
 			{
-				(this->*(event_iter->second))(event_sip);
+				auto event_iter = sip_event_callback_map_.find(event_sip->type);
+				if (event_iter != sip_event_callback_map_.end())
+				{
+					(this->*(event_iter->second))(event_sip);
+				}
+				else
+				{
+					SIPSERVER_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
+
+				}
+				//if (request_invite_)
+				//{
+				//	request_invite("41010500002000000003", "192.168.1.64", 5060);
+				//	request_invite_ = false;
+				//}
+				//this->sip_event_handle(evtp);
+				eXosip_event_free(event_sip);
 			}
 			else
 			{
-				SIPSERVER_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
-
+				break;
 			}
-			//if (request_invite_)
-			//{
-			//	request_invite("41010500002000000003", "192.168.1.64", 5060);
-			//	request_invite_ = false;
-			//}
-			//this->sip_event_handle(evtp);
-			eXosip_event_free(event_sip);
 		}
 		//network_thread()->PostDelayedTask(
 	//		webrtc::ToQueuedTask(task_safety_, [this]() { LoopSip(); }), delay_);
@@ -419,55 +421,83 @@ namespace gbsip_server
 	}
 	int32_t SipServer::request_invite(const std::string & device, const std::string & remote_ip, uint16_t remote_port, uint16_t rtp_port)
 	{
-		char session_exp[1024] = { 0 };
-		osip_message_t *msg = nullptr;
-		char from[1024] = { 0 };
-		char to[1024] = { 0 };
-		char contact[1024] = { 0 };
-		char sdp[2048] = { 0 };
-		char head[1024] = { 0 };
-
-
-		sprintf(from, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
-		sprintf(contact, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
-		sprintf(to, "sip:%s@%s:%d", device.c_str(), remote_ip.c_str(), remote_port);
-		snprintf(sdp, 2048,
-			"v=0\r\n"
-			"o=%s 0 0 IN IP4 %s\r\n"
-			"s=Play\r\n"
-			"c=IN IP4 %s\r\n"
-			"t=0 0\r\n"
-			"m=video %d TCP/RTP/AVP 96 98 97\r\n"
-			"a=recvonly\r\n"
-			"a=rtpmap:96 PS/90000\r\n"
-			"a=rtpmap:98 H264/90000\r\n"
-			"a=rtpmap:97 MPEG4/90000\r\n"
-			"a=setup:passive\r\n"
-			"a=connection:new\r\n"
-			"y=0100000001\r\n"
-			"f=\r\n", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.ip.c_str(), rtp_port);
-
-		int ret = eXosip_call_build_initial_invite(sip_context_, &msg, to, from, nullptr, nullptr);
-		if (ret) { 
-			SIPSERVER_LOG(LS_WARNING) << "eXosip_call_build_initial_invite error:" << from << ", " << to << ", ret:" << ret;
-			return -1;
-		}
-
-		osip_message_set_body(msg, sdp, strlen(sdp));
-		osip_message_set_content_type(msg, "application/sdp");
-		snprintf(session_exp, sizeof(session_exp) - 1, "%i;refresher=uac", sip_server_info_.SipTimeout   );
-		osip_message_set_header(msg, "Session-Expires", session_exp);
-		osip_message_set_supported(msg, "timer");
-
-		int call_id = eXosip_call_send_initial_invite(sip_context_, msg);
-
-		if (call_id > 0) 
+		int32_t ret = 0;
 		{
-			RTC_LOG(LS_INFO) << "eXosip_call_send_initial_invite success: call_id:" << call_id; 
+			char session_exp[1024] = { 0 };
+			osip_message_t *msg = nullptr;
+			char from[1024] = { 0 };
+			char to[1024] = { 0 };
+			char contact[1024] = { 0 };
+			char sdp[2048] = { 0 };
+			char head[1024] = { 0 };
+
+
+			sprintf(from, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
+			sprintf(contact, "sip:%s@%s:%d", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.port);
+			sprintf(to, "sip:%s@%s:%d", device.c_str(), remote_ip.c_str(), remote_port);
+			snprintf(sdp, 2048,
+				"v=0\r\n"
+				"o=%s 0 0 IN IP4 %s\r\n"
+				"s=Play\r\n"
+				"c=IN IP4 %s\r\n"
+				"t=0 0\r\n"
+				"m=video %d TCP/RTP/AVP 96 98 97\r\n"
+				"a=recvonly\r\n"
+				"a=rtpmap:96 PS/90000\r\n"
+				"a=rtpmap:98 H264/90000\r\n"
+				"a=rtpmap:97 MPEG4/90000\r\n"
+				"a=setup:passive\r\n"
+				"a=connection:new\r\n"
+				"y=0100000001\r\n"
+				"f=\r\n", sip_server_info_.sipServerId.c_str(), sip_server_info_.ip.c_str(), sip_server_info_.ip.c_str(), rtp_port);
+
+			ret = eXosip_call_build_initial_invite(sip_context_, &msg, to, from, nullptr, nullptr);
+			if (ret) {
+				SIPSERVER_LOG(LS_WARNING) << "eXosip_call_build_initial_invite error:" << from << ", " << to << ", ret:" << ret;
+				return -1;
+			}
+
+			osip_message_set_body(msg, sdp, strlen(sdp));
+			osip_message_set_content_type(msg, "application/sdp");
+			snprintf(session_exp, sizeof(session_exp) - 1, "%i;refresher=uac", sip_server_info_.SipTimeout);
+			osip_message_set_header(msg, "Session-Expires", session_exp);
+			osip_message_set_supported(msg, "timer");
+
+			int call_id = eXosip_call_send_initial_invite(sip_context_, msg);
+
+			if (call_id > 0)
+			{
+				RTC_LOG(LS_INFO) << "eXosip_call_send_initial_invite success: call_id:" << call_id;
+			}
+			else {
+				RTC_LOG(LS_WARNING) << "eXosip_call_send_initial_invite error: call_id:" << call_id;
+			}
 		}
-		else {
-			RTC_LOG(LS_WARNING) << "eXosip_call_send_initial_invite error: call_id:" << call_id; 
+		eXosip_event_t *event_sip = eXosip_event_wait(sip_context_, 0, 20);
+		eXosip_automatic_action(sip_context_);
+		if (event_sip)
+		{
+			auto event_iter = sip_event_callback_map_.find(event_sip->type);
+			if (event_iter != sip_event_callback_map_.end())
+			{
+				(this->*(event_iter->second))(event_sip);
+			}
+			else
+			{
+				SIPSERVER_LOG(LS_WARNING) << "sip event callback type:" << event_sip->type;
+
+			}
+			
+		
+			//if (request_invite_)
+			//{
+			//	request_invite("41010500002000000003", "192.168.1.64", 5060);
+			//	request_invite_ = false;
+			//}
+			//this->sip_event_handle(evtp);
+			eXosip_event_free(event_sip);
 		}
+		
 		return ret;
 	}
 	void SipServer::response_message(eXosip_event_t * sip_event)

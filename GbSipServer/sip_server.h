@@ -139,7 +139,7 @@ namespace gbsip_server
 
 		std::unordered_map<std::string, std::shared_ptr<SipClient>>        client_map_;
 		bool request_invite_ = false;
-		int32_t  delay_ = 50;
+		int32_t  delay_ = 10;
 	};
 }
 

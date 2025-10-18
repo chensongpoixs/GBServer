@@ -288,7 +288,7 @@ namespace  gb_media_server
 		result["code"] = 0;
 		result["tcpmode"] = tcp_mode;
 		result["streamid"] = stream_id;
-		result["port"] = port;
+		result["port"] = 10000;
 		
 
 		auto content = result.toStyledString();

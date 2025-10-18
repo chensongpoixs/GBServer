@@ -71,7 +71,7 @@ CREATE TABLE t_device (
   DTO_FIELD(Int32, CreatedAt, "createdat") = 0; //	创建时间
   DTO_FIELD(Int32, Longitude, "longitude" ) = 0; // 经度 默认值: 0
   DTO_FIELD(Int32, Latitude, "latitude") = 0; // 纬度
-  DTO_FIELD(String, RemoteIP, "remoteip") = "192.168.1.64"; // 出口IP
+  DTO_FIELD(String, RemoteIP, "remoteip") = "192.168.3.4"; // 出口IP
   DTO_FIELD(Int32, RemotePort, "remoteport") = 15060; // 端口
  //CatalogSubscribe	Boolean	 目录订阅是否开启
 

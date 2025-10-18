@@ -36,5 +36,7 @@
      lastkeepaliveat INTEGER,
      updatedat INTEGER,
      createdat INTEGER,
+	 remoteip   VARCHAR, 
+	 remoteport   INTEGER,
      role        VARCHAR
   );

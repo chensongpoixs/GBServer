@@ -35,11 +35,11 @@ public:
   QUERY(createDevice,
       "INSERT INTO t_device"
       "(deviceid, type, devicename, channelcount, password, catalogsubscribe, online, siptransport, "
-      "mediatransport, mediatransportmode, lastregisterat, lastkeepaliveat, updatedat, createdat, role) VALUES "
+      "mediatransport, mediatransportmode, lastregisterat, lastkeepaliveat, updatedat, createdat, remoteip, remoteport, role) VALUES "
       "(:device.deviceid, :device.type, :device.devicename, :device.channelcount , "
       ":device.password, :device.catalogsubscribe, :device.online, :device.siptransport, "
       ":device.mediatransport, :device.mediatransportmode, :device.lastregisterat, "
-      ":device.lastkeepaliveat,  :device.updatedat, :device.createdat, :device.role);",
+      ":device.lastkeepaliveat,  :device.updatedat, :device.createdat, :device.remoteip, :device.remoteport, :device.role);",
       PARAM(oatpp::Object<DeviceDto>, device))
 
 
