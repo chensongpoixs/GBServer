@@ -264,7 +264,7 @@ namespace  gb_media_server
 			return;
 		}
 		static uint16_t tcp_port = 20000;
-		
+
 		auto rtp = GbMediaService::GetInstance().OpenTcpServer(session_name, tcp_port);
 		if (!rtp)
 		{
@@ -299,12 +299,13 @@ namespace  gb_media_server
 		s->SetPublisher(user);
 
 		rtp->SetContext(kUserContext, user);
+ 
 		//s->add(std::dynamic_pointer_cast<User>(user));
 		Json::Value result;
 		result["code"] = 0;
 		result["tcpmode"] = tcp_mode;
 		result["streamid"] = stream_id;
-		result["port"] = tcp_port;
+		result["port"] =   tcp_port;
 		++tcp_port;
 
 		auto content = result.toStyledString();

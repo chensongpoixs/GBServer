@@ -76,6 +76,8 @@ namespace  gb_media_server
 
 		void Start(const char * ip, uint16_t port);
 		void Stop();
+
+		uint16_t  GetRtpPort() const { return rtc_port_; }
 		//EventLoop *GetNextLoop();
 		//std::shared_ptr<WebrtcServer> GetWebrtcServer()const
 		//{
@@ -117,7 +119,7 @@ namespace  gb_media_server
 	//	std::unique_ptr<rtc::Thread>								network_thread_;
 	//	std::unique_ptr<rtc::Thread>                               worker_thread_;
 		//std::shared_ptr<WebrtcServer>  webrtc_server_;
-
+		uint16_t										rtc_port_ = 10009;
 	};
 }
 

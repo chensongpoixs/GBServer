@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 	gb_media_server::WebService  web_server_;
 	web_server_.StartWebServer("192.168.1.2", 8001);
 	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
-	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", 9001);
+	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", gb_media_server::GbMediaService::GetInstance().GetRtpPort());
 	while (true)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));

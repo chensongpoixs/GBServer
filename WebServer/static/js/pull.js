@@ -7,9 +7,12 @@ var remoteVideo = document.getElementById("remoteVideo");
 var pullBtn = document.getElementById("StartpullBtn");
 var stopPullBtn = document.getElementById("stopPullBtn");
 
+var pullCaptureBtn = document.getElementById("pullCaptureBtn");
+
 pullBtn.addEventListener("click", startPull);
 stopPullBtn.addEventListener("click", stopPull);
 
+pullCaptureBtn.addEventListener("click",  CaptureBtnpull);
 
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
@@ -19,6 +22,7 @@ var offer = "";
 var pc;
 const config = {};
 var remoteStream;
+var captureType = 1;
 //本地视频流
 //var localStream = null;
 var lastConnectionState = "";
@@ -30,6 +34,20 @@ pullStream();
     
 }
 
+
+function CaptureBtnpull()
+{
+	if (captureType == 1)
+	{
+		captureType = 0;
+		
+	}
+	else 
+	{
+		captureType = 1;
+	}
+}
+
 function stopPull() {
      
 
@@ -38,8 +56,10 @@ function stopPull() {
 function sendOffer(offerSdp) {
 	var rtc_api_server = $("#PullhttpUrl").val();
 	var StreamUrl = $("#PullStreamUrl").val();
-	var captureType = $("#captureType").val() === 'on'? 1: 0;
-	console.log($("#captureType").val());
+	 
+
+	
+	console.log("captureType:"+captureType);
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 
 	// 创建一个新的XMLHttpRequest对象
@@ -53,7 +73,7 @@ var data = {
    type: 'offer',
    sdp: offerSdp,
    streamurl: StreamUrl,
-  // caputretype: captureType,
+   caputretype: captureType,
    clientid: clientId
   
 };

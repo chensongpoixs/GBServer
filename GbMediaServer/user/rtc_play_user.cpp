@@ -31,7 +31,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_format.h"
 #include <memory>
 #include "server/rtc_service.h"
-
+#include "common_video/h264/h264_common.h"
 namespace gb_media_server
 {
 	PlayRtcUser::PlayRtcUser(  std::shared_ptr<Connection> &ptr,   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
@@ -57,7 +57,7 @@ namespace gb_media_server
 		sdp_.SetFingerprint(dtls_.Fingerprint());
 		// 本地ip port 
 		sdp_.SetServerAddr("192.168.1.2");
-		sdp_.SetServerPort(9001);
+		sdp_.SetServerPort(GbMediaService::GetInstance().GetRtpPort());
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
@@ -225,9 +225,13 @@ namespace gb_media_server
 #if TEST_RTC_PLAY
 	  void PlayRtcUser::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
-		  rtc::CopyOnWriteBuffer  buffer;
-		  buffer.AppendData(*encoded_image.get());
-		  OnVideoFrame(buffer);
+		    rtc::CopyOnWriteBuffer  buffer;
+			buffer.AppendData(*encoded_image.get());
+			OnVideoFrame(buffer);
+			//buffer.Clear();
+		  
+		 
+		  
 		  return;
 		  //GBMEDIASERVER_LOG(LS_INFO);
 		//  return;
@@ -314,64 +318,130 @@ namespace gb_media_server
 		  if (ftype == 5)
 		  {
 			  GBMEDIASERVER_LOG_T_F(LS_INFO) << "igore info frame.";
-			  return  ;
+			  //return  ;
 		  }
-		  uint32_t rtp_timestamp = rtc::TimeMillis()*90; // encoded_image->Timestamp() * 90;
-		  GBMEDIASERVER_LOG_T_F(LS_INFO);
+		  uint32_t rtp_timestamp = 0;// rtc::TimeMillis() * 90; // encoded_image->Timestamp() * 90;
+		  //GBMEDIASERVER_LOG_T_F(LS_INFO);
+#if 1
 
+		  {
+			  static FILE * out_file_ptr = fopen("level_idc_31_test.h264", "wb+");
+			  if (out_file_ptr)
+			  {
+				  fwrite(frame.data(), 1, frame.size(), out_file_ptr);
+				  fflush(out_file_ptr);
+			  }
+		  }
+#endif //
 		  libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits   limits;
 		  libmedia_transfer_protocol::RTPVideoHeader   rtp_video_hreader;
+		  std::vector<webrtc::H264::NaluIndex> nalus = webrtc::H264::FindNaluIndices(
+			  frame.data(), frame.size());
+		  size_t fragments_count = nalus.size();
+		  for (int32_t nal_index = 0; nal_index < fragments_count; ++nal_index)
+		  {
+			  // nalus[nal_index].payload_start_offset
+			  webrtc::NaluInfo nalu;
+			  nalu.type = frame.data()[nalus[nal_index].payload_start_offset] & 0x1F;
+			  nalu.sps_id = -1;
+			  nalu.pps_id = -1;
+			 // start_offset += webrtc::H264::kNaluTypeSize;
 
+			  switch (nalu.type) {
+				  case webrtc::H264::NaluType::kSps: {
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "======"<<nal_index <<"============>SPS, size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+				  case webrtc::H264::NaluType::kPps: {
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=========" << nal_index << "=========>PPS, size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+				  case webrtc::H264::NaluType::kIdr:
+				  {
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>IDR, size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+				  case webrtc::H264::NaluType::kSlice: {
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "======" << nal_index << "============>kSlice, size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+													   // Slices below don't contain SPS or PPS ids.
+				  case webrtc::H264::NaluType::kAud:
+				  case webrtc::H264::NaluType::kEndOfSequence:
+				  case webrtc::H264::NaluType::kEndOfStream:
+				  case webrtc::H264::NaluType::kFiller:
+				  case webrtc::H264::NaluType::kSei:
+				  {
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>kAud, size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+				  case webrtc::H264::NaluType::kStapA:
+				  case webrtc::H264::NaluType::kFuA:
+				  {
+
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "========" << nal_index << "==========>kFuA---kStapA  , size:" << nalus[nal_index].payload_size;
+					  break;
+				  } 
+				  default:{
+					  GBMEDIASERVER_LOG_T_F(LS_INFO) << "=====" << nal_index << "=============>default  packet  , size:" << nalus[nal_index].payload_size;
+					  break;
+				  }
+			   
+			  }
+		  }
+		  // const uint8_t start_code[4] = {0, 0, 0, 1};
+		  /*frag_header->VerifyAndAllocateFragmentationHeader(fragments_count);
+		  for (size_t i = 0; i < nalus.size(); i++) {
+			  frag_header->fragmentationOffset[i] = nalus[i].payload_start_offset;
+			  frag_header->fragmentationLength[i] = nalus[i].payload_size;
+		  }*/
 		  webrtc::RTPVideoHeaderH264  h;
 		  // 多包和分包
 		  h.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;
 		  rtp_video_hreader.video_type_header = h;
 		  absl::optional<libmedia_codec::VideoCodecType> video_type = libmedia_codec::kVideoCodecH264;
-
-		  std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = libmedia_transfer_protocol::RtpPacketizer::Create(
-			  video_type, rtc::ArrayView<const uint8_t>(frame.data(), frame.size()),
-			  limits, rtp_video_hreader);
-#if 0
-		  static FILE * out_file_ptr = fopen("ps.h264", "wb+");
-		  if (out_file_ptr)
+		  // for (int32_t nal = 0; nal < fragments_count; ++nal)
 		  {
-			  fwrite(frame.data(), frame.size(), 1, out_file_ptr);
-			  fflush(out_file_ptr);
-		  }
-#endif //
-		  // std::vector< std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>>  packets;
+			  std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = 
+				  libmedia_transfer_protocol::RtpPacketizer::Create(
+				  video_type, rtc::ArrayView<const uint8_t>(frame.data() /*+nalus[nal].payload_start_offset */,  frame.size() 
+					   /*nalus[nal].payload_size*/ ),
+				  limits, rtp_video_hreader);
 
-		  int32_t  number_packet = packetizer->NumPackets();
-		  for (int32_t i = 0; i < number_packet; ++i)
-		  {
+			  // std::vector< std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>>  packets;
 
-			  auto  single_packet =
-				  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
-
-			  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
-			  single_packet->SetTimestamp(rtp_timestamp);
-			  single_packet->SetSsrc(sdp_.VideoSsrc());
-			  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
-
-			  if (!packetizer->NextPacket(single_packet.get()))
+			  int32_t  number_packet = packetizer->NumPackets();
+			  for (int32_t i = 0; i < number_packet; ++i)
 			  {
-				  break;
-			  }
-			  //  //int16_t   packet_id = transprot_seq_++;
-			  single_packet->SetSequenceNumber(video_seq_++);
-			  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kVideo);
-			   
-			  rtc::Buffer f(single_packet->data(), single_packet->size());
-			  f.SetSize(single_packet->size());
-			  rtc::Buffer   bf = srtp_session_.RtpProtect(f);
-			  if (bf.size() == 0)
-			  {
-				  continue;
-			  }
-			  rtc::CopyOnWriteBuffer w(bf);
 
-			  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(w, remote_address_, rtc::PacketOptions());
-			  //packets.push_back( std::move(single_packet));
+				  auto  single_packet =
+					  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
+
+				  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
+				  single_packet->SetTimestamp(rtp_timestamp);
+				  single_packet->SetSsrc(sdp_.VideoSsrc());
+				  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
+
+				  if (!packetizer->NextPacket(single_packet.get()))
+				  {
+					  break;
+				  }
+				  //  //int16_t   packet_id = transprot_seq_++;
+				  single_packet->SetSequenceNumber(video_seq_++);
+				  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kVideo);
+
+				  rtc::Buffer f(single_packet->data(), single_packet->size());
+				  f.SetSize(single_packet->size());
+				  rtc::Buffer   bf = srtp_session_.RtpProtect(f);
+				  if (bf.size() == 0)
+				  {
+					  continue;
+				  }
+				  rtc::CopyOnWriteBuffer w(bf);
+
+				  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(w, remote_address_, rtc::PacketOptions());
+				  //packets.push_back( std::move(single_packet));
+			  }
 		  }
 	  }
 }
