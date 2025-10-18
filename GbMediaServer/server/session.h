@@ -56,6 +56,7 @@ namespace  gb_media_server
 		void ActiveAllPlayers();
 		void AddPlayer(const std::shared_ptr<PlayerUser>   &user);
 		void SetPublisher(std::shared_ptr<User> &user);
+		void  AddVideoFrame(const rtc::CopyOnWriteBuffer & frame);
 	public:
 
 		std::shared_ptr<Stream> GetStream();

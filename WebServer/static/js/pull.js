@@ -10,7 +10,7 @@ var stopPullBtn = document.getElementById("stopPullBtn");
 pullBtn.addEventListener("click", startPull);
 stopPullBtn.addEventListener("click", stopPull);
 
-var StreamUrl = $("#StreamUrl").val();
+
 var clientId = $("#clientId").val();
 var audio = $("#audioCheckbox").val();
 var video = $("#video").val();
@@ -37,6 +37,7 @@ function stopPull() {
 
 function sendOffer(offerSdp) {
 	var rtc_api_server = $("#PullhttpUrl").val();
+	var StreamUrl = $("#PullStreamUrl").val();
 	var captureType = $("#captureType").val() === 'on'? 1: 0;
 	console.log($("#captureType").val());
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
@@ -52,8 +53,9 @@ var data = {
    type: 'offer',
    sdp: offerSdp,
    streamurl: StreamUrl,
-   clientid: clientId,
-   caputretype: captureType
+  // caputretype: captureType,
+   clientid: clientId
+  
 };
 console.log('JSON.stringify(data) :' + JSON.stringify(data));
 // 发送请求并将数据转换为JSON字符串

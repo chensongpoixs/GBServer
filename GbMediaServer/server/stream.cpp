@@ -113,7 +113,8 @@ namespace gb_media_server
 		}
 		void Stream::AddVideoFrame(const rtc::CopyOnWriteBuffer& frame)
 		{
-
+			// workthread 
+			session_.AddVideoFrame(frame);
 		}
 		void Stream::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
 		{

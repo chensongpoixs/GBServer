@@ -243,6 +243,24 @@ namespace  gb_media_server
 		publisher_ = (user);
 	}
 
+	void Session::AddVideoFrame(const rtc::CopyOnWriteBuffer & frame)
+	{
+#if 0
+		static FILE * out_file_ptr = fopen("ps.h264", "wb+");
+		if (out_file_ptr)
+		{
+			fwrite(frame.data(), frame.size(), 1, out_file_ptr);
+			fflush(out_file_ptr);
+		}
+#endif //
+		for (auto palyer : players_)
+		{
+			//player->
+		
+			palyer->OnVideoFrame(frame);
+		}
+	}
+
 	std::shared_ptr<Stream> Session::GetStream()
 	{
 		return stream_;

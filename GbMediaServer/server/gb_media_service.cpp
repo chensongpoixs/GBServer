@@ -144,11 +144,14 @@ namespace  gb_media_server
 	void GbMediaService::OnRecv(libmedia_transfer_protocol::libhttp::TcpSession * conn, const rtc::CopyOnWriteBuffer & data)
 	{
 		//GBMEDIASERVER_LOG(LS_INFO) << "";
-		std::shared_ptr<gb_media_server::User> user = conn->GetContext<gb_media_server::User>(kUserContext);
-		if (user)
-		{
-			user->OnRecv( data);
-		}
+		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
+			std::shared_ptr<gb_media_server::User> user = conn->GetContext<gb_media_server::User>(kUserContext);
+			if (user)
+			{
+				user->OnRecv(data);
+			}
+		});
+		
 	}
 	void GbMediaService::OnSent(libmedia_transfer_protocol::libhttp::TcpSession * conn)
 	{

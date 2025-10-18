@@ -23,7 +23,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_received.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
 
-
+#include "server/stream.h"
 
 namespace gb_media_server {
 
@@ -135,11 +135,25 @@ namespace gb_media_server {
 
 	void Gb28181PushUser::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "";
+		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
+
+		rtc::CopyOnWriteBuffer  buffer;
+		buffer.AppendData(frame);
+#if 0
+		static FILE * out_file_ptr = fopen("ps.h264", "wb+");
+		if (out_file_ptr)
+		{
+			fwrite(buffer.data(), buffer.size(), 1, out_file_ptr);
+			fflush(out_file_ptr);
+		}
+#endif //
+		GetStream()->AddVideoFrame(buffer);
+
 	}
 	void Gb28181PushUser::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "";
+		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
+		GetStream()->AddAudioFrame(frame);
 	}
 	 
 }

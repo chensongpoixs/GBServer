@@ -140,6 +140,10 @@ namespace gb_media_server
 
 			//接受不同协议上层处理 实现
 			virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
+
+
+			//播放端继承
+			virtual void OnVideoFrame(const rtc::CopyOnWriteBuffer&  frame) {}
 		public:
 			//网络层接口
 			void Close();

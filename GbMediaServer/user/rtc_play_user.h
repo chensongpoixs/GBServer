@@ -69,6 +69,8 @@ namespace gb_media_server {
 		void OnDtlsRecv(const char *buf, size_t size);
 
 	public:
+		virtual void OnVideoFrame(const rtc::CopyOnWriteBuffer & frame);
+	public:
 		//sigslot::signal3<const char *, size_t, Dtls*>
 		void OnDtlsSendPakcet(const char *data, size_t len, libmedia_transfer_protocol::librtc::Dtls* dtls);
 		void OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls *dtls);
