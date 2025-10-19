@@ -137,8 +137,8 @@ namespace gb_media_server {
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 
-		rtc::CopyOnWriteBuffer  buffer;
-		buffer.AppendData(frame);
+		//rtc::CopyOnWriteBuffer  buffer;
+		//buffer.AppendData(frame);
 #if 0
 		static FILE * out_file_ptr = fopen("ps.h264", "wb+");
 		if (out_file_ptr)
@@ -147,7 +147,7 @@ namespace gb_media_server {
 			fflush(out_file_ptr);
 		}
 #endif //
-		GetStream()->AddVideoFrame(buffer);
+		GetStream()->AddVideoFrame(frame);
 
 	}
 	void Gb28181PushUser::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)

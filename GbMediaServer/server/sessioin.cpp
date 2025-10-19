@@ -243,7 +243,7 @@ namespace  gb_media_server
 		publisher_ = (user);
 	}
 
-	void Session::AddVideoFrame(const rtc::CopyOnWriteBuffer & frame)
+	void Session::AddVideoFrame(const libmedia_codec::EncodedImage &frame)
 	{
 #if 0
 		static FILE * out_file_ptr = fopen("ps.h264", "wb+");

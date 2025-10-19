@@ -111,7 +111,7 @@ namespace gb_media_server
 			stream_time_ = rtc::TimeMillis();
 			start_timestamp_ = rtc::TimeMillis();
 		}
-		void Stream::AddVideoFrame(const rtc::CopyOnWriteBuffer& frame)
+		void Stream::AddVideoFrame(const libmedia_codec::EncodedImage& frame)
 		{
 			// workthread 
 			session_.AddVideoFrame(frame);

@@ -225,9 +225,9 @@ namespace gb_media_server
 #if TEST_RTC_PLAY
 	  void PlayRtcUser::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
-		    rtc::CopyOnWriteBuffer  buffer;
-			buffer.AppendData(*encoded_image.get());
-			OnVideoFrame(buffer);
+		   // rtc::CopyOnWriteBuffer  buffer;
+			//buffer.AppendData(*encoded_image.get());
+			OnVideoFrame(*encoded_image.get());
 			//buffer.Clear();
 		  
 		 
@@ -303,7 +303,7 @@ namespace gb_media_server
 	  {
 		  return UserType::kUserTypePlayerWebRTC;
 	  }
-	  void PlayRtcUser::OnVideoFrame(const rtc::CopyOnWriteBuffer & frame)
+	  void PlayRtcUser::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
 	  {
 		  if (!dtls_done_)
 		  {
@@ -320,7 +320,7 @@ namespace gb_media_server
 			  GBMEDIASERVER_LOG_T_F(LS_INFO) << "igore info frame.";
 			  //return  ;
 		  }
-		  uint32_t rtp_timestamp = 0;// rtc::TimeMillis() * 90; // encoded_image->Timestamp() * 90;
+		  uint32_t rtp_timestamp = frame.Timestamp() * 90;
 		  //GBMEDIASERVER_LOG_T_F(LS_INFO);
 #if 0
 

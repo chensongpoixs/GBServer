@@ -43,7 +43,7 @@ purpose:		GOPMGR
 
 #include "rtc_base/copy_on_write_buffer.h"
 
-
+#include "libmedia_codec/encoded_image.h"
 
 namespace gb_media_server
 {
@@ -143,7 +143,7 @@ namespace gb_media_server
 
 
 			//²¥·Å¶Ë¼Ì³Ð
-			virtual void OnVideoFrame(const rtc::CopyOnWriteBuffer&  frame) {}
+			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
 		public:
 			//ÍøÂç²ã½Ó¿Ú
 			void Close();
