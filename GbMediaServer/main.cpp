@@ -176,7 +176,11 @@ int main(int argc, char *argv[])
 
 #endif // 
 	gb_media_server::WebService  web_server_;
+	gb_media_server::GbMediaService::GetInstance().Init();
 	web_server_.StartWebServer("192.168.1.2", 8001);
+	{
+		
+	}
 	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
 	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", gb_media_server::GbMediaService::GetInstance().GetRtpPort());
 	while (true)

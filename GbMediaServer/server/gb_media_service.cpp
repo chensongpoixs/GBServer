@@ -157,9 +157,16 @@ namespace  gb_media_server
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
+	bool GbMediaService::Init()
+	{
+		// init rtc
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init();
+		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
+		return true;
+	}
 	void GbMediaService::Start(const char * ip, uint16_t port)
 	{
-		libmedia_transfer_protocol::librtc::SrtpSession::InitSrtpLibrary();
+		//libmedia_transfer_protocol::librtc::SrtpSession::InitSrtpLibrary();
 		context_ = libp2p_peerconnection::ConnectionContext::Create();
 		//network_thread_ = rtc::Thread::CreateWithSocketServer();
 		//worker_thread_ = rtc::Thread::Create();
@@ -192,6 +199,11 @@ namespace  gb_media_server
 	
 	void GbMediaService::Stop()
 	{
+	}
+	void GbMediaService::Destroy()
+	{
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Destroy();
+		libmedia_transfer_protocol::libsrtp::SrtpSession::DestroySrtpLibrary();
 	}
 	//void OnTimer(const TaskPtr &t);
 

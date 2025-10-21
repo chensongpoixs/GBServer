@@ -62,19 +62,51 @@ namespace gb_media_server {
 		const std::string &LocalPasswd() const;
 		const std::string &RemoteUFrag() const;
 		std::string BuildAnswerSdp();
+
+		void MayRunDtls();
 	public:
 
 
 		void SetRemoteSocketAddress(const rtc::SocketAddress & addr);
 		void OnDtlsRecv(const char *buf, size_t size);
-
+		void OnSrtpRtp(const uint8_t * data, size_t size);
+		void OnSrtpRtcp(const uint8_t * data, size_t size);
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
 	public:
+		/*
+		sigslot::signal1<Dtls*>     SignalDtlsConnecting;
+			sigslot::signal7<Dtls*, libsrtp::CryptoSuite  ,
+				uint8_t*  ,
+				size_t  ,
+				uint8_t*  ,
+				size_t  ,
+				std::string&  >     SignalDtlsConnected;
+
+			sigslot::signal1<Dtls*>     SignalDtlsClose;
+			sigslot::signal1<Dtls*>     SignalDtlsFailed;
+
+			sigslot::signal3<const uint8_t *, size_t, Dtls*>
+				SignalDtlsSendPakcet;
+			//sigslot::signal1<  Dtls*>
+			//	SignalDtlsHandshakeDone; 
+			sigslot::signal3<  Dtls*, const uint8_t *, size_t>
+				SignalDtlsApplicationDataReceived;
+		*/
 		//sigslot::signal3<const char *, size_t, Dtls*>
-		void OnDtlsSendPakcet(const char *data, size_t len, libmedia_transfer_protocol::librtc::Dtls* dtls);
-		void OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls *dtls);
-		void OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls *dtls);
+		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
+		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
+			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
+			uint8_t* srtpLocalKey,
+			size_t srtpLocalKeyLen,
+			uint8_t* srtpRemoteKey,
+			size_t srtpRemoteKeyLen,
+			std::string& remote_cert);
+		void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len);
+		//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len);
 		//sigslot::signal1<  Dtls*>
 		//	SignalDtlsHandshakeDone;
 
@@ -98,13 +130,13 @@ namespace gb_media_server {
 		//Dtls dtls_;
 
 		//libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
-		libmedia_transfer_protocol::librtc::Dtls   dtls_;
+		libmedia_transfer_protocol::libssl::Dtls   dtls_;
 
 		bool dtls_done_{ false };
 
 		rtc::SocketAddress             remote_address_;
-		libmedia_transfer_protocol::librtc::SrtpSession   srtp_session_;
-
+		libmedia_transfer_protocol::libsrtp::SrtpSession*   srtp_send_session_;
+		libmedia_transfer_protocol::libsrtp::SrtpSession *  srtp_recv_session_;
 
 
 #if TEST_RTC_PLAY

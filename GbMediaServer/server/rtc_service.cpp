@@ -33,6 +33,7 @@
 namespace  gb_media_server
 {
 	RtcService::RtcService()
+		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 	{
 	}
 	RtcService::~RtcService()
@@ -163,6 +164,11 @@ namespace  gb_media_server
 		 users_.erase(uesr->LocalUFrag());
 	 }
 
+	 webrtc::TaskQueueFactory * RtcService::GetTaskQueueFactory()
+	 {
+		 return task_queue_factory_.get();
+	 }
+
 	 void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
@@ -219,7 +225,7 @@ namespace  gb_media_server
 	}
 	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		//GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 		{
 			std::lock_guard<std::mutex> lock(lock_);
 			auto iter1 = users_.find(addr.ipaddr().ToString());
@@ -227,15 +233,40 @@ namespace  gb_media_server
 			{
 				iter1->second->OnDtlsRecv(data, len);
 			}
+			else
+			{
+				GBMEDIASERVER_LOG_F(LS_WARNING) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+
+			}
 		}
 	}
 	void RtcService::OnRtp(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		std::lock_guard<std::mutex> lock(lock_);
+		auto iter1 = users_.find(addr.ipaddr().ToString());
+		if (iter1 != users_.end())
+		{
+			iter1->second->OnDtlsRecv(data, len);
+		}
+		else
+		{
+			GBMEDIASERVER_LOG_F(LS_WARNING) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+
+		}
 	}
 	void RtcService::OnRtcp(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
-		GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+		std::lock_guard<std::mutex> lock(lock_);
+		auto iter1 = users_.find(addr.ipaddr().ToString());
+		if (iter1 != users_.end())
+		{
+			iter1->second->OnDtlsRecv(data, len);
+		}
+		else
+		{
+			GBMEDIASERVER_LOG_F(LS_WARNING) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
+
+		}
 	}
 	 
 	

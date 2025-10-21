@@ -73,9 +73,10 @@ namespace  gb_media_server
 		//void OnSent(const TcpConnectionPtr &conn) override;
 		//bool OnSentNextChunk(const TcpConnectionPtr &conn) override;
 		//void OnRequest(const TcpConnectionPtr &conn, const HttpRequestPtr &req, const PacketPtr &packet) override;
-
+		bool Init();
 		void Start(const char * ip, uint16_t port);
 		void Stop();
+		void Destroy();
 
 		uint16_t  GetRtpPort() const { return rtc_port_; }
 		//EventLoop *GetNextLoop();

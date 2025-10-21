@@ -45,6 +45,9 @@ namespace  gb_media_server
 
 		void AddPlayUser(PlayRtcUserPtr uesr);
 		void RemovePlayUser(PlayRtcUserPtr uesr);
+
+
+		webrtc::TaskQueueFactory*  GetTaskQueueFactory();
 	//	oatpp::Object<RtcApiDto>   CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto);
 	public:
 
@@ -89,7 +92,8 @@ namespace  gb_media_server
 		std::mutex users_lock_;
 		std::unordered_map<std::string, PlayRtcUserPtr> users_;
 	public:
-
+	private:
+		std::unique_ptr<webrtc::TaskQueueFactory>                       task_queue_factory_;
 	};
 }
 

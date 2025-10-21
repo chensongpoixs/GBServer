@@ -186,7 +186,13 @@ namespace  gb_media_server
 
 			auto answer_sdp = rtc_user->BuildAnswerSdp();
 			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
+			//RTC::DtlsTransport::Fingerprint dtlsRemoteFingerprint;
+			//RTC::DtlsTransport::Role dtlsRemoteRole;
+			// 设置服务端active
+			//dtls_.Run(libmedia_transfer_protocol::libssl::Role::SERVER);
 
+
+			rtc_user->MayRunDtls();
 			Json::Value result;
 			result["code"] = 0;
 			result["server"] = "WebServer";
@@ -211,6 +217,8 @@ namespace  gb_media_server
 
 				http_ctx->WriteComplete(conn);
 			});
+			
+			
 			//采集桌面的画面
 			if (!capture_value.isNull() && capture_value.isInt())
 			{
