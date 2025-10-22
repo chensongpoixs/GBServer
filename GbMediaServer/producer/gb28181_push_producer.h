@@ -18,18 +18,18 @@
  ******************************************************************************/
 
 
-#ifndef _C_GB_MEDIA_SERVER_GB28181_PUSH_USER_H_
-#define _C_GB_MEDIA_SERVER_GB28181_PUSH_USER_H_
+#ifndef _C_GB_MEDIA_SERVER_GB28181_PUSH_Producer_H_
+#define _C_GB_MEDIA_SERVER_GB28181_PUSH_Producer_H_
 
 #include <algorithm>
 
 #include "absl/types/optional.h"
 #include "rtc_base/system/rtc_export.h"
 #include <memory>
-#include "user/user.h"
+ 
 #include "libmedia_transfer_protocol/librtc/rtc_sdp.h"
 #include "libmedia_transfer_protocol/librtc/dtls_certs.h"
-#include "user/player_user.h"
+#include "producer/gb28181_push_producer.h"
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
@@ -41,18 +41,18 @@
 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
 #include "libmedia_transfer_protocol/libmpeg/mpeg_decoder.h"
-
+#include "producer/producer.h"
 
 
 
 namespace gb_media_server {
 
 
-	class Gb28181PushUser : public User, public sigslot::has_slots<>
+	class Gb28181PushProducer : public Producer, public sigslot::has_slots<>
 	{
 	public:
-		explicit Gb28181PushUser(const std::shared_ptr<Connection>& ptr, const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
-		virtual ~Gb28181PushUser();
+		explicit Gb28181PushProducer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
+		virtual ~Gb28181PushProducer();
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer)  ;
 
 

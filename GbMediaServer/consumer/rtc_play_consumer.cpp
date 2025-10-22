@@ -16,9 +16,9 @@
 
 
  ******************************************************************************/
-#include "user/rtc_play_user.h"
+ 
 #include <random>
-#include "user/user.h"
+#include "consumer/rtc_play_consumer.h"
 #include "server/session.h"
 
 #include "rtc_base/logging.h"
@@ -32,10 +32,11 @@
 #include <memory>
 #include "server/rtc_service.h"
 #include "common_video/h264/h264_common.h"
+#include "server/stream.h"
 namespace gb_media_server
 {
-	PlayRtcUser::PlayRtcUser(  std::shared_ptr<Connection> &ptr,   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
-	:PlayerUser(ptr, stream, s)
+	RtcPlayConsumer::RtcPlayConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
+	:Consumer(  stream, s)
 		, dtls_(RtcService::GetInstance().GetTaskQueueFactory())
 		, rtp_header_extension_map_()
 		, capture_type_(false)
@@ -59,12 +60,12 @@ namespace gb_media_server
 		//dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
 
 		 
-		dtls_.SignalDtlsConnecting.connect(this, &PlayRtcUser::OnDtlsConnecting);
-		dtls_.SignalDtlsConnected.connect(this, &PlayRtcUser::OnDtlsConnected);
-		dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
-		dtls_.SignalDtlsFailed.connect(this, &PlayRtcUser::OnDtlsFailed);
-		dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);
-		dtls_.SignalDtlsApplicationDataReceived.connect(this, &PlayRtcUser::OnDtlsApplicationDataReceived);
+		dtls_.SignalDtlsConnecting.connect(this, &RtcPlayConsumer::OnDtlsConnecting);
+		dtls_.SignalDtlsConnected.connect(this, &RtcPlayConsumer::OnDtlsConnected);
+		dtls_.SignalDtlsClose.connect(this, &RtcPlayConsumer::OnDtlsClosed);
+		dtls_.SignalDtlsFailed.connect(this, &RtcPlayConsumer::OnDtlsFailed);
+		dtls_.SignalDtlsSendPakcet.connect(this, &RtcPlayConsumer::OnDtlsSendPakcet);
+		dtls_.SignalDtlsApplicationDataReceived.connect(this, &RtcPlayConsumer::OnDtlsApplicationDataReceived);
 		
 
 
@@ -80,7 +81,7 @@ namespace gb_media_server
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
-	PlayRtcUser:: ~PlayRtcUser(){
+	RtcPlayConsumer:: ~RtcPlayConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 #if TEST_RTC_PLAY
 		{
@@ -113,29 +114,29 @@ namespace gb_media_server
 	}
 
  
-	void PlayRtcUser::SetCapture(bool value)
+	void RtcPlayConsumer::SetCapture(bool value)
 	{
 		capture_type_ = value;
 	}
 
-	bool PlayRtcUser::ProcessOfferSdp(const std::string &sdp) {
+	bool RtcPlayConsumer::ProcessOfferSdp(const std::string &sdp) {
 		return sdp_.Decode(sdp);
 	}
-	const std::string &PlayRtcUser::LocalUFrag() const {
+	const std::string &RtcPlayConsumer::LocalUFrag() const {
 		return sdp_.GetLocalUFrag();
 	}
-	const std::string &PlayRtcUser::LocalPasswd() const {
+	const std::string &RtcPlayConsumer::LocalPasswd() const {
 		return sdp_.GetLocalPasswd();
 	}
-	const std::string &PlayRtcUser::RemoteUFrag() const {
+	const std::string &RtcPlayConsumer::RemoteUFrag() const {
 		return sdp_.GetRemoteUFrag();
 	}
-	std::string PlayRtcUser::BuildAnswerSdp() {
+	std::string RtcPlayConsumer::BuildAnswerSdp() {
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
 		return sdp_.Encode();
 	}
 
-	void PlayRtcUser::MayRunDtls()
+	void RtcPlayConsumer::MayRunDtls()
 	{
 		dtls_.SetRemoteFingerprint(sdp_.GetRemoteFingerprint());
 
@@ -162,7 +163,7 @@ namespace gb_media_server
 	}
 
  
-	  std::string PlayRtcUser::GetUFrag(int size) {
+	  std::string RtcPlayConsumer::GetUFrag(int size) {
 		  static std::string table = "1234567890abcdefgihjklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		  std::string frag;
 
@@ -177,7 +178,7 @@ namespace gb_media_server
 
 		  return frag;
 	  }
-	  uint32_t PlayRtcUser::GetSsrc(int size)
+	  uint32_t RtcPlayConsumer::GetSsrc(int size)
 	  {
 		  static std::mt19937 mt{ std::random_device{}() };
 		  static std::uniform_int_distribution<> rand(10000000, 99999999);
@@ -186,18 +187,15 @@ namespace gb_media_server
 	  }
 
 
-	  void PlayRtcUser::SetRemoteSocketAddress(const rtc::SocketAddress & addr)
-	  {
-		  remote_address_ = addr;
-	  }
-	  void PlayRtcUser::OnDtlsRecv(const char *buf, size_t size)
+	   
+	  void RtcPlayConsumer::OnDtlsRecv(const char *buf, size_t size)
 	  {
 		  dtls_.OnRecv(buf, size);
 	  }
-	  void PlayRtcUser::OnSrtpRtp(const uint8_t * data, size_t size)
+	  void RtcPlayConsumer::OnSrtpRtp(const uint8_t * data, size_t size)
 	  {
 	  }
-	  void PlayRtcUser::OnSrtpRtcp(const uint8_t * data, size_t size)
+	  void RtcPlayConsumer::OnSrtpRtcp(const uint8_t * data, size_t size)
 	  {
 	  }
 	  //void PlayRtcUser::OnDtlsSendPakcet(const char * data, size_t size, libmedia_transfer_protocol::librtc::Dtls * dtls)
@@ -274,7 +272,7 @@ namespace gb_media_server
 //		 // 
 //	  }
 #if TEST_RTC_PLAY
-	  void PlayRtcUser::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
+	  void RtcPlayConsumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
 		   // rtc::CopyOnWriteBuffer  buffer;
 			//buffer.AppendData(*encoded_image.get());
@@ -284,77 +282,14 @@ namespace gb_media_server
 		 
 		  
 		  return;
-		  //GBMEDIASERVER_LOG(LS_INFO);
-		//  return;
-		  // 视频的频率90000, 1s中90000份 1ms => 90
-		//uint32_t rtp_timestamp = encoded_image->Timestamp() * 90;
-		// 
-		//
-		//libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits   limits;
-		//libmedia_transfer_protocol::RTPVideoHeader   rtp_video_hreader;
-		// 
-		//webrtc::RTPVideoHeaderH264  h;
-		//// 多包和分包
-		//h.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;
-		//rtp_video_hreader.video_type_header = h;
-		//absl::optional<libmedia_codec::VideoCodecType> video_type = libmedia_codec::kVideoCodecH264;
-	 	//
-		//td::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = libmedia_transfer_protocol::RtpPacketizer::Create(
-		// video_type, rtc::ArrayView<const uint8_t>(encoded_image->data(), encoded_image->size()),
-		// limits, rtp_video_hreader);
-		//
-		//// std::vector< std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend>>  packets;
-	 	//
-		//int32_t  number_packet = packetizer->NumPackets();
-		//for (int32_t i = 0; i < number_packet; ++i)
-		//{
-		//   
-		//auto  single_packet =
-		//std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
-		//	 
-		//  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
-		//  single_packet->SetTimestamp(rtp_timestamp);
-		//  single_packet->SetSsrc(sdp_.VideoSsrc());
-		//  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
-		//
-		// if (!packetizer->NextPacket(single_packet.get())) 
-		// {
-		//	break;
-		// }
-		////  //int16_t   packet_id = transprot_seq_++;
-		//  single_packet->SetSequenceNumber(video_seq_++);
-		//  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kVideo);
-		// // single_packet->SetExtension<libmedia_transfer_protocol::TransportSequenceNumber>(video_seq_);
-		//  //AddPacketToTransportFeedback(packet_id, single_packet.get());
-		//  //if (video_send_stream_) {
-		//  //	video_send_stream_->UpdateRtpStats(single_packet, false, false);
-		//  //}
-		//
-		//  //AddVideoCache(single_packet);
-		//  // 发送数据包
-		//  // TODO, transport_name此处写死，后面可以换成变量
-		////	SendPacket("audio",  single_packet.get() );
-		//  //std::unique_ptr<libmedia_transfer_protocol::RtpPacketToSend> packet =
-		//  //	std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(*single_packet);
-		////  srtp_session_.RtpProtect()
-		// //rtc::Buffer f(single_packet->data(), single_packet->size());
-		// //f.SetSize(single_packet->size());
-		// //rtc::Buffer   bf = srtp_session_.RtpProtect(f);
-		// //rtc::CopyOnWriteBuffer w(bf);
-		//
-		//  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(w, remote_address_, rtc::PacketOptions());
-		//   //packets.push_back( std::move(single_packet));
-		 // }
-		//  return;
-		 // GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(std::move(packets), remote_address_, rtc::PacketOptions());
-		 // transport_send_->EnqueuePacket(std::move(packets));
+		
 	  }
 #endif //
-	  UserType   PlayRtcUser::GetUserType() const
+	  ConsumerType   RtcPlayConsumer::GetConsumerType() const
 	  {
-		  return UserType::kUserTypePlayerWebRTC;
+		  return ConsumerType::kConsumerTypePlayerWebRTC;
 	  }
-	  void PlayRtcUser::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
+	  void RtcPlayConsumer::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
 	  {
 		  if (!dtls_done_)
 		  {
@@ -515,5 +450,8 @@ namespace gb_media_server
 				  //packets.push_back( std::move(single_packet));
 			  }
 		  }
+	  }
+	  void RtcPlayConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	  {
 	  }
 }

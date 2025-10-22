@@ -18,11 +18,9 @@
  ******************************************************************************/
 
 #include "server/rtc_service.h"
-#include "rtc_base/logging.h"
-#include "server/connection.h"
+#include "rtc_base/logging.h" 
 #include "server/gb_media_service.h"
-#include "user/rtc_play_user.h"
-#include "user/player_user.h"
+ 
 #include "rtc_base/string_encode.h"
 #include "utils/time_corrector.h"
 #include "libmedia_transfer_protocol/librtc/stun.h"
@@ -151,17 +149,19 @@ namespace  gb_media_server
 	}
 #endif 
 
-	 void RtcService::AddPlayUser(PlayRtcUserPtr uesr)
+	 void RtcService::AddConsumer(std::shared_ptr<RtcPlayConsumer> consumer)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
-		 name_users_.emplace(uesr->LocalUFrag(), uesr);
+		 name_consumers_.emplace(consumer->LocalUFrag(), consumer);
 	 }
 
-	 void RtcService::RemovePlayUser(PlayRtcUserPtr uesr)
+	 void RtcService::RemoveConsumer(std::shared_ptr<RtcPlayConsumer> consumer)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
-		 name_users_.erase(uesr->LocalUFrag());
-		 users_.erase(uesr->LocalUFrag());
+		 name_consumers_.erase(consumer->LocalUFrag());
+		  
+		 std::string key = consumer->GetRemoteAddress().ipaddr().ToString() + ":" + std::to_string(consumer->GetRemoteAddress().port());
+		 consumers_.erase(key);
 	 }
 
 	 webrtc::TaskQueueFactory * RtcService::GetTaskQueueFactory()
@@ -178,16 +178,14 @@ namespace  gb_media_server
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << " stun parse failed !!!" << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 			return;
 		}
-		std::shared_ptr< PlayRtcUser>  rtc_user;
+		std::shared_ptr< RtcPlayConsumer>  consumer;
 		std::lock_guard<std::mutex> lk(lock_);
-		auto iter = name_users_.find(stun.LocalUFrag());
-		if (iter != name_users_.end())
+		auto iter = name_consumers_.find(stun.LocalUFrag());
+		if (iter != name_consumers_.end())
 		{
-			rtc_user = iter->second;
-			stun.SetPassword(rtc_user->LocalPasswd());
-			//rtc_user->SetConnection(socket);
-			//rtc_user->SetSockAddr(addr);
-			rtc_user->SetRemoteSocketAddress(addr);
+			consumer = iter->second;
+			stun.SetPassword(consumer->LocalPasswd()); 
+			consumer->SetRemoteAddress(addr);
 			stun.SetMessageType(libmedia_transfer_protocol::librtc::kStunMsgBindingResponse);
 			uint32_t  mapped_addr = 0;
 
@@ -196,15 +194,9 @@ namespace  gb_media_server
 			stun.SetMappedPort(addr.port());
 
 			rtc::Buffer packet = stun.Encode();
-			//if (packet)
-			{
-				//rtc::PacketOptions options;
-				
+			  
 				socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
-				//auto naddr = webrtc_user->GetSockAddr();
-				//packet->SetExt(naddr);
-				//server->SendPacket(packet);
-			}
+			 
 		}
 		else
 		{
@@ -213,18 +205,14 @@ namespace  gb_media_server
 		}
 
 
-		if (rtc_user)
-		{
+		if (consumer)
+		{ 
 			std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
-			auto iter1 = users_.find(key);
-			if (iter1 == users_.end())
+			auto iter1 = consumers_.find(key);
+			if (iter1 == consumers_.end())
 			{
-				users_.emplace(key, rtc_user);
-			}
-			for (auto pi : users_)
-			{
-				GBMEDIASERVER_LOG(LS_INFO) << "fir:" << pi.first;
-			}
+				consumers_.emplace(key, consumer);
+			} 
 		}
 		
 	}
@@ -234,8 +222,8 @@ namespace  gb_media_server
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
 		{
 			std::lock_guard<std::mutex> lock(lock_);
-			auto iter1 = users_.find(key);
-			if (iter1 != users_.end())
+			auto iter1 = consumers_.find(key);
+			if (iter1 != consumers_.end())
 			{
 				iter1->second->OnDtlsRecv(data, len);
 			}
@@ -250,8 +238,8 @@ namespace  gb_media_server
 	{
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
 		std::lock_guard<std::mutex> lock(lock_);
-		auto iter1 = users_.find(key);
-		if (iter1 != users_.end())
+		auto iter1 = consumers_.find(key);
+		if (iter1 != consumers_.end())
 		{
 			iter1->second->OnDtlsRecv(data, len);
 		}
@@ -265,8 +253,8 @@ namespace  gb_media_server
 	{
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
 		std::lock_guard<std::mutex> lock(lock_);
-		auto iter1 = users_.find(key);
-		if (iter1 != users_.end())
+		auto iter1 = consumers_.find(key);
+		if (iter1 != consumers_.end())
 		{
 			iter1->second->OnDtlsRecv(data, len);
 		}

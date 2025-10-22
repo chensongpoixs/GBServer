@@ -16,11 +16,11 @@
 
 
  ******************************************************************************/
-#include "user/rtc_play_user.h"
+ 
 #include <random>
-#include "user/user.h"
+#include "consumer/rtc_play_consumer.h"
 #include "server/session.h"
-
+#include "server/stream.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/buffer.h"
 #include "server/gb_media_service.h"
@@ -37,11 +37,11 @@
 namespace gb_media_server
 {
 	
-	void PlayRtcUser::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
+	void RtcPlayConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG(LS_INFO) << "DTLS connecting" ;
 	}
-	void PlayRtcUser::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
+	void RtcPlayConsumer::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 		libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 		uint8_t* srtpLocalKey,
 		size_t srtpLocalKeyLen,
@@ -114,7 +114,7 @@ namespace gb_media_server
 
 #endif // 1
 	}
-	void PlayRtcUser::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
+	void RtcPlayConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{
 		GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << len;
 		 
@@ -122,7 +122,7 @@ namespace gb_media_server
 		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), remote_address_, rtc::PacketOptions());
 	}
 	//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
-	void PlayRtcUser::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
+	void RtcPlayConsumer::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS remotely closed";
 		dtls_done_ = false;
@@ -149,14 +149,14 @@ namespace gb_media_server
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
-			RtcService::GetInstance().RemovePlayUser(slef);
+			std::shared_ptr<RtcPlayConsumer> slef = std::dynamic_pointer_cast<RtcPlayConsumer>(shared_from_this());
+			RtcService::GetInstance().RemoveConsumer(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
-			GetSession()->CloseUser(slef);
+			GetSession()->RemoveConsumer(slef);
 		});
 		// 
 	}
-	void PlayRtcUser::OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls)
+	void RtcPlayConsumer::OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
 		dtls_done_ = false;
@@ -183,15 +183,15 @@ namespace gb_media_server
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
-			RtcService::GetInstance().RemovePlayUser(slef);
+			std::shared_ptr<RtcPlayConsumer> slef = std::dynamic_pointer_cast<RtcPlayConsumer>(shared_from_this());
+			RtcService::GetInstance().RemoveConsumer(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
-			GetSession()->CloseUser(slef);
+			GetSession()->RemoveConsumer(slef);
 			
 		});
 		// 
 	}
-	void PlayRtcUser::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
+	void RtcPlayConsumer::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
 	{
 		// Pass it to the parent transport.
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";

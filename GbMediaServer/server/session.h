@@ -20,22 +20,19 @@
 #define _C_GB_MEDIA_SERVER_SESSIOIN_H____
 
 
-#include "user/user.h"
 #include <mutex>
 #include <unordered_set>
 #include <unordered_map>
 #include <atomic>
-//#include "user/player_user.h"
-//#include "user/play_rtc_user.h"
-
-
+#include "rtc_base/copy_on_write_buffer.h"
+#include "producer/producer.h"
+#include "consumer/consumer.h"
+#include "server/stream.h"
 namespace  gb_media_server
 {
-	class PlayerUser;
-	//using PlayerUserPtr  = std::shared_ptr<PlayerUser> ;
-	class User;
-	//using UserPtr = std::shared_ptr<User>  ;
-	class Connection;
+	//class Consumer;
+	//class Producer;
+	//class Stream;
 	class Session : public std::enable_shared_from_this<Session>
 	{
 	public:
@@ -44,39 +41,43 @@ namespace  gb_media_server
 	public:
 
 
-		std::shared_ptr<User> CreatePublishUser(const std::shared_ptr<Connection> &conn,
+		std::shared_ptr<Producer> CreateProducer( 
 			const std::string &session_name,
 			const std::string &param,
-			UserType type);
-		std::shared_ptr<User> CreatePlayerUser(  std::shared_ptr<Connection> &conn,
+			ProducerType type);
+		std::shared_ptr<Consumer> CreateConsumer(   
 			const std::string &session_name,
 			const std::string &param,
-			UserType type);
-		void CloseUser(const std::shared_ptr<User> &user);
-		void ActiveAllPlayers();
-		void AddPlayer(const std::shared_ptr<PlayerUser>   &user);
-		void SetPublisher(std::shared_ptr<User> &user);
+			ConsumerType type);
+		 
+		void AddConsumer(const std::shared_ptr<Consumer> & consumer);
+		void RemoveConsumer(const std::shared_ptr<Consumer> & consumer);
+		
+		
+		void ActiveAllPlayers(); 
+		void SetProducer(std::shared_ptr<Producer> &user);
+		
 		void  AddVideoFrame(const libmedia_codec::EncodedImage &frame);
+		 
+
+		void  AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
 	public:
 
 		std::shared_ptr<Stream> GetStream();
 		const std::string &SessionName()const;
 		 
-		bool IsPublishing() const;
+		bool IsProducer() const;
 		void Clear();
-		int32_t ReadyTime() const;
-		int64_t SinceStart() const;
-		bool IsTimeout();
-	private:
-		void CloseUserNoLock(const std::shared_ptr<User> &user);
+	
+	private: 
 	private:
 		std::string session_name_;
 
 		//²¥·Å¶Ë
-		std::unordered_set<std::shared_ptr<PlayerUser>>    players_;
+		std::unordered_set<std::shared_ptr<Consumer>>    consumers_;
 		std::shared_ptr<Stream>							 stream_{ nullptr };
 		//ÍÆÁ÷¶Ë
-		std::shared_ptr<User>								 publisher_{ nullptr };
+		 std::shared_ptr<Producer>								 producer_{ nullptr };
 		std::mutex								lock_;
 		std::atomic<int64_t>			     player_live_time_;
 

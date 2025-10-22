@@ -18,38 +18,33 @@
  ******************************************************************************/
 
 #include "server/session.h"
-#include "rtc_base/logging.h"
-#include "user/user.h"
-#include "user/rtc_play_user.h"
-#include "user/player_user.h"
+#include "rtc_base/logging.h" 
 #include "rtc_base/time_utils.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/string_encode.h"
 #include <string>
 #include "absl/strings/string_view.h"
-#include "server/stream.h"
-#include "server/connection.h"
+#include "server/stream.h" 
 #include "server/stream.h"
 //#include "user/play_rtc_user.h"
-#include <memory>
-#include "user/user.h"
+#include <memory> 
 #include "api/array_view.h"
 #include "utils/time_corrector.h"
 #include "absl/strings/string_view.h"
-#include "utils/string_utils.h"
-#include "user/gb28181_push_user.h"
-
+#include "utils/string_utils.h" 
+#include "consumer/rtc_play_consumer.h"
+#include "producer/gb28181_push_producer.h"
 namespace  gb_media_server
 {
 	namespace
 	{
-		static std::shared_ptr<User> user_null;
+		static std::shared_ptr<Consumer> consumer_null;
+		static std::shared_ptr<Producer> producer_null;
 	}
 	Session::Session(const std::string & session_name)
-		:players_()
+		:consumers_()
 		, session_name_(session_name)
-		//, stream_(nullptr, "")
 	{
 		stream_ = std::make_shared<Stream>( *this, session_name);
 		player_live_time_ = rtc::TimeMillis();
@@ -61,74 +56,54 @@ namespace  gb_media_server
 		//{
 		//	delete pull_;
 		//}
-		players_.clear();
+		consumers_.clear();
 	}
-	std::shared_ptr<User> Session::CreatePublishUser(const std::shared_ptr<Connection> &conn,
+	std::shared_ptr<Producer> Session::CreateProducer( 
 		const std::string &session_name,
 		const std::string &param,
-		UserType type)
+		ProducerType type)
 	{
 		if (session_name != session_name_)
 		{
 			 
-			GBMEDIASERVER_LOG(LS_ERROR) << "create publish user failed !!! invalid session name: " << session_name;
-			return user_null;
-		}
-		//std::vector<std::string> list = tmms::base::StringUtils::SplitString(session_name, "/");
+			GBMEDIASERVER_LOG(LS_ERROR) << "create publish Producer failed !!! invalid session name: " << session_name;
+			return producer_null;
+		} 
 		std::vector<std::string> list;
 		string_utils::split(session_name, '/', & list);
-		std::shared_ptr<User> user;
+		std::shared_ptr<Producer> producer;
 		switch (type)
 		{
-			case gb_media_server::kUserTypePublishGB28181:
+			case gb_media_server::kProducerTypePublishGB28181:
 			{
-				user = std::make_shared<Gb28181PushUser>(conn, stream_, shared_from_this());
+				producer = std::make_shared<Gb28181PushProducer>( stream_, shared_from_this());
 				break;
 			}
-			case gb_media_server::kUserTypePublishRtmp:
 			 
-			case gb_media_server::kuserTypePublishMpegts:
-			 
-			case gb_media_server::kUserTypePublishPav:
-			 
-			case gb_media_server::kUserTypePublishWebRtc:  
-			case gb_media_server::kUserTypePlayerPav:
-			 
-			case gb_media_server::kUserTypePlayerFlv:
-			 
-			case gb_media_server::kUserTypePlayerHls:
-			 
-			case gb_media_server::kUserTypePlayerRtmp:
-			 
-			case gb_media_server::kUserTypePlayerWebRTC:
-			 
-			case gb_media_server::kUserTypeUnknowed: 
 			default:
 			{
-				user = std::make_shared<User>(conn, stream_, shared_from_this());
+				return producer_null; 
 				break;
 			}
 		}
-		
-		//user->SetAppInfo(app_info_);
-		//user->SetDomainName(list[0]);
-		user->SetAppName(list[1]);
-		user->SetStreamName(list[2]);
-		user->SetParam(param);
-		user->SetUserType(type);
+		 
+		producer->SetAppName(list[1]);
+		producer->SetStreamName(list[2]);
+		producer->SetParam(param);
+		producer->SetProducerType(type);
 
-		conn->SetContext(kUserContext, user);
-		return user;
+		//conn->SetContext(kUserContext, producer);
+		return producer;
 	}
-	std::shared_ptr<User> Session::CreatePlayerUser(  std::shared_ptr<Connection> &conn,
+	std::shared_ptr<Consumer> Session::CreateConsumer(   
 		const std::string &session_name,
 		const std::string &param,
-		UserType type)
+		ConsumerType type)
 	{
 		if (session_name != session_name_)
 		{
-			GBMEDIASERVER_LOG(LS_ERROR) << "create publish user failed.Invalid session name:" << session_name;
-			return user_null;
+			GBMEDIASERVER_LOG(LS_ERROR) << "create publish Consumer failed.Invalid session name:" << session_name;
+			return consumer_null;
 		}
 		//auto list = base::StringUtils::SplitString(session_name, "/");
 		std::vector<std::string> list;
@@ -140,81 +115,47 @@ namespace  gb_media_server
 		if (list.size() != 3)
 		{
 			GBMEDIASERVER_LOG(LS_ERROR) << "create publish user failed.Invalid session name:" << session_name;
-			return user_null;
+			return consumer_null;
 		}
-		std::shared_ptr< PlayerUser> user;
-		if (type == UserType::kUserTypePlayerWebRTC)
+		std::shared_ptr< Consumer> consumer;
+		if (type == ConsumerType::kConsumerTypePlayerWebRTC)
 		{
-			user = std::make_shared<PlayRtcUser>(conn, stream_, shared_from_this());
+			consumer = std::make_shared<RtcPlayConsumer>(  stream_, shared_from_this());
 		} 
 		else
 		{
-			return user_null;
+			return consumer_null;
 		}
 		//user->SetAppInfo(app_info_);
 		//user->SetDomainName(list[0]);
-		user->SetAppName(list[1]);
-		user->SetStreamName(list[2]);
-		user->SetParam(param);
-		user->SetUserType(type);
-		conn->SetContext(kUserContext, user);
-
-		return user;
+		consumer->SetAppName(list[1]);
+		consumer->SetStreamName(list[2]);
+		consumer->SetParam(param);
+		consumer->SetConsumerType(type);
+		 
+		return consumer;
 	}
-	void Session::CloseUser(const std::shared_ptr<User> &user)
-	{
-		if (!user->destroyed_.exchange(true))
-		{
-			{
-				std::lock_guard<std::mutex> lk(lock_);
-				// 类型错误导致释放对象错误了 修复bug 
-				if (user->GetUserType() <= UserType::kUserTypePublishWebRtc)
-				{
-					if (publisher_)
-					{
-						GBMEDIASERVER_LOG(INFO) << "remove publisher,session name:" << session_name_
-							<< ",user:" << user->UserId()
-							<< ",elapsed:" << user->ElapsedTime()
-							<< ",ReadyTime:" << ReadyTime()
-							<< ",stream time:" << SinceStart() << ", use_count: " << user.use_count();
-
-						publisher_.reset();
-					}
-				}
-				else
-				{
-					GBMEDIASERVER_LOG(INFO) << "remove player,session name:" << session_name_
-						<< ",user:" << user->UserId()
-						<< ",elapsed:" << user->ElapsedTime()
-						<< ",ReadyTime:" << ReadyTime()
-						<< ",stream time:" << SinceStart() << ", use_count: " << user.use_count();
-					players_.erase(std::dynamic_pointer_cast<PlayerUser>(user));
-					player_live_time_ = rtc::TimeMillis();
-				}
-			}
-			user->Close();
-		}
-	}
+	 
 	void Session::ActiveAllPlayers()
 	{
 		std::lock_guard<std::mutex> lk(lock_);
-		for (auto const &u : players_)
-		{
-			u->Active();
-		}
+		//for (auto const &u : consumers_)
+		//{
+		//	u->Active();
+		//}
 	}
-	void Session::AddPlayer(const std::shared_ptr< PlayerUser> &user)
+	void Session::AddConsumer(const std::shared_ptr< Consumer> &consumer)
 	{
 		{
 			std::lock_guard<std::mutex> lk(lock_);
-			players_.insert(user);
+			consumers_.insert(consumer);
 		}
 
 
 
-		if (!publisher_)
+		if (!producer_)
 		{
-			GBMEDIASERVER_LOG(INFO) << " add player,  realy  -->  session name:" << session_name_ << ",user:" << user->UserId();
+			GBMEDIASERVER_LOG(INFO) << " add consumer,  realy  -->  session name:" << session_name_ << ",consumer id:" << consumer->GetRemoteAddress().ToString();
 
 			//if (!pull_)
 			//{
@@ -224,23 +165,46 @@ namespace  gb_media_server
 		}
 		else
 		{
-			GBMEDIASERVER_LOG(INFO) << " add player,  local stream   -->  session name:" << session_name_ << ",user:" << user->UserId();
+			GBMEDIASERVER_LOG(INFO) << " add consumer,  local stream   -->  session name:" << session_name_ << ",consumer id:" << consumer->GetRemoteAddress().ToString();
 
 		}
-		user->Active();
+		//consumer->Active();
 	}
-	void Session::SetPublisher(std::shared_ptr<User> &user)
+	 
+	void Session::RemoveConsumer(const std::shared_ptr<Consumer> & consumer)
+	{
+		 
+			{
+				std::lock_guard<std::mutex> lk(lock_);
+				// 类型错误导致释放对象错误了 修复bug 
+				
+				{
+					GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
+						<< ",remoteaddr:" << consumer->GetRemoteAddress().ToString()
+						//<< ",elapsed:" << consumer->ElapsedTime()
+						//<< ",ReadyTime:" << ReadyTime()
+						//<< ",stream time:" << SinceStart() 
+						<< ", use_count: " << consumer.use_count();
+					consumers_.erase(consumer);
+					player_live_time_ = rtc::TimeMillis();
+				}
+			}
+		//	consumer->Close();
+		 
+	}
+	void Session::SetProducer(std::shared_ptr<Producer> &producer)
 	{
 		std::lock_guard<std::mutex> lk(lock_);
-		if (publisher_ == user)
+		if (producer_ == producer)
 		{
 			return;
 		}
-		if (publisher_ && !publisher_->destroyed_.exchange(true))
-		{
-			publisher_->Close();
+		if (producer_  )
+		{ 
+			//producer_->Close();
+			producer_.reset();
 		}
-		publisher_ = (user);
+		producer_ = (producer);
 	}
 
 	void Session::AddVideoFrame(const libmedia_codec::EncodedImage &frame)
@@ -253,12 +217,14 @@ namespace  gb_media_server
 			fflush(out_file_ptr);
 		}
 #endif //
-		for (auto palyer : players_)
-		{
-			//player->
-		
-			palyer->OnVideoFrame(frame);
+		for (auto consumer : consumers_)
+		{ 
+			consumer->OnVideoFrame(frame);
 		}
+	}
+	void  Session::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
+	{
+
 	}
 
 	std::shared_ptr<Stream> Session::GetStream()
@@ -270,79 +236,25 @@ namespace  gb_media_server
 		return session_name_;
 	}
 	
-	bool Session::IsPublishing() const
+	bool Session::IsProducer() const
 	{
-		return !!publisher_;
+		return !!producer_;
 	}
 	void Session::Clear()
 	{
 		std::lock_guard<std::mutex> lk(lock_);
-		if (publisher_)
+		if (producer_)
 		{
-			CloseUserNoLock(publisher_);
+			//CloseUserNoLock(publisher_);
+			producer_.reset();
 		}
-		for (auto const   &p : players_)
+		for (  auto     p : consumers_)
 		{
-			CloseUserNoLock( (p));
+			//CloseUserNoLock( (p));
+			p.reset();
 		}
-		players_.clear();
+		consumers_.clear();
 	}
-	int32_t Session::ReadyTime() const
-	{
-		return stream_->ReadyTime();
-	}
-	int64_t Session::SinceStart() const
-	{
-		return stream_->SinceStart();
-	}
-	bool Session::IsTimeout()
-	{
-		if (stream_->Timeout())
-		{
-			return true;
-		}
-
-#if PLAYER_LIVE_TIMEOUT
-		// 空闲没有播放用户时关闭
-		int64_t idle = tmms::base::TTime::NowMS() - player_live_time_;
-		if (players_.empty() && idle > app_info_->stream_idle_time_)
-		{
-			return true;
-		}
-#endif 
-		return false;
-	}
-	void Session::CloseUserNoLock(const std::shared_ptr<User> &user)
-	{
-		if (!user->destroyed_.exchange(true))
-		{
-			{
-				if (user->GetUserType() <= UserType::kUserTypePublishWebRtc)
-				{
-					if (publisher_)
-					{
-						GBMEDIASERVER_LOG(INFO) << "remove publisher,session name:" << session_name_
-							<< ",user:" << user->UserId()
-							<< ",elapsed:" << user->ElapsedTime()
-							<< ",ReadyTime:" << ReadyTime()
-							<< ",stream time:" << SinceStart();
-						user->Close();
-						publisher_.reset();
-					}
-				}
-				else
-				{
-					GBMEDIASERVER_LOG(INFO) << "remove player,session name:" << session_name_
-						<< ",user:" << user->UserId()
-						<< ",elapsed:" << user->ElapsedTime()
-						<< ",ReadyTime:" << ReadyTime()
-						<< ",stream time:" << SinceStart();
-					//players_.erase(std::dynamic_pointer_cast<PlayerUser>(user));
-					user->Close();
-					player_live_time_ = rtc::TimeMillis();
-				}
-			}
-
-		}
-	}
+	 
+	 
 }

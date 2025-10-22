@@ -29,8 +29,8 @@ purpose:		GOPMGR
 安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
 ************************************************************************************************/
 
-#ifndef _C_GB_MEDIA_SERVER_USER_H_
-#define _C_GB_MEDIA_SERVER_USER_H_
+#ifndef _C_GB_MEDIA_SERVER_CONSUMER_H_
+#define _C_GB_MEDIA_SERVER_CONSUMER_H_
 
 
 
@@ -44,60 +44,35 @@ purpose:		GOPMGR
 #include "rtc_base/copy_on_write_buffer.h"
 
 #include "libmedia_codec/encoded_image.h"
-
+#include "rtc_base/socket_address.h"
+//#include "server/stream.h"
+//#include "server/session.h"
 namespace gb_media_server
 {
 	 
 
-		enum  UserType
-		{
-			kUserTypePublishRtmp = 0,
-			kuserTypePublishMpegts,
-			kUserTypePublishPav,
-			kUserTypePublishWebRtc,
-			kUserTypePublishGB28181,
-			//kUserTypePublishPav,
-			kUserTypePlayerPav,
-			kUserTypePlayerFlv,
-			kUserTypePlayerHls,
-			kUserTypePlayerRtmp,
-			kUserTypePlayerWebRTC,
-			kUserTypeUnknowed = 255,
+		enum  ConsumerType
+		{ 
+			kConsumerTypePlayerPav = 0,
+			kConsumerTypePlayerFlv,
+			kConsumerTypePlayerHls,
+			kConsumerTypePlayerRtmp,
+			kConsumerTypePlayerWebRTC,
+			kConsumerTypeUnknowed = 255,
 
 
 		};
-
-
-		enum  UserProtocol
-		{
-			kUserProtocolHttp = 0,
-			kUserProtocolHttps,
-			kUserProtocolQuic,
-			kUserProtocolRtsp,
-			kUserProtocolWebRTC,
-			kUserProtocolUdp,
-			kUserProtocolUnknowed = 255,
-
-		};
-
-
-		 
-
-
-
 		 
 		class Stream;
-		//using StreamPtr = std::shared_ptr<Stream>;
 		class Session;
-		class Connection;
-		//using SessionPtr = std::shared_ptr<Session>;
-		//using std::string;
-		class User : public std::enable_shared_from_this<User>
+		 
+		 
+		class Consumer : public std::enable_shared_from_this<Consumer>
 		{
 		public:
 			friend class Session;
-			User(const std::shared_ptr<Connection>& ptr, const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
-			virtual ~User() = default;
+			Consumer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
+			virtual ~Consumer() = default;
 		public:
 
 
@@ -114,12 +89,14 @@ namespace gb_media_server
 			 
 
 
-			virtual UserType GetUserType() const;
-			void SetUserType(UserType t);
-			virtual UserProtocol GetUserProtocol() const;
-			void SetUserProtocol(UserProtocol p);
-
-
+			virtual ConsumerType GetConsumerType() const;
+			void SetConsumerType(ConsumerType t);
+			 
+			const rtc::SocketAddress &GetRemoteAddress() const
+			{
+				return remote_address_;
+			}
+			void  SetRemoteAddress(const rtc::SocketAddress & addr);
 
 			std::shared_ptr<Session> GetSession() const
 			{
@@ -133,10 +110,7 @@ namespace gb_media_server
 			{
 				return stream_;
 			}
-			const std::string &UserId() const
-			{
-				return user_id_;
-			}
+			
 
 			//接受不同协议上层处理 实现
 			virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
@@ -144,24 +118,20 @@ namespace gb_media_server
 
 			//播放端继承
 			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
+			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame) {}
 		public:
 			//网络层接口
-			void Close();
-			std::shared_ptr<Connection> GetConnection();
-			uint64_t ElapsedTime();
-			void Active();
-			void Deactive();
+			//void Close();
+			
 		protected:
-			std::shared_ptr < Stream> stream_;
-			std::shared_ptr<Connection>   connection_;
-			std::string     domain_name_; // 域名
+			std::shared_ptr < Stream> stream_;  
 			std::string     app_name_;
 			std::string     stream_name_;
 			std::string     param_;
-			std::string		user_id_; 
+			//std::string		user_id_; 
+			rtc::SocketAddress   remote_address_;
 			int64_t			start_timestamp_{ 0 }; // 启始时间
-			UserType		type_{ UserType::kUserTypeUnknowed };
-			UserProtocol	protocol_{ UserProtocol::kUserProtocolUnknowed };
+			ConsumerType		type_{ ConsumerType::kConsumerTypeUnknowed };
 			std::atomic_bool destroyed_{ false };
 			std::shared_ptr < Session> session_;
 		};

@@ -21,11 +21,11 @@
 #include "libmedia_transfer_protocol/libhttp/http_context.h"
 #include "libmedia_transfer_protocol/libhttp/tcp_session.h"
 #include "utils/string_utils.h"
-#include "server/connection.h"
 #include "server/gb_media_service.h"
 #include "server/rtc_service.h"
 #include "utils/string_utils.h"
-#include "user/rtc_play_user.h"
+#include "consumer/rtc_play_consumer.h"
+#include "producer/gb28181_push_producer.h"
 namespace  gb_media_server
 {
 	WebService::WebService()
@@ -35,7 +35,7 @@ namespace  gb_media_server
 		http_server_->SignalOnRequest.connect(this, &WebService::OnRequest);
 
 
-		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcPlay;
+		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
 
@@ -108,7 +108,7 @@ namespace  gb_media_server
 			//}
 		}
 	}
-	void WebService::HandlerRtcPlay(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
+	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libhttp::TcpSession * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
@@ -154,12 +154,13 @@ namespace  gb_media_server
 			// server_addrs.SetIP("192.168.1.2");
 			// server_addrs.SetPort(10003);
 			// auto socket = GbMediaService::GetInstance().network_thread()->socketserver()->CreateSocket(server_addrs.ipaddr().family(), SOCK_STREAM);
-			auto  connection = std::make_shared<Connection>(conn->GetSocket());
-			auto user = s->CreatePlayerUser(connection, session_name, "", UserType::kUserTypePlayerWebRTC);
+			//auto  connection = std::make_shared<Connection>(conn->GetSocket());
+			std::shared_ptr<RtcPlayConsumer> consumer = std::dynamic_pointer_cast<RtcPlayConsumer>(s->CreateConsumer(
+				session_name, "", ConsumerType::kConsumerTypePlayerWebRTC));
 
-			if (!user)
+			if (!consumer)
 			{
-				GBMEDIASERVER_LOG(LS_WARNING) << "cant create user session  name:" << session_name;
+				GBMEDIASERVER_LOG(LS_WARNING) << "cant create consumer session  name:" << session_name;
 				// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
 				// http_ctx->PostRequest(res);
 				http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -169,11 +170,12 @@ namespace  gb_media_server
 				});
 				return;
 			}
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
-			s->AddPlayer(std::dynamic_pointer_cast<PlayerUser>(user));
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
-			PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-			if (!rtc_user->ProcessOfferSdp(sdp))
+			consumer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+			s->AddConsumer( (consumer));
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+			//PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
+			if (!consumer->ProcessOfferSdp(sdp))
 			{
 				GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
 				http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -184,7 +186,7 @@ namespace  gb_media_server
 				return;
 			}
 
-			auto answer_sdp = rtc_user->BuildAnswerSdp();
+			auto answer_sdp = consumer->BuildAnswerSdp();
 			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
 			//RTC::DtlsTransport::Fingerprint dtlsRemoteFingerprint;
 			//RTC::DtlsTransport::Role dtlsRemoteRole;
@@ -192,13 +194,13 @@ namespace  gb_media_server
 			//dtls_.Run(libmedia_transfer_protocol::libssl::Role::SERVER);
 
 
-			rtc_user->MayRunDtls();
+			consumer->MayRunDtls();
 			Json::Value result;
 			result["code"] = 0;
 			result["server"] = "WebServer";
 			result["type"] = "answer";
 			result["sdp"] = std::move(answer_sdp);
-			result["sessionid"] = rtc_user->RemoteUFrag() + ":" + rtc_user->LocalUFrag();
+			result["sessionid"] = consumer->RemoteUFrag() + ":" + consumer->LocalUFrag();
 
 			auto content = result.toStyledString();
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -218,15 +220,15 @@ namespace  gb_media_server
 				http_ctx->WriteComplete(conn);
 			});
 			
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 			//采集桌面的画面
 			if (!capture_value.isNull() && capture_value.isInt())
 			{
-				rtc_user->SetCapture(capture_value.asInt() > 0 ? true : false);
+				consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
 			}
 			//GbMediaService::GetInstance().GetRtcServer()->A
-			RtcService::GetInstance().AddPlayUser(rtc_user);
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
+			RtcService::GetInstance().AddConsumer(consumer);
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		//});
 	}
 	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
@@ -287,12 +289,12 @@ namespace  gb_media_server
 			});
 			return;
 		}
-		auto  connection = std::make_shared<Connection>(conn->GetSocket());
-		auto user = s->CreatePublishUser(connection, session_name, "", UserType::kUserTypePublishGB28181);
+		//auto  connection = std::make_shared<Connection>(conn->GetSocket());
+		auto producer = s->CreateProducer(  session_name, "", ProducerType::kProducerTypePublishGB28181);
 
-		if (!user)
+		if (!producer)
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "cant create user session  name:" << stream_id;
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create producer session  name:" << stream_id;
 			// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
 			// http_ctx->PostRequest(res);
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -304,11 +306,11 @@ namespace  gb_media_server
 			return;
 		}
 	//	++port;
-		s->SetPublisher(user);
+		s->SetProducer(producer);
 
-		rtp->SetContext(kUserContext, user);
+		rtp->SetContext(libmedia_transfer_protocol::libhttp::kUserContext, producer);
  
-		//s->add(std::dynamic_pointer_cast<User>(user));
+		
 		Json::Value result;
 		result["code"] = 0;
 		result["tcpmode"] = tcp_mode;

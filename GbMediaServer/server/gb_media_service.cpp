@@ -29,9 +29,7 @@
 
 //}
 #include "server/session.h"
-#include "utils/string_utils.h"
-#include "user/gb28181_push_user.h"
-#include "server/connection.h"
+#include "utils/string_utils.h" 
 namespace  gb_media_server
 {
 	namespace
@@ -145,7 +143,7 @@ namespace  gb_media_server
 	{
 		//GBMEDIASERVER_LOG(LS_INFO) << "";
 		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			std::shared_ptr<gb_media_server::User> user = conn->GetContext<gb_media_server::User>(kUserContext);
+			std::shared_ptr<gb_media_server::Consumer> user = conn->GetContext<gb_media_server::Consumer>(libmedia_transfer_protocol::libhttp::kUserContext);
 			if (user)
 			{
 				user->OnRecv(data);

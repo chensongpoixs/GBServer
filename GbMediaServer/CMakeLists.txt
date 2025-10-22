@@ -103,8 +103,10 @@ FILE(GLOB    Media_source
 
 			server/*.h
 			server/*.cpp 
-	 user/*.h 
-	 user/*.cpp 
+	 consumer/*.h 
+	 consumer/*.cpp 
+	 	 producer/*.h 
+	 producer/*.cpp 
 	 utils/*.h 
 	 utils/*.cpp 
 )

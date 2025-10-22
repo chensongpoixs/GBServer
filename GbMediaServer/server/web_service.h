@@ -55,7 +55,7 @@ namespace  gb_media_server
 
 	public:
 
-		void HandlerRtcPlay(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+		void HandlerRtcConsumer(libmedia_transfer_protocol::libhttp::TcpSession * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);

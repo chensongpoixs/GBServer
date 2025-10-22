@@ -63,27 +63,14 @@ namespace  gb_media_server
 		void OnRecv(libmedia_transfer_protocol::libhttp::TcpSession* conn, const rtc::CopyOnWriteBuffer& data);
 		void OnSent(libmedia_transfer_protocol::libhttp::TcpSession* conn);
 
-		//void OnNewConnection(const TcpConnectionPtr &conn) override;
-		//void OnConnectionDestroy(const TcpConnectionPtr &conn) override;
-		//void OnActive(const ConnectionPtr &conn) override;
-		//bool OnPlay(const TcpConnectionPtr &conn, const std::string &session_name, const std::string &param) override;
-		//bool OnPublish(const TcpConnectionPtr &conn, const std::string &session_name, const std::string &param) override;
-		//void OnRecv(const TcpConnectionPtr &conn, PacketPtr &&data) override;
-		//void OnRecv(const TcpConnectionPtr &conn, const PacketPtr &data) override {};
-		//void OnSent(const TcpConnectionPtr &conn) override;
-		//bool OnSentNextChunk(const TcpConnectionPtr &conn) override;
-		//void OnRequest(const TcpConnectionPtr &conn, const HttpRequestPtr &req, const PacketPtr &packet) override;
+	
 		bool Init();
 		void Start(const char * ip, uint16_t port);
 		void Stop();
 		void Destroy();
 
 		uint16_t  GetRtpPort() const { return rtc_port_; }
-		//EventLoop *GetNextLoop();
-		//std::shared_ptr<WebrtcServer> GetWebrtcServer()const
-		//{
-		//	return webrtc_server_;
-		//}
+	
 #if 1
 
 		rtc::Thread* signaling_thread() { return context_->signaling_thread(); }

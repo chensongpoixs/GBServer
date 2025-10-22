@@ -28,47 +28,61 @@ purpose:		GOPMGR
 沿着自己的回忆，一个个的场景忽闪而过，最后发现，我的本心，在我写代码的时候，会回来。
 安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
 ************************************************************************************************/
-#include "user/player_user.h"
- 
 
-
+#include "rtc_base/time_utils.h" 
+#include "server/session.h" 
+#include "producer/producer.h"
+#include "server/stream.h"
 namespace gb_media_server
-{
- 
-		PlayerUser::PlayerUser(  std::shared_ptr<Connection> &ptr,   std::shared_ptr<Stream> &stream,  std::shared_ptr<Session> &s)
-			:User(ptr, stream, s)
+{ 
+		Producer::Producer(  const std::shared_ptr<Stream> & stream, 
+		const std::shared_ptr<Session> &s)
+			: stream_(stream),  session_(s)
 		{
 
+			start_timestamp_ = rtc::TimeMillis();  
 		}
-		//PacketPtr PlayerUser::Meta() const
-		//{
-		//	return meta_;
-		//}
-		//PacketPtr PlayerUser::AudioHeader() const
-		//{
-		//	return audio_header_;
-		//
-		//}
-		//PacketPtr PlayerUser::VideoHeader() const
-		//{
-		//
-		//	return video_header_;
-		//}
-		//void PlayerUser::ClearMeta()
-		//{
-		//	meta_.reset();
-		//}
-		//void PlayerUser::ClearAudioHeader()
-		//{
-		//	audio_header_.reset();
-		//}
-		//void PlayerUser::ClearVideoHeader()
-		//{
-		//	video_header_.reset();
-		//}
-
-
-
 		 
-	
+	 
+	const std::string & Producer::AppName() const
+		{
+			return app_name_;
+		}
+		void Producer::SetAppName(const std::string & app_name)
+		{
+			app_name_ = app_name;
+		}
+		const std::string & Producer::StreamName() const
+		{
+			return stream_name_;
+		}
+		void Producer::SetStreamName(const std::string & stream)
+		{
+			stream_name_ = stream;
+		}
+		const std::string & Producer::Param() const
+		{
+			return param_;
+		}
+		void Producer::SetParam(const std::string & param)
+		{
+			param_ = param;
+		}
+		 
+		ProducerType  Producer::GetProducerType() const
+		{
+			return type_;
+		}
+		void  Producer::SetProducerType(ProducerType t)
+		{
+			type_ = t;
+		}
+		void Producer::SetRemoteAddress(const rtc::SocketAddress & addr)
+		{
+			remote_address_ = addr;
+		}
+		 
+
+ 
+	 
 }

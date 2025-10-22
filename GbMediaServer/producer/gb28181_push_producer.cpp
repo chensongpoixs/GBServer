@@ -16,7 +16,7 @@
 
 
  ******************************************************************************/
-#include "user/gb28181_push_user.h"
+ 
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
 #include "rtc_base/logging.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_util.h"
@@ -24,24 +24,25 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
 
 #include "server/stream.h"
-
+#include "producer/gb28181_push_producer.h"
+#include "server/session.h"
 namespace gb_media_server {
 
 
  
-	Gb28181PushUser::Gb28181PushUser(const std::shared_ptr<Connection>& ptr, 
+	Gb28181PushProducer::Gb28181PushProducer( 
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
-		:User(ptr, stream, s),
+		:Producer(  stream, s),
 		mpeg_decoder_(nullptr),
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0){
 		mpeg_decoder_ = std::make_unique<libmedia_transfer_protocol::libmpeg::MpegDecoder>();
-		mpeg_decoder_->SignalRecvVideoFrame.connect(this, &Gb28181PushUser::OnProcessVideoFrame);
-		mpeg_decoder_->SignalRecvAudioFrame.connect(this, &Gb28181PushUser::OnProcessAudioFrame);
+		mpeg_decoder_->SignalRecvVideoFrame.connect(this, &Gb28181PushProducer::OnProcessVideoFrame);
+		mpeg_decoder_->SignalRecvAudioFrame.connect(this, &Gb28181PushProducer::OnProcessAudioFrame);
 		
 	}
-	Gb28181PushUser::~Gb28181PushUser()
+	Gb28181PushProducer::~Gb28181PushProducer()
 	{
 		if (mpeg_decoder_)
 		{
@@ -55,7 +56,7 @@ namespace gb_media_server {
 			recv_buffer_ = nullptr;
 		}
 	}
-	void Gb28181PushUser::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
+	void Gb28181PushProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
 
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
@@ -133,7 +134,7 @@ namespace gb_media_server {
 		
 	}
 
-	void Gb28181PushUser::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
+	void Gb28181PushProducer::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 
@@ -150,9 +151,17 @@ namespace gb_media_server {
 		GetStream()->AddVideoFrame(frame);
 
 	}
-	void Gb28181PushUser::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
+	void Gb28181PushProducer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
+#if 0
+		static FILE * out_file_ptr = fopen("ps_audio.aac", "wb+");
+		if (out_file_ptr)
+		{
+			fwrite(frame.data(), 1, frame.size(), out_file_ptr);
+			fflush(out_file_ptr);
+		}
+#endif // 0
 		GetStream()->AddAudioFrame(frame);
 	}
 	 

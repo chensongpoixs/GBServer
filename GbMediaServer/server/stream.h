@@ -109,13 +109,11 @@ purpose:		GOPMGR
 #include "rtc_base/copy_on_write_buffer.h"
 #include "libmedia_codec/encoded_frame.h"
 #include "libmedia_codec/encoded_image.h"
-
+//#include "server/session.h"
 namespace gb_media_server
 {
 	 
 		  
-		class PlayerUser;
-		//using PlayerUserPtr =  std::shared_ptr<PlayerUser>;
 		class Session;
 		class Stream : public std::enable_shared_from_this<Stream>
 		{
@@ -129,97 +127,34 @@ namespace gb_media_server
 
 			void AddVideoFrame(const libmedia_codec::EncodedImage &frame);
 			void AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
-		//	void AddPacket(PacketPtr &&packet);
-
-			//void ProcessHls(PacketPtr & packet);
+	 
 		public:
 
 
 
 
-
-			void GetFrames(const std::shared_ptr<PlayerUser>& user);
-
-
-
-
-
-			// 序列头
-			bool LocateGop(const std::shared_ptr<PlayerUser>& user);
-			void SkipFrame(const std::shared_ptr<PlayerUser>& user);
-
-			// 输出音视频帧
-			void GetNextFrame(const std::shared_ptr<PlayerUser>& user);
 		public:
 
-			int64_t   ReadyTime() const;
-			int64_t   SinceStart() const;
-			bool		Timeout();
-			//第一帧数据的时间
-			int64_t       DateTime() const;
+		
 
 
 
 			// 流信息函数
 			const std::string & SessionName() const;
-			int32_t StreamVersion() const;
-
-
-			//bool   HasAudio() const;
-			//bool   HasVideo() const;
-			//// 是否收到媒体信息
-			//bool HasMedia() const;
-
-
-
-			//std::string  GetPlayList()
-			//{
-			//	return hls_muxer_.PlayList();
-			//}
-			//FragmentPtr  GetFragement(const std::string &name)
-			//{
-			//	return hls_muxer_.GetFragment(name);
-			//}
-
-			//设置流是否准备好   收到关键帧
-			void SetReady(bool ready);
-			bool Ready() const;
+		
+ 
 
 
 		private:
 
-
-
-			int64_t   data_coming_time_{ 0 };
-			int64_t   start_timestamp_{ 0 };
-			int64_t ready_time_{ 0 };
-			std::atomic<int64_t>  stream_time_{ 0 };
+			 
 			 Session  &session_;
 			std::string    session_name_;
-			std::atomic<int64_t>   frame_index_{ -1 };
-			//默认缓存数据包大小
-			uint32_t   packet_buffer_size_{ 1000 };
-			//std::vector<PacketPtr> packet_buffer_;
+			 
 
-			bool  has_audio_{ false };
-			bool  has_video_{ false };
-			bool  has_meta_{ false };
-
-			bool ready_{ false };
-			//流的版本号
-			std::atomic< int32_t>   stream_version_{ -1 };
+			 
 
 
-			//GopMgr gop_mgr_;
-		//	CodecHeader  codec_headers_;
-		//	TimeCorrector time_corrector_;
-			std::mutex   lock_;
-
-
-			/*TestStreamWriter   writer_;
-			TsEncoder		   encoder_;*/
-
-			//HLSMuxer 	hls_muxer_;
 
 		};
 	 

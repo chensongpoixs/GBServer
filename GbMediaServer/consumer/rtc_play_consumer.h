@@ -26,10 +26,10 @@
 #include "absl/types/optional.h"
 #include "rtc_base/system/rtc_export.h"
 #include <memory>
-#include "user/user.h"
+#include "consumer/consumer.h"
 #include "libmedia_transfer_protocol/librtc/rtc_sdp.h"
 #include "libmedia_transfer_protocol/librtc/dtls_certs.h"
-#include "user/player_user.h"
+ 
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
@@ -41,18 +41,16 @@
 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
 namespace gb_media_server {
-	//class Connection;
-	class Stream;
-	class Session;
-	class PlayRtcUser : public  PlayerUser  ,
+	 
+	class RtcPlayConsumer : public  Consumer  ,
 #if TEST_RTC_PLAY
 		public  libmedia_codec::EncodeImageObser,
 #endif // 
 		public sigslot::has_slots<>
 	{
 	public:
-		explicit PlayRtcUser( std::shared_ptr<Connection> &ptr,  std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
-		virtual ~PlayRtcUser();
+		explicit RtcPlayConsumer(   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
+		virtual ~RtcPlayConsumer();
 
 	public:
 		void SetCapture(bool value);
@@ -63,37 +61,19 @@ namespace gb_media_server {
 		const std::string &RemoteUFrag() const;
 		std::string BuildAnswerSdp();
 
+		//开始DTLS选择客户端还是服务端挥手交换 
 		void MayRunDtls();
 	public:
 
 
-		void SetRemoteSocketAddress(const rtc::SocketAddress & addr);
+		 
 		void OnDtlsRecv(const char *buf, size_t size);
 		void OnSrtpRtp(const uint8_t * data, size_t size);
 		void OnSrtpRtcp(const uint8_t * data, size_t size);
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
+		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame);
 	public:
-		/*
-		sigslot::signal1<Dtls*>     SignalDtlsConnecting;
-			sigslot::signal7<Dtls*, libsrtp::CryptoSuite  ,
-				uint8_t*  ,
-				size_t  ,
-				uint8_t*  ,
-				size_t  ,
-				std::string&  >     SignalDtlsConnected;
-
-			sigslot::signal1<Dtls*>     SignalDtlsClose;
-			sigslot::signal1<Dtls*>     SignalDtlsFailed;
-
-			sigslot::signal3<const uint8_t *, size_t, Dtls*>
-				SignalDtlsSendPakcet;
-			//sigslot::signal1<  Dtls*>
-			//	SignalDtlsHandshakeDone; 
-			sigslot::signal3<  Dtls*, const uint8_t *, size_t>
-				SignalDtlsApplicationDataReceived;
-		*/
-		//sigslot::signal3<const char *, size_t, Dtls*>
 		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
 		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
@@ -103,13 +83,11 @@ namespace gb_media_server {
 			size_t srtpRemoteKeyLen,
 			std::string& remote_cert);
 		void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len);
-		//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		 
 		void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls);
 		void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls);
 		void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len);
-		//sigslot::signal1<  Dtls*>
-		//	SignalDtlsHandshakeDone;
-
+		 
 	public:
 
 #if TEST_RTC_PLAY
@@ -119,7 +97,7 @@ namespace gb_media_server {
 
 	public:
 
-		virtual   UserType   GetUserType() const  override;
+		virtual   ConsumerType   GetConsumerType() const  override;
 	private:
 		static std::string GetUFrag(int size);
 		static uint32_t GetSsrc(int size);
@@ -134,7 +112,7 @@ namespace gb_media_server {
 
 		bool dtls_done_{ false };
 
-		rtc::SocketAddress             remote_address_;
+		//rtc::SocketAddress             remote_address_;
 		libmedia_transfer_protocol::libsrtp::SrtpSession*   srtp_send_session_;
 		libmedia_transfer_protocol::libsrtp::SrtpSession *  srtp_recv_session_;
 

@@ -19,16 +19,16 @@
 #ifndef _C_RTC_SERVICE_H_
 #define _C_RTC_SERVICE_H_
 
-#include "server/session.h"
-#include "user/rtc_play_user.h"
+#include "server/session.h" 
 #include "server/session.h"
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
 #include "libmedia_transfer_protocol/libhttp/http_server.h"
+#include "producer/gb28181_push_producer.h"
+#include "consumer/rtc_play_consumer.h"
 //#include "swagger/dto/RtcApiDto.hpp"
 namespace  gb_media_server
 {
-	using   PlayRtcUserPtr = std::shared_ptr<PlayRtcUser>;
 	class RtcService : public sigslot::has_slots<>
 	{
 	public:
@@ -43,8 +43,8 @@ namespace  gb_media_server
 		}
 
 
-		void AddPlayUser(PlayRtcUserPtr uesr);
-		void RemovePlayUser(PlayRtcUserPtr uesr);
+		void AddConsumer(std::shared_ptr<RtcPlayConsumer> uesr);
+		void RemoveConsumer(std::shared_ptr<RtcPlayConsumer> uesr);
 
 
 		webrtc::TaskQueueFactory*  GetTaskQueueFactory();
@@ -88,9 +88,9 @@ namespace  gb_media_server
 
 	//	static std::string GetSessionNameFromUrl(const std::string &url);
 		std::mutex lock_;
-		std::unordered_map<std::string, PlayRtcUserPtr> name_users_;
-		std::mutex users_lock_;
-		std::unordered_map<std::string, PlayRtcUserPtr> users_;
+		std::unordered_map<std::string, std::shared_ptr<RtcPlayConsumer>> name_consumers_;
+		std::mutex consumers_lock_;
+		std::unordered_map<std::string, std::shared_ptr<RtcPlayConsumer>> consumers_;
 	public:
 	private:
 		std::unique_ptr<webrtc::TaskQueueFactory>                       task_queue_factory_;

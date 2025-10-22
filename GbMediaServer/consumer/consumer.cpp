@@ -28,42 +28,42 @@ purpose:		GOPMGR
 沿着自己的回忆，一个个的场景忽闪而过，最后发现，我的本心，在我写代码的时候，会回来。
 安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
 ************************************************************************************************/
-#include "user/user.h"
-#include "rtc_base/time_utils.h"
-#include "server/connection.h"
-#include "server/session.h"
-#include "server/connection.h"
+ 
+#include "rtc_base/time_utils.h" 
+#include "server/session.h" 
+#include "consumer/consumer.h"
+#include "server/stream.h"
 namespace gb_media_server
 { 
-		User::User(const std::shared_ptr<Connection>& ptr, const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s)
-			: stream_(stream), connection_(ptr), session_(s)
+	Consumer::Consumer(  const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s)
+			: stream_(stream),   session_(s)
 		{
 
 			start_timestamp_ = rtc::TimeMillis(); // tmms::base::TTime::NowMS();
-			user_id_ = ptr->PeerAddr().ToString();// ptr->PeerAddr().ToIpPort();
+			//user_id_ = ptr->PeerAddr().ToString();// ptr->PeerAddr().ToIpPort();
 		}
 		 
-		const std::string & User::AppName() const
+		const std::string & Consumer::AppName() const
 		{
 			return app_name_;
 		}
-		void User::SetAppName(const std::string & app_name)
+		void Consumer::SetAppName(const std::string & app_name)
 		{
 			app_name_ = app_name;
 		}
-		const std::string & User::StreamName() const
+		const std::string & Consumer::StreamName() const
 		{
 			return stream_name_;
 		}
-		void User::SetStreamName(const std::string & stream)
+		void Consumer::SetStreamName(const std::string & stream)
 		{
 			stream_name_ = stream;
 		}
-		const std::string & User::Param() const
+		const std::string & Consumer::Param() const
 		{
 			return param_;
 		}
-		void User::SetParam(const std::string & param)
+		void Consumer::SetParam(const std::string & param)
 		{
 			param_ = param;
 		}
@@ -72,52 +72,19 @@ namespace gb_media_server
  
 
 
-		UserType  User::GetUserType() const
+		ConsumerType  Consumer::GetConsumerType() const
 		{
 			return type_;
 		}
-		void  User::SetUserType(UserType t)
+		void  Consumer::SetConsumerType(ConsumerType t)
 		{
 			type_ = t;
 		}
-		UserProtocol  User::GetUserProtocol() const
+		
+		void Consumer::SetRemoteAddress(const rtc::SocketAddress & addr)
 		{
-			return protocol_;
+			remote_address_ = addr;
 		}
-		void  User::SetUserProtocol(UserProtocol p)
-		{
-			protocol_ = p;
-		}
-
-
-		void User::Close()
-		{
-			if (connection_)
-			{
-				connection_->ForceClose();
-			}
-		}
-		std::shared_ptr<Connection> User::GetConnection()
-		{
-			return connection_;
-		}
-		uint64_t User::ElapsedTime()
-		{
-			return  rtc::TimeMillis() - start_timestamp_;
-		}
-		void User::Active()
-		{
-			if (connection_)
-			{
-				connection_->Active();
-			}
-		}
-		void User::Deactive()
-		{
-			if (connection_)
-			{
-				connection_->Deactive();
-			}
-		}
+		 
 	 
 }

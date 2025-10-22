@@ -27,7 +27,7 @@
 #include "libmedia_transfer_protocol/libsip/sip_server.h"
 #include "server/rtc_service.h"
 #include "server/web_service.h"
-
+#include "libmedia_codec/audio_codec/adts_header.h"
 
 	
 
@@ -96,6 +96,19 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 #endif // WIN32
+
+
+
+	uint8_t     audio[19] = {0xff, 0xf1, 0x60, 0x40, 0x21, 0x7f, 0xfc, 0x01, 0x1e, 0x15};
+
+
+	libmedia_codec::AdtsHeader adts_header;
+
+	adts_header.parse(&audio[0], 12);
+
+	printf("chensong\n");
+
+
 #if 0
 
 
