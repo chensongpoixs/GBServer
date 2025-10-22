@@ -109,6 +109,8 @@ FILE(GLOB    Media_source
 	 producer/*.cpp 
 	 utils/*.h 
 	 utils/*.cpp 
+	 share/*.h
+	 share/*.cpp 
 )
  
 file(GLOB GbMediaServer_source

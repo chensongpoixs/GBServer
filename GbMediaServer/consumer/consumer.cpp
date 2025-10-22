@@ -36,55 +36,13 @@ purpose:		GOPMGR
 namespace gb_media_server
 { 
 	Consumer::Consumer(  const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s)
-			: stream_(stream),   session_(s)
+			:ShareResource(stream, s)
 		{
 
-			start_timestamp_ = rtc::TimeMillis(); // tmms::base::TTime::NowMS();
-			//user_id_ = ptr->PeerAddr().ToString();// ptr->PeerAddr().ToIpPort();
+			 
 		}
 		 
-		const std::string & Consumer::AppName() const
-		{
-			return app_name_;
-		}
-		void Consumer::SetAppName(const std::string & app_name)
-		{
-			app_name_ = app_name;
-		}
-		const std::string & Consumer::StreamName() const
-		{
-			return stream_name_;
-		}
-		void Consumer::SetStreamName(const std::string & stream)
-		{
-			stream_name_ = stream;
-		}
-		const std::string & Consumer::Param() const
-		{
-			return param_;
-		}
-		void Consumer::SetParam(const std::string & param)
-		{
-			param_ = param;
-		}
-
-
- 
-
-
-		ConsumerType  Consumer::GetConsumerType() const
-		{
-			return type_;
-		}
-		void  Consumer::SetConsumerType(ConsumerType t)
-		{
-			type_ = t;
-		}
-		
-		void Consumer::SetRemoteAddress(const rtc::SocketAddress & addr)
-		{
-			remote_address_ = addr;
-		}
+		 
 		 
 	 
 }

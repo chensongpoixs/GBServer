@@ -150,13 +150,8 @@ namespace  gb_media_server
 
 				return;
 			}
-			// rtc::SocketAddress   server_addrs;
-			// server_addrs.SetIP("192.168.1.2");
-			// server_addrs.SetPort(10003);
-			// auto socket = GbMediaService::GetInstance().network_thread()->socketserver()->CreateSocket(server_addrs.ipaddr().family(), SOCK_STREAM);
-			//auto  connection = std::make_shared<Connection>(conn->GetSocket());
 			std::shared_ptr<RtcPlayConsumer> consumer = std::dynamic_pointer_cast<RtcPlayConsumer>(s->CreateConsumer(
-				session_name, "", ConsumerType::kConsumerTypePlayerWebRTC));
+				session_name, "", ShareResourceType::kConsumerTypePlayerWebRTC));
 
 			if (!consumer)
 			{
@@ -188,12 +183,7 @@ namespace  gb_media_server
 
 			auto answer_sdp = consumer->BuildAnswerSdp();
 			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
-			//RTC::DtlsTransport::Fingerprint dtlsRemoteFingerprint;
-			//RTC::DtlsTransport::Role dtlsRemoteRole;
-			// 设置服务端active
-			//dtls_.Run(libmedia_transfer_protocol::libssl::Role::SERVER);
-
-
+			
 			consumer->MayRunDtls();
 			Json::Value result;
 			result["code"] = 0;
@@ -290,7 +280,7 @@ namespace  gb_media_server
 			return;
 		}
 		//auto  connection = std::make_shared<Connection>(conn->GetSocket());
-		auto producer = s->CreateProducer(  session_name, "", ProducerType::kProducerTypePublishGB28181);
+		auto producer = s->CreateProducer(  session_name, "", ShareResourceType::kProducerTypePublishGB28181);
 
 		if (!producer)
 		{

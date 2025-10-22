@@ -76,8 +76,8 @@ namespace gb_media_server
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
 		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
 		// 本地ip port 
-		sdp_.SetServerAddr("192.168.1.2");
-		sdp_.SetServerPort(GbMediaService::GetInstance().GetRtpPort());
+		sdp_.SetServerAddr(GbMediaService::GetInstance().RtpWanIp());
+		sdp_.SetServerPort(GbMediaService::GetInstance().RtpPort());
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
@@ -198,79 +198,7 @@ namespace gb_media_server
 	  void RtcPlayConsumer::OnSrtpRtcp(const uint8_t * data, size_t size)
 	  {
 	  }
-	  //void PlayRtcUser::OnDtlsSendPakcet(const char * data, size_t size, libmedia_transfer_protocol::librtc::Dtls * dtls)
-	  //{
-		//  GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << size;
-		//  //PacketPtr packet = Packet::NewPacket(size);
-		//  //memcpy(packet->Data(), data, size);
-		//  //packet->SetPacketSize(size);
-		//  //
-		//  //packet->SetExt(addr_);
-		//  //auto server = sLiveService->GetWebrtcServer();
-		//  //server->SendPacket(packet);
-	  //
-		//  rtc::Buffer buffer(data, size);
-		//  GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(buffer, remote_address_, rtc::PacketOptions());
-	  //
-	  //}
-#if 0
-	  void PlayRtcUser::OnDtlsHandshakeDone(libmedia_transfer_protocol::librtc::Dtls * dtls)
-	  {
-		  GBMEDIASERVER_LOG(LS_INFO) << "dtls handshake done.";
-		  dtls_done_ = true;
-		  srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
-		 // return;
-		  // 完成验证后进行发送
-
-#if TEST_RTC_PLAY
-		  if (capture_type_)
-		  {
-			  x264_encoder_ = std::make_unique<libmedia_codec::X264Encoder>();
-			  x264_encoder_->SetSendFrame(this);
-			  x264_encoder_->Start();
-			  video_encoder_thread_ = rtc::Thread::Create();
-			  video_encoder_thread_->SetName("video_encoder_thread", NULL);
-			  video_encoder_thread_->Start();
-
-			  capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
-			  capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
-			  capturer_track_source_->StartCapture();
-		  }
-		
-#endif // 1
-	  }
-#endif //
-//	  void PlayRtcUser::OnDtlsClosed(libmedia_transfer_protocol::librtc::Dtls * dtls)
-//	  {
-//#if TEST_RTC_PLAY
-//		  if (capture_type_)
-//		  {
-//			  if (video_encoder_thread_)
-//			  {
-//				  video_encoder_thread_->Stop();
-//			  }
-//			  if (x264_encoder_)
-//			  {
-//				  //	x264_encoder_->SetSendFrame(nullptr);
-//				  x264_encoder_->Stop();
-//			  }
-//			  if (capturer_track_source_)
-//			  {
-//				  //	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-//				  capturer_track_source_->Stop();
-//			  }
-//		  }
-//		 // GetSession()->CloseUser()
-//#endif //
-//		   
-//		  std::string session_name = GetSession()->SessionName();
-//		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,[this, session_name]() {
-//			  std::shared_ptr<PlayRtcUser> slef = std::dynamic_pointer_cast<PlayRtcUser>(shared_from_this());
-//			  RtcService::GetInstance().RemovePlayUser(slef);
-//			  GbMediaService::GetInstance().CloseSession(session_name);
-//		  });
-//		 // 
-//	  }
+  
 #if TEST_RTC_PLAY
 	  void RtcPlayConsumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
@@ -285,10 +213,7 @@ namespace gb_media_server
 		
 	  }
 #endif //
-	  ConsumerType   RtcPlayConsumer::GetConsumerType() const
-	  {
-		  return ConsumerType::kConsumerTypePlayerWebRTC;
-	  }
+	  
 	  void RtcPlayConsumer::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
 	  {
 		  if (!dtls_done_)

@@ -61,7 +61,7 @@ namespace  gb_media_server
 	std::shared_ptr<Producer> Session::CreateProducer( 
 		const std::string &session_name,
 		const std::string &param,
-		ProducerType type)
+		ShareResourceType type)
 	{
 		if (session_name != session_name_)
 		{
@@ -74,7 +74,7 @@ namespace  gb_media_server
 		std::shared_ptr<Producer> producer;
 		switch (type)
 		{
-			case gb_media_server::kProducerTypePublishGB28181:
+			case ShareResourceType::kProducerTypePublishGB28181:
 			{
 				producer = std::make_shared<Gb28181PushProducer>( stream_, shared_from_this());
 				break;
@@ -90,7 +90,7 @@ namespace  gb_media_server
 		producer->SetAppName(list[1]);
 		producer->SetStreamName(list[2]);
 		producer->SetParam(param);
-		producer->SetProducerType(type);
+		 
 
 		//conn->SetContext(kUserContext, producer);
 		return producer;
@@ -98,7 +98,7 @@ namespace  gb_media_server
 	std::shared_ptr<Consumer> Session::CreateConsumer(   
 		const std::string &session_name,
 		const std::string &param,
-		ConsumerType type)
+		ShareResourceType type)
 	{
 		if (session_name != session_name_)
 		{
@@ -118,7 +118,7 @@ namespace  gb_media_server
 			return consumer_null;
 		}
 		std::shared_ptr< Consumer> consumer;
-		if (type == ConsumerType::kConsumerTypePlayerWebRTC)
+		if (type == ShareResourceType::kConsumerTypePlayerWebRTC)
 		{
 			consumer = std::make_shared<RtcPlayConsumer>(  stream_, shared_from_this());
 		} 
@@ -131,7 +131,6 @@ namespace  gb_media_server
 		consumer->SetAppName(list[1]);
 		consumer->SetStreamName(list[2]);
 		consumer->SetParam(param);
-		consumer->SetConsumerType(type);
 		 
 		return consumer;
 	}
@@ -155,7 +154,7 @@ namespace  gb_media_server
 
 		if (!producer_)
 		{
-			GBMEDIASERVER_LOG(INFO) << " add consumer,  realy  -->  session name:" << session_name_ << ",consumer id:" << consumer->GetRemoteAddress().ToString();
+			GBMEDIASERVER_LOG(INFO) << " add consumer,  realy  -->  session name:" << session_name_ << ",consumer id:" << consumer->RemoteAddress().ToString();
 
 			//if (!pull_)
 			//{
@@ -165,7 +164,7 @@ namespace  gb_media_server
 		}
 		else
 		{
-			GBMEDIASERVER_LOG(INFO) << " add consumer,  local stream   -->  session name:" << session_name_ << ",consumer id:" << consumer->GetRemoteAddress().ToString();
+			GBMEDIASERVER_LOG(INFO) << " add consumer,  local stream   -->  session name:" << session_name_ << ",consumer id:" << consumer->RemoteAddress().ToString();
 
 		}
 		//consumer->Active();
@@ -180,7 +179,7 @@ namespace  gb_media_server
 				
 				{
 					GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
-						<< ",remoteaddr:" << consumer->GetRemoteAddress().ToString()
+						<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
 						//<< ",elapsed:" << consumer->ElapsedTime()
 						//<< ",ReadyTime:" << ReadyTime()
 						//<< ",stream time:" << SinceStart() 

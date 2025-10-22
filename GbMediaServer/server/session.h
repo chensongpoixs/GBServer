@@ -28,6 +28,7 @@
 #include "producer/producer.h"
 #include "consumer/consumer.h"
 #include "server/stream.h"
+
 namespace  gb_media_server
 {
 	//class Consumer;
@@ -44,11 +45,11 @@ namespace  gb_media_server
 		std::shared_ptr<Producer> CreateProducer( 
 			const std::string &session_name,
 			const std::string &param,
-			ProducerType type);
+			ShareResourceType type);
 		std::shared_ptr<Consumer> CreateConsumer(   
 			const std::string &session_name,
 			const std::string &param,
-			ConsumerType type);
+			ShareResourceType type);
 		 
 		void AddConsumer(const std::shared_ptr<Consumer> & consumer);
 		void RemoveConsumer(const std::shared_ptr<Consumer> & consumer);

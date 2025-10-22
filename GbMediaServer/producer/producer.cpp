@@ -37,52 +37,11 @@ namespace gb_media_server
 { 
 		Producer::Producer(  const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
-			: stream_(stream),  session_(s)
+			: ShareResource(stream, s)
 		{
 
-			start_timestamp_ = rtc::TimeMillis();  
+			 
 		}
 		 
-	 
-	const std::string & Producer::AppName() const
-		{
-			return app_name_;
-		}
-		void Producer::SetAppName(const std::string & app_name)
-		{
-			app_name_ = app_name;
-		}
-		const std::string & Producer::StreamName() const
-		{
-			return stream_name_;
-		}
-		void Producer::SetStreamName(const std::string & stream)
-		{
-			stream_name_ = stream;
-		}
-		const std::string & Producer::Param() const
-		{
-			return param_;
-		}
-		void Producer::SetParam(const std::string & param)
-		{
-			param_ = param;
-		}
-		 
-		ProducerType  Producer::GetProducerType() const
-		{
-			return type_;
-		}
-		void  Producer::SetProducerType(ProducerType t)
-		{
-			type_ = t;
-		}
-		void Producer::SetRemoteAddress(const rtc::SocketAddress & addr)
-		{
-			remote_address_ = addr;
-		}
-		 
-
- 
-	 
+	   
 }

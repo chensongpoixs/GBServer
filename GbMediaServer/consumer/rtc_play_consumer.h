@@ -96,8 +96,8 @@ namespace gb_media_server {
 #endif //
 
 	public:
-
-		virtual   ConsumerType   GetConsumerType() const  override;
+		virtual ShareResourceType ShareResouceType() const   { return kConsumerTypePlayerWebRTC; }
+		 
 	private:
 		static std::string GetUFrag(int size);
 		static uint32_t GetSsrc(int size);

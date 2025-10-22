@@ -47,69 +47,26 @@ purpose:		GOPMGR
 #include "rtc_base/socket_address.h"
 //#include "server/stream.h"
 //#include "server/session.h"
+#include "share/share_resource.h"
 namespace gb_media_server
 {
 	 
 
-		enum  ConsumerType
-		{ 
-			kConsumerTypePlayerPav = 0,
-			kConsumerTypePlayerFlv,
-			kConsumerTypePlayerHls,
-			kConsumerTypePlayerRtmp,
-			kConsumerTypePlayerWebRTC,
-			kConsumerTypeUnknowed = 255,
-
-
-		};
-		 
-		class Stream;
-		class Session;
 		 
 		 
-		class Consumer : public std::enable_shared_from_this<Consumer>
+		
+		 
+		 
+		class Consumer : public ShareResource
 		{
 		public:
-			friend class Session;
 			Consumer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
 			virtual ~Consumer() = default;
 		public:
 
 
 		 
-			const std::string & AppName() const;
-			void SetAppName(const std::string & app_name);
-			const std::string & StreamName() const;
-			void SetStreamName(const std::string & stream);
-			const std::string & Param() const;
-			void SetParam(const std::string & param);
-
-
-
-			 
-
-
-			virtual ConsumerType GetConsumerType() const;
-			void SetConsumerType(ConsumerType t);
-			 
-			const rtc::SocketAddress &GetRemoteAddress() const
-			{
-				return remote_address_;
-			}
-			void  SetRemoteAddress(const rtc::SocketAddress & addr);
-
-			std::shared_ptr<Session> GetSession() const
-			{
-				return session_;
-			}
-			std::shared_ptr < Stream> GetStream() const
-			{
-				return stream_;
-			}
-			std::shared_ptr < Stream> GetStream()
-			{
-				return stream_;
-			}
+			
 			
 
 			//接受不同协议上层处理 实现
@@ -124,16 +81,7 @@ namespace gb_media_server
 			//void Close();
 			
 		protected:
-			std::shared_ptr < Stream> stream_;  
-			std::string     app_name_;
-			std::string     stream_name_;
-			std::string     param_;
-			//std::string		user_id_; 
-			rtc::SocketAddress   remote_address_;
-			int64_t			start_timestamp_{ 0 }; // 启始时间
-			ConsumerType		type_{ ConsumerType::kConsumerTypeUnknowed };
-			std::atomic_bool destroyed_{ false };
-			std::shared_ptr < Session> session_;
+			
 		};
  
 }

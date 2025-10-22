@@ -160,7 +160,7 @@ namespace  gb_media_server
 		 std::lock_guard<std::mutex> lk(lock_);
 		 name_consumers_.erase(consumer->LocalUFrag());
 		  
-		 std::string key = consumer->GetRemoteAddress().ipaddr().ToString() + ":" + std::to_string(consumer->GetRemoteAddress().port());
+		 std::string key = consumer->RemoteAddress().ipaddr().ToString() + ":" + std::to_string(consumer->RemoteAddress().port());
 		 consumers_.erase(key);
 	 }
 

@@ -69,8 +69,8 @@ namespace  gb_media_server
 		void Stop();
 		void Destroy();
 
-		uint16_t  GetRtpPort() const { return rtc_port_; }
-	
+		uint16_t   RtpPort() const { return rtc_port_; }
+		const std::string & RtpWanIp() const{ return rtc_wan_ip_; }
 #if 1
 
 		rtc::Thread* signaling_thread() { return context_->signaling_thread(); }

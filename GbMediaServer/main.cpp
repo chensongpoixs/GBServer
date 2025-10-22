@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
 
 	adts_header.parse(&audio[0], 12);
 
-	printf("chensong\n");
+	//printf("chensong\n");
 
 
 #if 0
@@ -195,7 +195,8 @@ int main(int argc, char *argv[])
 		
 	}
 	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
-	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", gb_media_server::GbMediaService::GetInstance().GetRtpPort());
+	gb_media_server::GbMediaService::GetInstance().Start(gb_media_server::GbMediaService::GetInstance().RtpWanIp().c_str(),
+		gb_media_server::GbMediaService::GetInstance().RtpPort());
 	while (true)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(100));

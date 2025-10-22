@@ -45,21 +45,12 @@ purpose:		GOPMGR
 #include "rtc_base/socket_address.h"
 #include "libmedia_codec/encoded_image.h"
 //#include "server/session.h"
+#include "share/share_resource.h"
 namespace gb_media_server
 {
 	 
 
-		enum  ProducerType
-		{
-			kProducerTypePublishRtmp = 0,
-			kProducerTypePublishMpegts,
-			kProducerTypePublishPav,
-			kProducerTypePublishWebRtc,
-			kProducerTypePublishGB28181, 
-			kProducerTypeUnknowed = 255,
-
-
-		};
+		 
 
 
 	 
@@ -67,81 +58,26 @@ namespace gb_media_server
 
 		 
 
-		class Stream;
-		class Session;
-
+	 
 		 
 		 
-		class Producer : public std::enable_shared_from_this<Producer>
+		class Producer : public ShareResource
 		{
 		public: 
 			Producer(  const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
 			virtual ~Producer() = default;
 		public:
 
-
-		 
-			const std::string & AppName() const;
-			void SetAppName(const std::string & app_name);
-			const std::string & StreamName() const;
-			void SetStreamName(const std::string & stream);
-			const std::string & Param() const;
-			void SetParam(const std::string & param);
-
-
-
 			 
-
-
-			virtual ProducerType GetProducerType() const;
-			void SetProducerType(ProducerType t);
-			 
-
-			std::shared_ptr<Session> GetSession() const
-			{
-				return session_;
-			}
-			std::shared_ptr < Stream> GetStream() const
-			{
-				return stream_;
-			}
-			std::shared_ptr < Stream> GetStream()
-			{
-				return stream_;
-			}
-			const rtc::SocketAddress &RemoteAddress() const
-			{
-				return remote_address_;
-			}
-			void  SetRemoteAddress(const rtc::SocketAddress & addr);
 
 			//接受不同协议上层处理 实现
 			virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
 
-			//播放端继承
-			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
-			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame) {}
-		public:
-			//网络层接口
-			//void Close();
-			//std::shared_ptr<Connection> GetConnection();
-			//uint64_t ElapsedTime();
-			//void Active();
-			//void Deactive();
+		
+		public: 
 		protected:
-			std::shared_ptr < Stream> stream_; 
-			std::string     domain_name_; // 域名
-			std::string     app_name_;
-			std::string     stream_name_;
-			std::string     param_;
-			rtc::SocketAddress   remote_address_;
-			
-			int64_t			start_timestamp_{ 0 }; // 启始时间
-			ProducerType		type_{ ProducerType::kProducerTypeUnknowed };
-		 
-			std::atomic_bool destroyed_{ false };
-			std::shared_ptr < Session> session_;
+			 
 		};
  
 }
