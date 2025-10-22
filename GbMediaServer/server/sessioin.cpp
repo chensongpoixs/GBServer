@@ -176,7 +176,7 @@ namespace  gb_media_server
 							<< ",user:" << user->UserId()
 							<< ",elapsed:" << user->ElapsedTime()
 							<< ",ReadyTime:" << ReadyTime()
-							<< ",stream time:" << SinceStart();
+							<< ",stream time:" << SinceStart() << ", use_count: " << user.use_count();
 
 						publisher_.reset();
 					}
@@ -187,7 +187,7 @@ namespace  gb_media_server
 						<< ",user:" << user->UserId()
 						<< ",elapsed:" << user->ElapsedTime()
 						<< ",ReadyTime:" << ReadyTime()
-						<< ",stream time:" << SinceStart();
+						<< ",stream time:" << SinceStart() << ", use_count: " << user.use_count();
 					players_.erase(std::dynamic_pointer_cast<PlayerUser>(user));
 					player_live_time_ = rtc::TimeMillis();
 				}

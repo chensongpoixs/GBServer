@@ -120,6 +120,7 @@ namespace  gb_media_server
 	//	std::unique_ptr<rtc::Thread>								network_thread_;
 	//	std::unique_ptr<rtc::Thread>                               worker_thread_;
 		//std::shared_ptr<WebrtcServer>  webrtc_server_;
+		std::string										rtc_wan_ip_ = "192.168.1.2";
 		uint16_t										rtc_port_ = 10009;
 	};
 }

@@ -169,9 +169,9 @@ namespace  gb_media_server
 				});
 				return;
 			}
-
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
 			s->AddPlayer(std::dynamic_pointer_cast<PlayerUser>(user));
-
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
 			PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
 			if (!rtc_user->ProcessOfferSdp(sdp))
 			{
@@ -218,7 +218,7 @@ namespace  gb_media_server
 				http_ctx->WriteComplete(conn);
 			});
 			
-			
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
 			//采集桌面的画面
 			if (!capture_value.isNull() && capture_value.isInt())
 			{
@@ -226,7 +226,7 @@ namespace  gb_media_server
 			}
 			//GbMediaService::GetInstance().GetRtcServer()->A
 			RtcService::GetInstance().AddPlayUser(rtc_user);
-
+			GBMEDIASERVER_LOG(LS_INFO) << "rtc player user : count : " << user.use_count();
 		//});
 	}
 	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
