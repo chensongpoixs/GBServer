@@ -87,6 +87,8 @@ namespace gb_media_server
 	}
 	RtcPlayConsumer:: ~RtcPlayConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+
+		
 #if TEST_RTC_PLAY
 		{
 			if (capture_type_)
@@ -105,10 +107,34 @@ namespace gb_media_server
 				capturer_track_source_->Stop();
 			}
 		}
+
 #endif // 	
 		//dtls_.SignalDtlsSendPakcet.disconnect(this);
 		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
 		//dtls_.SignalDtlsClose.disconnect(this);
+
+		if (srtp_send_session_)
+		{
+			delete srtp_send_session_;
+			srtp_send_session_ = nullptr;
+		}
+		if (srtp_recv_session_)
+		{
+			delete  srtp_recv_session_;
+			srtp_recv_session_ = nullptr;
+		}
+
+		dtls_done_ = false;
+		if (muxer_)
+		{
+			delete muxer_;
+			muxer_ = nullptr;
+		}
+		if (srtp_send_session_)
+		{
+			srtp_send_session_->RemoveStream(sdp_.VideoSsrc());
+			srtp_send_session_->RemoveStream(sdp_.AudioSsrc());
+		}
 		dtls_.disconnect_all();
 		
 		
@@ -387,6 +413,7 @@ namespace gb_media_server
 
 	  void RtcPlayConsumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
 	  {
+		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
 		  if (!dtls_done_)
 		  {
 			  return;
@@ -424,10 +451,12 @@ namespace gb_media_server
 		  size_t   len = single_packet->size();
 		  if (!srtp_send_session_->EncryptRtp(&data, &len))
 		  {
+			  GBMEDIASERVER_LOG_T_F(LS_WARNING) << "srtp session ecryptrtp failed !!! ";
 			  return;
 		  }
 
 
 		  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, len), remote_address_, rtc::PacketOptions());
+		  });
 	  }
 }

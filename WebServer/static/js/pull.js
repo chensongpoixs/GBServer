@@ -6,7 +6,7 @@
 var remoteVideo = document.getElementById("remoteVideo");
 var pullBtn = document.getElementById("StartpullBtn");
 var stopPullBtn = document.getElementById("stopPullBtn");
-
+let audioElem = document.createElement("Audio");
 var pullCaptureBtn = document.getElementById("pullCaptureBtn");
 
 pullBtn.addEventListener("click", startPull);
@@ -23,6 +23,7 @@ var pc;
 const config = {};
 var remoteStream;
 var captureType = 1;
+
 //本地视频流
 //var localStream = null;
 var lastConnectionState = "";
@@ -134,9 +135,9 @@ function pullStream() {
 		//存放远端视频流
 		if (e.track.kind == 'audio')
 		{
-			
+			handleOnAudioTrack(e.streams[0]);
 		}
-		else if (e.track.kind == 'video'&& remoteVideo.srcObject !== e.streams[0])
+		 if (e.track.kind == 'video'&& remoteVideo.srcObject !== e.streams[0])
 		{
 			remoteStream = e.streams;
 		
@@ -157,6 +158,44 @@ function pullStream() {
    // );
    CreateOfferDescriptionSuccess();
 }
+
+
+function handleOnAudioTrack  ( audioMediaStream)
+{
+	//console.log('handleOnAudioTrack===>>>>');
+	// do nothing the video has the same media stream as the audio track we have here (they are linked)
+	if(remoteVideo.srcObject == audioMediaStream)
+	{
+		console.log('Created new audio element  failed !!!  .');
+		//return;
+	}
+	// video element has some other media stream that is not associated with this audio track
+	else if( remoteVideo.srcObject !== audioMediaStream)
+	{
+		// create a new audio element
+		
+		audioElem.srcObject = audioMediaStream;
+
+		// there is no way to autoplay audio (even muted), so we defer audio until first click
+		//if(!self.autoPlayAudio) {
+		//
+		 //let clickToPlayAudio = function() {
+		 //	audioElem.play();
+		 //	remoteVideo.removeEventListener("click", clickToPlayAudio);
+		 //};
+		 //
+		 //remoteVideo.addEventListener("click", clickToPlayAudio);
+		//}
+		//// we assume the user has clicked somewhere on the page and autoplaying audio will work
+		//else 
+		//{
+			audioElem.play();
+		//}
+		console.log('Created new audio element to play seperate audio stream.');
+	}
+
+}
+
 
 function CreateOfferDescriptionSuccess() {
     console.log("pc  create  sdp success");
