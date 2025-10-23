@@ -40,11 +40,12 @@
 
 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
+#include "libmedia_transfer_protocol/muxer/muxer.h"
 namespace gb_media_server {
 	 
 	class RtcPlayConsumer : public  Consumer  ,
 #if TEST_RTC_PLAY
-		public  libmedia_codec::EncodeImageObser,
+		public  libmedia_codec::EncodeImageObser, public libmedia_codec::EncodeAudioObser,
 #endif // 
 		public sigslot::has_slots<>
 	{
@@ -73,6 +74,9 @@ namespace gb_media_server {
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
 		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+
+	public:
+		virtual void   SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f) override;
 	public:
 		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
 		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
@@ -122,12 +126,16 @@ namespace gb_media_server {
 		std::unique_ptr< libmedia_codec::X264Encoder>                          x264_encoder_;
 		rtc::scoped_refptr<libcross_platform_collection_render::CapturerTrackSource>     capturer_track_source_;
 #endif //
+
+		uint32_t      audio_seq_ = 100;
 		uint32_t      video_seq_ = 100;
 		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 
 		 rtc::CopyOnWriteBuffer                     sps_;
 		 rtc::CopyOnWriteBuffer						pps_;
 		 bool										capture_type_;//采集桌面画面播放
+		 libmedia_transfer_protocol::Muxer    *      muxer_;
+
 	};
 }
 

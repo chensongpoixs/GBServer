@@ -114,7 +114,7 @@ namespace gb_media_server
 		}
 		void Stream::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
 		{
-		 
+			session_.AddAudioFrame(frame);
 		}
 		 
 		// 流信息函数

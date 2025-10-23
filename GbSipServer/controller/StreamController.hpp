@@ -53,7 +53,7 @@ public:
   
   
 	ENDPOINT_INFO(startStream) {
-	info->summary = "开始直播";
+	info->summary = "Start Stream";
 	  
 
 	info->addConsumes<Object<StreamDto>>("application/json");
@@ -69,7 +69,7 @@ public:
   }
 
   ENDPOINT_INFO(stopStream) {
-	  info->summary = "直播流停止";
+	  info->summary = "Stop Stream";
 
 	  info->addConsumes<Object<StreamDto>>("application/json");
 

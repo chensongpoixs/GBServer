@@ -223,7 +223,10 @@ namespace  gb_media_server
 	}
 	void  Session::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
 	{
-
+		for (auto consumer : consumers_)
+		{
+			consumer->OnAudioFrame(frame);
+		}
 	}
 
 	std::shared_ptr<Stream> Session::GetStream()

@@ -903,6 +903,10 @@ libcross_platform_collection_render
 		video_coding_lib
 		libvpx.lib
 		libvpx_asm.lib
+
+
+		#libfaad2_dll.lib
+
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
