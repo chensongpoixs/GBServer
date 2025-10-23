@@ -101,7 +101,7 @@ namespace gb_media_server
 		if (capture_type_)
 		{
 			x264_encoder_ = std::make_unique<libmedia_codec::X264Encoder>();
-			x264_encoder_->SetSendFrame(this);
+			x264_encoder_->SignalVideoEncodedImage.connect(this, &RtcPlayConsumer::SendVideoEncode);
 			x264_encoder_->Start();
 			video_encoder_thread_ = rtc::Thread::Create();
 			video_encoder_thread_->SetName("video_encoder_thread", NULL);

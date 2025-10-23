@@ -6,7 +6,7 @@
 var remoteVideo = document.getElementById("remoteVideo");
 var pullBtn = document.getElementById("StartpullBtn");
 var stopPullBtn = document.getElementById("stopPullBtn");
-let audioElem = document.createElement("Audio");
+
 var pullCaptureBtn = document.getElementById("pullCaptureBtn");
 
 pullBtn.addEventListener("click", startPull);
@@ -173,7 +173,7 @@ function handleOnAudioTrack  ( audioMediaStream)
 	else if( remoteVideo.srcObject !== audioMediaStream)
 	{
 		// create a new audio element
-		
+		let audioElem = document.createElement("Audio");
 		audioElem.srcObject = audioMediaStream;
 
 		// there is no way to autoplay audio (even muted), so we defer audio until first click

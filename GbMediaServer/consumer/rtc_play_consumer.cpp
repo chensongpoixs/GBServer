@@ -82,13 +82,24 @@ namespace gb_media_server
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 
-		muxer_ = new libmedia_transfer_protocol::Muxer(this);
+		muxer_ = new libmedia_transfer_protocol::Muxer();
+		muxer_->SignalAudioEncoderInfoFrame.connect(this, &RtcPlayConsumer::SendAudioEncode);
+		muxer_->SignalVideoEncodedImage.connect(this, &RtcPlayConsumer::SendVideoEncode);
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
 	RtcPlayConsumer:: ~RtcPlayConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
-
-		
+		if (muxer_)
+		{
+			muxer_->SignalAudioEncoderInfoFrame.disconnect_all();
+			muxer_->SignalVideoEncodedImage.disconnect_all();
+			delete muxer_;
+			muxer_ = nullptr;
+		}
+		if (x264_encoder_)
+		{
+			x264_encoder_->SignalVideoEncodedImage.disconnect_all();
+		}
 #if TEST_RTC_PLAY
 		{
 			if (capture_type_)

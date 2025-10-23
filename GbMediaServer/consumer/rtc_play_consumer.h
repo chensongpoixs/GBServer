@@ -44,9 +44,9 @@
 namespace gb_media_server {
 	 
 	class RtcPlayConsumer : public  Consumer  ,
-#if TEST_RTC_PLAY
-		public  libmedia_codec::EncodeImageObser, public libmedia_codec::EncodeAudioObser,
-#endif // 
+//#if TEST_RTC_PLAY
+//		public  libmedia_codec::EncodeImageObser, public libmedia_codec::EncodeAudioObser,
+//#endif // 
 		public sigslot::has_slots<>
 	{
 	public:
@@ -76,7 +76,10 @@ namespace gb_media_server {
 		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame);
 
 	public:
-		virtual void   SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f) override;
+
+ 
+		  void   SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f)  ; 
+		 void   SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f) ;
 	public:
 		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
 		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
@@ -94,10 +97,6 @@ namespace gb_media_server {
 		 
 	public:
 
-#if TEST_RTC_PLAY
-		virtual void   SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f) override;
-
-#endif //
 
 	public:
 		virtual ShareResourceType ShareResouceType() const   { return kConsumerTypePlayerWebRTC; }
