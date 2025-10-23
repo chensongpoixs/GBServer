@@ -154,38 +154,7 @@ ws2_32.lib
 		absl_low_level_hash
 		absl_random_internal_distribution_test_util
  # rtc_base
- logging
-
- async_resolver_interface
- async_socket
- bitstream_reader
- callback_list
- checks
- ip_address
- net_helpers
- network_constants
- null_socket_server
- platform_thread
-platform_thread_types
- rate_limiter
- rtc_base
- rtc_base_approved
- rtc_base_win
- #rtc_base_win_wgc
- rtc_event
- rtc_numerics
- rtc_task_queue
- rtc_task_queue_win
- socket
- socket_address
- stringutils
- threading
- timeutils
- weak_ptr
- win32
-
- base64
- sigslot 
+  
 
  iphlpapi.lib
 		#crypto32.lib 
@@ -206,19 +175,24 @@ platform_thread_types
 			  #  libuv.lib  的依赖库
 			  dbghelp.lib
 
-			  libp2p_peerconnection
-			  libwebrtc 
-			  rtc_event
-			  threading
-			  sequence_checker_internal
-			  mutex
-			  yield
-			  yield_policy
-			  task_queue
-			  default_task_queue_factory
-			  rtc_base
+			  libp2p_peerconnection 
 			  libice
-			  wrapping_async_dns_resolver
+			  api 
+			audio_device
+			audio_processing
+			desktop_capture
+			video_capture
+			video_coding
+			call
+			common_audio
+			common_video
+			libwebrtc 
+			logging 
+			media
+			p2p 
+			pc 
+			rtc_base
+			   
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
