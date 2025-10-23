@@ -419,7 +419,10 @@ namespace gb_media_server
 	  }
 	  void RtcPlayConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
 	  {
+#if 0
+		  // TODO@chensong  2025-10-24  AAC 转OPUS暂时不支持 后期支持
 		  muxer_->EncodeAudio(frame);
+#endif //
 	  }
 
 	  void RtcPlayConsumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
