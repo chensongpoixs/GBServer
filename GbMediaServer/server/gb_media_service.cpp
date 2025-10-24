@@ -29,6 +29,10 @@
 //}
 #include "server/session.h"
 #include "utils/string_utils.h" 
+
+#include "libmedia_transfer_protocol/libnetwork/connection.h"
+
+
 namespace  gb_media_server
 {
 	namespace

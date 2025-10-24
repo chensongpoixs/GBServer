@@ -26,6 +26,7 @@
 #include "utils/string_utils.h"
 #include "consumer/rtc_play_consumer.h"
 #include "producer/gb28181_push_producer.h"
+#include "libmedia_transfer_protocol/libnetwork/connection.h"
 namespace  gb_media_server
 {
 	WebService::WebService()
@@ -100,12 +101,7 @@ namespace  gb_media_server
 
 				}
 
-			});
-			//if (req->Path() == "/rtc/play/" && packet)
-			//{
-			//	
-			//
-			//}
+			}); 
 		}
 	}
 	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
