@@ -52,7 +52,7 @@ namespace  gb_media_server
 	{
 		return http_server_->Startup(ip, port);
 	}
-	void WebService::OnRequest(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+	void WebService::OnRequest(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet)
 	{
@@ -108,7 +108,7 @@ namespace  gb_media_server
 			//}
 		}
 	}
-	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
@@ -221,7 +221,7 @@ namespace  gb_media_server
 			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		//});
 	}
-	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
@@ -330,7 +330,7 @@ namespace  gb_media_server
 		});
 		 
 	}
-	void WebService::HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+	void WebService::HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)

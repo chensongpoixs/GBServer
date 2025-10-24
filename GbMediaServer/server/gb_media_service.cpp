@@ -142,15 +142,15 @@ namespace  gb_media_server
 			return nullptr;
 		 //return rtp_server_.insert(std::make_pair(stream_id, std::move(rtp_server)).second.get();
 	}
-	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
+	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
-	void GbMediaService::OnDestory(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
+	void GbMediaService::OnDestory(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
-	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::TcpSession * conn, const rtc::CopyOnWriteBuffer & data)
+	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::Connection * conn, const rtc::CopyOnWriteBuffer & data)
 	{
 		//GBMEDIASERVER_LOG(LS_INFO) << "";
 		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -162,7 +162,7 @@ namespace  gb_media_server
 		});
 		
 	}
-	void GbMediaService::OnSent(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
+	void GbMediaService::OnSent(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}

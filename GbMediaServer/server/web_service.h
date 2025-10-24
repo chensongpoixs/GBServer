@@ -34,7 +34,7 @@ namespace  gb_media_server
 	class WebService  : public sigslot::has_slots<>
 	{
 	private:
-		typedef  void (WebService::*HttpEventCallback)(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+		typedef  void (WebService::*HttpEventCallback)(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
@@ -47,7 +47,7 @@ namespace  gb_media_server
 		bool StartWebServer(const char *ip = "127.0.0.1", uint16_t port = 8001);
 
 	public:
-		void OnRequest(libmedia_transfer_protocol::libnetwork::TcpSession *conn,
+		void OnRequest(libmedia_transfer_protocol::libnetwork::Connection *conn,
 			const  std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> http_request, 
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
 
@@ -55,17 +55,17 @@ namespace  gb_media_server
 
 	public:
 
-		void HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+		void HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
 
 
-		void HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+		void HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
-		void HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
+		void HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);

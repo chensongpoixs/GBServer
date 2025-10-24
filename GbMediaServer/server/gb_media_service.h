@@ -58,10 +58,10 @@ namespace  gb_media_server
 
 
 
-		void OnNewConnection(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
-		void OnDestory(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
-		void OnRecv(libmedia_transfer_protocol::libnetwork::TcpSession* conn, const rtc::CopyOnWriteBuffer& data);
-		void OnSent(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
+		void OnNewConnection(libmedia_transfer_protocol::libnetwork::Connection* conn);
+		void OnDestory(libmedia_transfer_protocol::libnetwork::Connection* conn);
+		void OnRecv(libmedia_transfer_protocol::libnetwork::Connection* conn, const rtc::CopyOnWriteBuffer& data);
+		void OnSent(libmedia_transfer_protocol::libnetwork::Connection* conn);
 
 	
 		bool Init();
