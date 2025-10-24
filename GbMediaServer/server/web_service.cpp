@@ -19,7 +19,7 @@
 #include "server/web_service.h"
 #include "json/json.h"
 #include "libmedia_transfer_protocol/libhttp/http_context.h"
-#include "libmedia_transfer_protocol/libhttp/tcp_session.h"
+#include "libmedia_transfer_protocol/libnetwork/tcp_session.h"
 #include "utils/string_utils.h"
 #include "server/gb_media_service.h"
 #include "server/rtc_service.h"
@@ -52,12 +52,12 @@ namespace  gb_media_server
 	{
 		return http_server_->Startup(ip, port);
 	}
-	void WebService::OnRequest(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
+	void WebService::OnRequest(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet)
 	{
 		std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext>  http_ctx = 
-			conn->GetContext<libmedia_transfer_protocol::libhttp::HttpContext>(libmedia_transfer_protocol::libhttp::kHttpContext);
+			conn->GetContext<libmedia_transfer_protocol::libhttp::HttpContext>(libmedia_transfer_protocol::libnetwork::kHttpContext);
 		if (!http_ctx)
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "no found http context.something must be wrong.";
@@ -108,7 +108,7 @@ namespace  gb_media_server
 			//}
 		}
 	}
-	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libhttp::TcpSession * conn,
+	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
@@ -221,7 +221,7 @@ namespace  gb_media_server
 			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		//});
 	}
-	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
+	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
@@ -298,7 +298,7 @@ namespace  gb_media_server
 	//	++port;
 		s->SetProducer(producer);
 
-		rtp->SetContext(libmedia_transfer_protocol::libhttp::kUserContext, producer);
+		rtp->SetContext(libmedia_transfer_protocol::libnetwork::kUserContext, producer);
  
 		
 		Json::Value result;
@@ -330,7 +330,7 @@ namespace  gb_media_server
 		});
 		 
 	}
-	void WebService::HandlerCloseRtpServer(libmedia_transfer_protocol::libhttp::TcpSession * conn, 
+	void WebService::HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::TcpSession * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)

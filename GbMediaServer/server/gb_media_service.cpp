@@ -20,8 +20,7 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
 #include "server/rtc_service.h"
-#include "api/array_view.h"
-#include "utils/time_corrector.h"
+#include "api/array_view.h" 
 //extern "C"
 //{
 
@@ -35,6 +34,18 @@ namespace  gb_media_server
 	namespace
 	{
 		static std::shared_ptr < Session> session_null;
+	}
+	GbMediaService::GbMediaService()
+		: context_  ( libp2p_peerconnection::ConnectionContext::Create())
+		, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
+	{
+		rtc_server_->SignalStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
+		rtc_server_->SignalDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
+		rtc_server_->SignalRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
+		rtc_server_->SignalRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
+	}
+	GbMediaService::~GbMediaService()
+	{
 	}
 	std::shared_ptr < Session> GbMediaService::CreateSession(const std::string &session_name, bool split  )
 	{
@@ -94,7 +105,7 @@ namespace  gb_media_server
 		}
 		return true;
 	}
-	libmedia_transfer_protocol::libhttp::TcpServer * GbMediaService::OpenTcpServer(const std::string & stream_id, uint16_t port)
+	libmedia_transfer_protocol::libnetwork::TcpServer * GbMediaService::OpenTcpServer(const std::string & stream_id, uint16_t port)
 	{
 		// workthread
 		RTC_DCHECK_RUN_ON(worker_thread());
@@ -105,7 +116,7 @@ namespace  gb_media_server
 			return nullptr;
 		}
 		//if (worker_thread()->IsCurrent())
-		auto rtp_server = std::make_unique< libmedia_transfer_protocol::libhttp::TcpServer>();
+		auto rtp_server = std::make_unique< libmedia_transfer_protocol::libnetwork::TcpServer>();
 		if (!rtp_server)
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "open tcp rtp Server failed !!!  create socket failed   stsream_id:" << stream_id;
@@ -131,19 +142,19 @@ namespace  gb_media_server
 			return nullptr;
 		 //return rtp_server_.insert(std::make_pair(stream_id, std::move(rtp_server)).second.get();
 	}
-	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
-	void GbMediaService::OnDestory(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	void GbMediaService::OnDestory(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
-	void GbMediaService::OnRecv(libmedia_transfer_protocol::libhttp::TcpSession * conn, const rtc::CopyOnWriteBuffer & data)
+	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::TcpSession * conn, const rtc::CopyOnWriteBuffer & data)
 	{
 		//GBMEDIASERVER_LOG(LS_INFO) << "";
 		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			std::shared_ptr<gb_media_server::Consumer> user = conn->GetContext<gb_media_server::Consumer>(libmedia_transfer_protocol::libhttp::kUserContext);
+			std::shared_ptr<gb_media_server::ShareResource> user = conn->GetContext<gb_media_server::ShareResource>(libmedia_transfer_protocol::libnetwork::kUserContext);
 			if (user)
 			{
 				user->OnRecv(data);
@@ -151,7 +162,7 @@ namespace  gb_media_server
 		});
 		
 	}
-	void GbMediaService::OnSent(libmedia_transfer_protocol::libhttp::TcpSession * conn)
+	void GbMediaService::OnSent(libmedia_transfer_protocol::libnetwork::TcpSession * conn)
 	{
 		GBMEDIASERVER_LOG(LS_INFO);
 	}
@@ -165,21 +176,18 @@ namespace  gb_media_server
 	void GbMediaService::Start(const char * ip, uint16_t port)
 	{
 		//libmedia_transfer_protocol::librtc::SrtpSession::InitSrtpLibrary();
-		context_ = libp2p_peerconnection::ConnectionContext::Create();
+		
 		//network_thread_ = rtc::Thread::CreateWithSocketServer();
 		//worker_thread_ = rtc::Thread::Create();
 		//network_thread_->Start();
 		//worker_thread_->Start();
 		std::string local_ip = ip;
-		context_->worker_thread()->Invoke<void>(RTC_FROM_HERE, [this, local_ip, port]() {
+		rtc_server_->network_thread()->Invoke<void>(RTC_FROM_HERE, [this, local_ip, port]() {
 		//worker_thread_->Invoke<void>(RTC_FROM_HERE, [this, local_ip, port]() {
-			rtc_server_ = std::make_unique<libmedia_transfer_protocol::librtc::RtcServer>(context_->network_thread());
+			//rtc_server_ = std::make_unique<libmedia_transfer_protocol::librtc::RtcServer>(context_->network_thread());
 
 #if 1
-			rtc_server_->SignalStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
-			rtc_server_->SignalDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
-			rtc_server_->SignalRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
-			rtc_server_->SignalRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
+			
 #else 
 
 

@@ -71,7 +71,7 @@ namespace gb_media_server
 			 
 
 			//接受不同协议上层处理 实现
-			virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
+			//virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
 
 		

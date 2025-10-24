@@ -52,28 +52,28 @@ namespace  gb_media_server
 	public:
 
 		void OnStun(rtc::AsyncPacketSocket* socket,
-			const char* data,
+			const uint8_t * data,
 			size_t len,
 			const rtc::SocketAddress& addr,
 			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
 			// timestamp by value.
 			const int64_t& ms) ;
 		void OnDtls(rtc::AsyncPacketSocket* socket,
-			const char* data,
+			const uint8_t* data,
 			size_t len,
 			const rtc::SocketAddress& addr,
 			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
 			// timestamp by value.
 			const int64_t& ms) ;
 		void OnRtp(rtc::AsyncPacketSocket* socket,
-			const char* data,
+			const uint8_t* data,
 			size_t len,
 			const rtc::SocketAddress& addr,
 			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
 			// timestamp by value.
 			const int64_t& ms) ;
 		void OnRtcp(rtc::AsyncPacketSocket* socket,
-			const char* data,
+			const uint8_t* data,
 			size_t len,
 			const rtc::SocketAddress& addr,
 			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t

@@ -68,7 +68,7 @@ namespace gb_media_server {
 
 
 		 
-		void OnDtlsRecv(const char *buf, size_t size);
+		void OnDtlsRecv(const uint8_t *buf, size_t size);
 		void OnSrtpRtp(const uint8_t * data, size_t size);
 		void OnSrtpRtcp(const uint8_t * data, size_t size);
 	public:

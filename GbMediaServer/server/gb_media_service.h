@@ -22,7 +22,7 @@
 #include "server/session.h"
 #include "libp2p_peerconnection/connection_context.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
-#include "libmedia_transfer_protocol/libhttp/tcp_server.h"
+#include "libmedia_transfer_protocol/libnetwork/tcp_server.h"
 #include "rtc_base/logging.h"
 
 namespace  gb_media_server
@@ -34,8 +34,8 @@ namespace  gb_media_server
 	class GbMediaService : public sigslot::has_slots<>
 	{
 	public:
-		GbMediaService() = default;
-		~GbMediaService() = default;
+		explicit GbMediaService()  ;
+		virtual ~GbMediaService( );
 
 
 
@@ -53,15 +53,15 @@ namespace  gb_media_server
 		//void OnTimer(const TaskPtr &t);
 
 
-		libmedia_transfer_protocol::libhttp::TcpServer*     OpenTcpServer(const std::string & stream_id, uint16_t port);
+		libmedia_transfer_protocol::libnetwork::TcpServer*     OpenTcpServer(const std::string & stream_id, uint16_t port);
 
 
 
 
-		void OnNewConnection(libmedia_transfer_protocol::libhttp::TcpSession* conn);
-		void OnDestory(libmedia_transfer_protocol::libhttp::TcpSession* conn);
-		void OnRecv(libmedia_transfer_protocol::libhttp::TcpSession* conn, const rtc::CopyOnWriteBuffer& data);
-		void OnSent(libmedia_transfer_protocol::libhttp::TcpSession* conn);
+		void OnNewConnection(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
+		void OnDestory(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
+		void OnRecv(libmedia_transfer_protocol::libnetwork::TcpSession* conn, const rtc::CopyOnWriteBuffer& data);
+		void OnSent(libmedia_transfer_protocol::libnetwork::TcpSession* conn);
 
 	
 		bool Init();
@@ -103,7 +103,7 @@ namespace  gb_media_server
 
 
 
-		std::unordered_map<std::string, std::unique_ptr<libmedia_transfer_protocol::libhttp::TcpServer> > rtp_server_;// rtp map 
+		std::unordered_map<std::string, std::unique_ptr<libmedia_transfer_protocol::libnetwork::TcpServer> > rtp_server_;// rtp map 
 	//	std::unique_ptr<rtc::Thread>								network_thread_;
 	//	std::unique_ptr<rtc::Thread>                               worker_thread_;
 		//std::shared_ptr<WebrtcServer>  webrtc_server_;

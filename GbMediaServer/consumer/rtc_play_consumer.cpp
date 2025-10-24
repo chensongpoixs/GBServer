@@ -229,7 +229,7 @@ namespace gb_media_server
 
 
 	   
-	  void RtcPlayConsumer::OnDtlsRecv(const char *buf, size_t size)
+	  void RtcPlayConsumer::OnDtlsRecv(const uint8_t *buf, size_t size)
 	  {
 		  dtls_.OnRecv(buf, size);
 	  }
@@ -367,6 +367,10 @@ namespace gb_media_server
 			  frag_header->fragmentationOffset[i] = nalus[i].payload_start_offset;
 			  frag_header->fragmentationLength[i] = nalus[i].payload_size;
 		  }*/
+		  if (new_frame.size() <= 0)
+		  {
+			  return;
+		  }
 		  webrtc::RTPVideoHeaderH264  h;
 		  // 多包和分包
 		  h.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;

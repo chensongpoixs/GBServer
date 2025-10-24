@@ -22,11 +22,11 @@
 #include "server/gb_media_service.h"
  
 #include "rtc_base/string_encode.h"
-#include "utils/time_corrector.h"
+ 
 #include "libmedia_transfer_protocol/librtc/stun.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
 #include "libmedia_transfer_protocol/libhttp/http_context.h"
-#include "libmedia_transfer_protocol/libhttp/tcp_session.h"
+#include "libmedia_transfer_protocol/libnetwork/tcp_session.h"
 #include "json/json.h"
 namespace  gb_media_server
 {
@@ -169,7 +169,8 @@ namespace  gb_media_server
 		 return task_queue_factory_.get();
 	 }
 
-	 void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
+	 void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const uint8_t * data, size_t len,
+		 const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 		libmedia_transfer_protocol::librtc::Stun  stun;
@@ -216,7 +217,8 @@ namespace  gb_media_server
 		}
 		
 	}
-	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
+	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const uint8_t * data, 
+		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
@@ -234,7 +236,8 @@ namespace  gb_media_server
 			}
 		}
 	}
-	void RtcService::OnRtp(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
+	void RtcService::OnRtp(rtc::AsyncPacketSocket * socket, const uint8_t * data, 
+		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
 		std::lock_guard<std::mutex> lock(lock_);
@@ -249,7 +252,8 @@ namespace  gb_media_server
 
 		}
 	}
-	void RtcService::OnRtcp(rtc::AsyncPacketSocket * socket, const char * data, size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
+	void RtcService::OnRtcp(rtc::AsyncPacketSocket * socket, const uint8_t * data,
+		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		std::string key = addr.ipaddr().ToString() + ":" + std::to_string(addr.port());
 		std::lock_guard<std::mutex> lock(lock_);
