@@ -72,7 +72,12 @@ namespace gb_media_server
 			//接受不同协议上层处理 实现
 			//virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
-
+			/**
+			   video :需要先发送sps_ 和pps_ 反正不处理该包
+			   audio: 不处理直接转发
+			*/
+			void     AddVideoFrame(const libmedia_codec::EncodedImage &frame);
+			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
 			//播放端继承
 			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
 			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame) {}
@@ -81,7 +86,11 @@ namespace gb_media_server
 			//void Close();
 			
 		protected:
-			
+			rtc::CopyOnWriteBuffer                     sps_;
+			rtc::CopyOnWriteBuffer						pps_;
+
+			bool                                         send_sps_pps_;
+			rtc::Buffer                                video_buffer_frame_;
 		};
  
 }

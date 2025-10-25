@@ -24,8 +24,8 @@
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
 #include "libmedia_transfer_protocol/libhttp/http_server.h"
-#include "producer/gb28181_push_producer.h"
-#include "consumer/rtc_play_consumer.h"
+#include "producer/gb28181_producer.h"
+#include "consumer/rtc_consumer.h"
 //#include "swagger/dto/RtcApiDto.hpp"
 namespace  gb_media_server
 {
@@ -43,8 +43,8 @@ namespace  gb_media_server
 		}
 
 
-		void AddConsumer(std::shared_ptr<RtcPlayConsumer> uesr);
-		void RemoveConsumer(std::shared_ptr<RtcPlayConsumer> uesr);
+		void AddConsumer(std::shared_ptr<RtcConsumer> uesr);
+		void RemoveConsumer(std::shared_ptr<RtcConsumer> uesr);
 
 
 		webrtc::TaskQueueFactory*  GetTaskQueueFactory();
@@ -88,9 +88,9 @@ namespace  gb_media_server
 
 	//	static std::string GetSessionNameFromUrl(const std::string &url);
 		std::mutex lock_;
-		std::unordered_map<std::string, std::shared_ptr<RtcPlayConsumer>> name_consumers_;
+		std::unordered_map<std::string, std::shared_ptr<RtcConsumer>> name_consumers_;
 		std::mutex consumers_lock_;
-		std::unordered_map<std::string, std::shared_ptr<RtcPlayConsumer>> consumers_;
+		std::unordered_map<std::string, std::shared_ptr<RtcConsumer>> consumers_;
 	public:
 	private:
 		std::unique_ptr<webrtc::TaskQueueFactory>                       task_queue_factory_;

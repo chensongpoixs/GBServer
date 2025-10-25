@@ -28,7 +28,7 @@
 #include "producer/producer.h"
 #include "consumer/consumer.h"
 #include "server/stream.h"
-
+#include "libmedia_transfer_protocol/libnetwork/connection.h"
 namespace  gb_media_server
 {
 	//class Consumer;
@@ -46,7 +46,7 @@ namespace  gb_media_server
 			const std::string &session_name,
 			const std::string &param,
 			ShareResourceType type);
-		std::shared_ptr<Consumer> CreateConsumer(   
+		std::shared_ptr<Consumer> CreateConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,   
 			const std::string &session_name,
 			const std::string &param,
 			ShareResourceType type);

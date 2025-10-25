@@ -18,7 +18,7 @@
  ******************************************************************************/
  
 #include <random>
-#include "consumer/rtc_play_consumer.h"
+#include "consumer/rtc_consumer.h"
 #include "server/session.h"
 
 #include "rtc_base/logging.h"
@@ -35,7 +35,7 @@
 #include "server/stream.h"
 namespace gb_media_server
 {
-	RtcPlayConsumer::RtcPlayConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
+	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
 	:Consumer(  stream, s)
 		, dtls_(RtcService::GetInstance().GetTaskQueueFactory())
 		, rtp_header_extension_map_()
@@ -61,12 +61,12 @@ namespace gb_media_server
 		//dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
 
 		 
-		dtls_.SignalDtlsConnecting.connect(this, &RtcPlayConsumer::OnDtlsConnecting);
-		dtls_.SignalDtlsConnected.connect(this, &RtcPlayConsumer::OnDtlsConnected);
-		dtls_.SignalDtlsClose.connect(this, &RtcPlayConsumer::OnDtlsClosed);
-		dtls_.SignalDtlsFailed.connect(this, &RtcPlayConsumer::OnDtlsFailed);
-		dtls_.SignalDtlsSendPakcet.connect(this, &RtcPlayConsumer::OnDtlsSendPakcet);
-		dtls_.SignalDtlsApplicationDataReceived.connect(this, &RtcPlayConsumer::OnDtlsApplicationDataReceived);
+		dtls_.SignalDtlsConnecting.connect(this, &RtcConsumer::OnDtlsConnecting);
+		dtls_.SignalDtlsConnected.connect(this, &RtcConsumer::OnDtlsConnected);
+		dtls_.SignalDtlsClose.connect(this, &RtcConsumer::OnDtlsClosed);
+		dtls_.SignalDtlsFailed.connect(this, &RtcConsumer::OnDtlsFailed);
+		dtls_.SignalDtlsSendPakcet.connect(this, &RtcConsumer::OnDtlsSendPakcet);
+		dtls_.SignalDtlsApplicationDataReceived.connect(this, &RtcConsumer::OnDtlsApplicationDataReceived);
 		
 
 
@@ -83,11 +83,11 @@ namespace gb_media_server
 
 
 		muxer_ = new libmedia_transfer_protocol::Muxer();
-		muxer_->SignalAudioEncoderInfoFrame.connect(this, &RtcPlayConsumer::SendAudioEncode);
-		muxer_->SignalVideoEncodedImage.connect(this, &RtcPlayConsumer::SendVideoEncode);
+		muxer_->SignalAudioEncoderInfoFrame.connect(this, &RtcConsumer::SendAudioEncode);
+		muxer_->SignalVideoEncodedImage.connect(this, &RtcConsumer::SendVideoEncode);
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
-	RtcPlayConsumer:: ~RtcPlayConsumer(){
+	RtcConsumer:: ~RtcConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 		if (muxer_)
 		{
@@ -155,29 +155,29 @@ namespace gb_media_server
 	}
 
  
-	void RtcPlayConsumer::SetCapture(bool value)
+	void RtcConsumer::SetCapture(bool value)
 	{
 		capture_type_ = value;
 	}
 
-	bool RtcPlayConsumer::ProcessOfferSdp(const std::string &sdp) {
+	bool RtcConsumer::ProcessOfferSdp(const std::string &sdp) {
 		return sdp_.Decode(sdp);
 	}
-	const std::string &RtcPlayConsumer::LocalUFrag() const {
+	const std::string &RtcConsumer::LocalUFrag() const {
 		return sdp_.GetLocalUFrag();
 	}
-	const std::string &RtcPlayConsumer::LocalPasswd() const {
+	const std::string &RtcConsumer::LocalPasswd() const {
 		return sdp_.GetLocalPasswd();
 	}
-	const std::string &RtcPlayConsumer::RemoteUFrag() const {
+	const std::string &RtcConsumer::RemoteUFrag() const {
 		return sdp_.GetRemoteUFrag();
 	}
-	std::string RtcPlayConsumer::BuildAnswerSdp() {
+	std::string RtcConsumer::BuildAnswerSdp() {
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
 		return sdp_.Encode();
 	}
 
-	void RtcPlayConsumer::MayRunDtls()
+	void RtcConsumer::MayRunDtls()
 	{
 		dtls_.SetRemoteFingerprint(sdp_.GetRemoteFingerprint());
 
@@ -204,7 +204,7 @@ namespace gb_media_server
 	}
 
  
-	  std::string RtcPlayConsumer::GetUFrag(int size) {
+	  std::string RtcConsumer::GetUFrag(int size) {
 		  static std::string table = "1234567890abcdefgihjklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		  std::string frag;
 
@@ -219,7 +219,7 @@ namespace gb_media_server
 
 		  return frag;
 	  }
-	  uint32_t RtcPlayConsumer::GetSsrc(int size)
+	  uint32_t RtcConsumer::GetSsrc(int size)
 	  {
 		  static std::mt19937 mt{ std::random_device{}() };
 		  static std::uniform_int_distribution<> rand(10000000, 99999999);
@@ -229,19 +229,19 @@ namespace gb_media_server
 
 
 	   
-	  void RtcPlayConsumer::OnDtlsRecv(const uint8_t *buf, size_t size)
+	  void RtcConsumer::OnDtlsRecv(const uint8_t *buf, size_t size)
 	  {
 		  dtls_.OnRecv(buf, size);
 	  }
-	  void RtcPlayConsumer::OnSrtpRtp(const uint8_t * data, size_t size)
+	  void RtcConsumer::OnSrtpRtp(const uint8_t * data, size_t size)
 	  {
 	  }
-	  void RtcPlayConsumer::OnSrtpRtcp(const uint8_t * data, size_t size)
+	  void RtcConsumer::OnSrtpRtcp(const uint8_t * data, size_t size)
 	  {
 	  }
   
 #if TEST_RTC_PLAY
-	  void RtcPlayConsumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
+	  void RtcConsumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	  {
 		   // rtc::CopyOnWriteBuffer  buffer;
 			//buffer.AppendData(*encoded_image.get());
@@ -255,7 +255,7 @@ namespace gb_media_server
 	  }
 #endif //
 	  
-	  void RtcPlayConsumer::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
+	  void RtcConsumer::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
 	  {
 		  if (!dtls_done_)
 		  {
@@ -278,99 +278,7 @@ namespace gb_media_server
 
 		  libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits   limits;
 		  libmedia_transfer_protocol::RTPVideoHeader   rtp_video_hreader;
-		  std::vector<webrtc::H264::NaluIndex> nalus = webrtc::H264::FindNaluIndices(
-			  frame.data(), frame.size());
-		  size_t fragments_count = nalus.size();
-		  rtc::Buffer   new_frame(1024 *1024 *8);
-		  new_frame.SetSize(0);
-		  for (int32_t nal_index = 0; nal_index < fragments_count; ++nal_index)
-		  {
-			  // nalus[nal_index].payload_start_offset
-			  webrtc::NaluInfo nalu;
-			  nalu.type = frame.data()[nalus[nal_index].payload_start_offset] & 0x1F;
-			  nalu.sps_id = -1;
-			  nalu.pps_id = -1;
-			 // start_offset += webrtc::H264::kNaluTypeSize;
-
-			  switch (nalu.type) {
-				  case webrtc::H264::NaluType::kSps: {
-					//  GBMEDIASERVER_LOG_T_F(LS_INFO) << "======"<<nal_index <<"============>SPS, size:" << nalus[nal_index].payload_size;
-					  //if (fragments_count == 1)
-					  {
-						  sps_ = rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size +4);
-						   // return;
-					  }
-					 
-					  break;
-				  }
-				  case webrtc::H264::NaluType::kPps: {
-					  //GBMEDIASERVER_LOG_T_F(LS_INFO) << "=========" << nal_index << "=========>PPS, size:" << nalus[nal_index].payload_size;
-					  //if (fragments_count == 1)
-					  {
-						  pps_ = rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4);;
-						   
-					  }
-					  break;
-				  }
-				  case webrtc::H264::NaluType::kIdr:
-				  {
-					  //GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>IDR, size:" << nalus[nal_index].payload_size;
-					  //if (fragments_count == 1)
-					  {
-						  new_frame.AppendData(sps_);
-						  new_frame.AppendData(pps_);
-						  new_frame.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
-						  new_frame.SetSize(sps_.size() + pps_.size() + nalus[nal_index].payload_size + 4);
-						  //return;
-					  }
-					  break;
-				  }
-				  case webrtc::H264::NaluType::kSlice: {
-					  //GBMEDIASERVER_LOG_T_F(LS_INFO) << "======" << nal_index << "============>kSlice, size:" << nalus[nal_index].payload_size;
-					  new_frame.AppendData(frame);
-					  new_frame.SetSize(  frame.size());
-					  break;
-				  }
-													   // Slices below don't contain SPS or PPS ids.
-				  case webrtc::H264::NaluType::kAud:
-				  case webrtc::H264::NaluType::kEndOfSequence:
-				  case webrtc::H264::NaluType::kEndOfStream:
-				  case webrtc::H264::NaluType::kFiller:
-				  case webrtc::H264::NaluType::kSei:
-				  {
-					 // GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>kAud, size:" << nalus[nal_index].payload_size;
-					  new_frame.AppendData(frame);
-					  new_frame.SetSize(frame.size());
-					  break;
-				  }
-				  case webrtc::H264::NaluType::kStapA:
-				  case webrtc::H264::NaluType::kFuA:
-				  {
-
-					 // GBMEDIASERVER_LOG_T_F(LS_INFO) << "========" << nal_index << "==========>kFuA---kStapA  , size:" << nalus[nal_index].payload_size;
-					  new_frame.AppendData(frame);
-					  new_frame.SetSize(frame.size());
-					  break;
-				  } 
-				  default:{
-					 // GBMEDIASERVER_LOG_T_F(LS_INFO) << "=====" << nal_index << "=============>default  packet  , size:" << nalus[nal_index].payload_size;
-					  new_frame.AppendData(frame);
-					  new_frame.SetSize(frame.size());
-					  break;
-				  }
-			   
-			  }
-		  }
-		  // const uint8_t start_code[4] = {0, 0, 0, 1};
-		  /*frag_header->VerifyAndAllocateFragmentationHeader(fragments_count);
-		  for (size_t i = 0; i < nalus.size(); i++) {
-			  frag_header->fragmentationOffset[i] = nalus[i].payload_start_offset;
-			  frag_header->fragmentationLength[i] = nalus[i].payload_size;
-		  }*/
-		  if (new_frame.size() <= 0)
-		  {
-			  return;
-		  }
+		 
 		  webrtc::RTPVideoHeaderH264  h;
 		  // 多包和分包
 		  h.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;
@@ -380,7 +288,7 @@ namespace gb_media_server
 		  {
 			  std::unique_ptr<libmedia_transfer_protocol::RtpPacketizer> packetizer = 
 				  libmedia_transfer_protocol::RtpPacketizer::Create(
-				  video_type, rtc::ArrayView<const uint8_t>(new_frame.data() /*+nalus[nal].payload_start_offset */, new_frame.size()
+				  video_type, rtc::ArrayView<const uint8_t>(frame.data() /*+nalus[nal].payload_start_offset */, frame.size()
 					   /*nalus[nal].payload_size*/ ),
 				  limits, rtp_video_hreader);
 
@@ -421,7 +329,7 @@ namespace gb_media_server
 			  }
 		  }
 	  }
-	  void RtcPlayConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	  void RtcConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
 	  {
 #if 0
 		  // TODO@chensong  2025-10-24  AAC 转OPUS暂时不支持 后期支持
@@ -429,7 +337,7 @@ namespace gb_media_server
 #endif //
 	  }
 
-	  void RtcPlayConsumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
+	  void RtcConsumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
 	  {
 		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
 		  if (!dtls_done_)

@@ -37,9 +37,11 @@ namespace  gb_media_server
 
 		size_t split(std::string source,
 			char delimiter,
-			std::vector<std::string>* fields);
+		std::vector<std::string>* fields);
 
 		std::string  GetSessionNameFromUrl(const std::string &url);
+	
+		std::string  FileExt(const std::string & path);
 	}
 }
 

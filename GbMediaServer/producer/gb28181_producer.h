@@ -28,8 +28,7 @@
 #include <memory>
  
 #include "libmedia_transfer_protocol/librtc/rtc_sdp.h"
-#include "libmedia_transfer_protocol/librtc/dtls_certs.h"
-#include "producer/gb28181_push_producer.h"
+#include "libmedia_transfer_protocol/librtc/dtls_certs.h" 
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
@@ -48,11 +47,11 @@
 namespace gb_media_server {
 
 
-	class Gb28181PushProducer : public Producer, public sigslot::has_slots<>
+	class Gb28181Producer : public Producer, public sigslot::has_slots<>
 	{
 	public:
-		explicit Gb28181PushProducer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
-		virtual ~Gb28181PushProducer();
+		explicit Gb28181Producer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
+		virtual ~Gb28181Producer();
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer)  ;
 
 

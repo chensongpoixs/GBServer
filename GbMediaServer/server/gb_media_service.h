@@ -48,7 +48,7 @@ namespace  gb_media_server
 
 	public:
 		std::shared_ptr < Session> CreateSession(const std::string &session_name, bool split=true);
-		std::shared_ptr < Session> FindSession(const std::string &session_name, bool split = true);
+		std::shared_ptr < Session> FindSession(const std::string &session_name );
 		bool CloseSession(const std::string &session_name);
 		//void OnTimer(const TaskPtr &t);
 

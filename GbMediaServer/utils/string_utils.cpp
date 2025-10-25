@@ -24,7 +24,21 @@ namespace  gb_media_server
 {
 	namespace string_utils
 	{
-
+		namespace
+		{
+			std::string  FileNameExt(const std::string &path)
+			{
+				auto pos = path.find_last_of("/\\");
+				if (pos != std::string::npos)
+				{
+					if (pos + 1 < path.size())
+					{
+						return path.substr(pos + 1);
+					}
+				}
+				return path;
+			}
+		}
 		size_t split(std::string source,
 			char delimiter,
 			std::vector<std::string>* fields)
@@ -70,8 +84,23 @@ namespace  gb_media_server
 			{
 				domain = domain.substr(0, pos);
 			}
-
-			return domain + "/" + app + "/" + stream;
+			  
+			return /*domain + "/" + */app + "/" + stream;
 		}
+
+
+		  std::string  FileExt(const std::string & path)
+		  {
+			  std::string filename = FileNameExt(path);
+			  auto pos = filename.find_last_of(".");
+			  if (pos != std::string::npos)
+			  {
+				  if (pos != 0)
+				  {
+					  return filename.substr(pos+1, filename.length()-1);
+				  }
+			  }
+			  return filename;
+		  }
 	}
 }

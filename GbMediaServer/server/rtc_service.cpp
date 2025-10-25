@@ -27,16 +27,22 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
 #include "libmedia_transfer_protocol/libhttp/http_context.h"
 #include "libmedia_transfer_protocol/libnetwork/tcp_session.h"
+#include "libmedia_transfer_protocol/librtc/srtp_session.h"
+#include "libmedia_transfer_protocol/librtc/dtls_certs.h"
 #include "json/json.h"
 namespace  gb_media_server
 {
 	RtcService::RtcService()
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 	{
+		// init rtc
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init();
+		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
 	}
 	RtcService::~RtcService()
 	{
-		
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Destroy();
+		libmedia_transfer_protocol::libsrtp::SrtpSession::DestroySrtpLibrary();
 	}
 #if 0
 	bool RtcService::StartWebServer(const char * ip, uint16_t port)
@@ -149,13 +155,13 @@ namespace  gb_media_server
 	}
 #endif 
 
-	 void RtcService::AddConsumer(std::shared_ptr<RtcPlayConsumer> consumer)
+	 void RtcService::AddConsumer(std::shared_ptr<RtcConsumer> consumer)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
 		 name_consumers_.emplace(consumer->LocalUFrag(), consumer);
 	 }
 
-	 void RtcService::RemoveConsumer(std::shared_ptr<RtcPlayConsumer> consumer)
+	 void RtcService::RemoveConsumer(std::shared_ptr<RtcConsumer> consumer)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
 		 name_consumers_.erase(consumer->LocalUFrag());
@@ -179,7 +185,7 @@ namespace  gb_media_server
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << " stun parse failed !!!" << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
 			return;
 		}
-		std::shared_ptr< RtcPlayConsumer>  consumer;
+		std::shared_ptr< RtcConsumer>  consumer;
 		std::lock_guard<std::mutex> lk(lock_);
 		auto iter = name_consumers_.find(stun.LocalUFrag());
 		if (iter != name_consumers_.end())

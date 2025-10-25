@@ -37,9 +37,10 @@ namespace  gb_media_server
 	enum  ShareResourceType
 	{
 	 
-		kProducerTypePublishGB28181 = 0,
+		kProducerTypeGB28181 = 0,
 		//  
-		kConsumerTypePlayerWebRTC,
+		kConsumerTypeRTC,
+		kConsumerTypeFlv,
 		kShareResourceTypeUnknowed = 255,
 
 

@@ -31,7 +31,7 @@
 #include "utils/string_utils.h" 
 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
-
+ 
 
 namespace  gb_media_server
 {
@@ -64,14 +64,14 @@ namespace  gb_media_server
 			std::vector<std::string> list;
 			string_utils::split(session_name, '/', &list);
 
-			if (list.size() != 3)
+			if (list.size() < 2 )
 			{
 				GBMEDIASERVER_LOG_T_F(LS_WARNING) << "create session failed. Invalid session name:" << session_name;
 				return session_null;
 			}
 
 		}
-		
+		 
 		
 		auto s = std::make_shared<Session>(session_name);
 		//s->SetAppInfo(app_info);
@@ -80,7 +80,7 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << " now:" << rtc::TimeMillis();
 		return s;
 	}
-	std::shared_ptr < Session> GbMediaService::FindSession(const std::string &session_name, bool split )
+	std::shared_ptr < Session> GbMediaService::FindSession(const std::string &session_name  )
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		auto iter = sessions_.find(session_name);
@@ -156,7 +156,7 @@ namespace  gb_media_server
 	}
 	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::Connection * conn, const rtc::CopyOnWriteBuffer & data)
 	{
-		//GBMEDIASERVER_LOG(LS_INFO) << "";
+	//	GBMEDIASERVER_LOG(LS_INFO) << "";
 		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
 			std::shared_ptr<gb_media_server::ShareResource> user = conn->GetContext<gb_media_server::ShareResource>(libmedia_transfer_protocol::libnetwork::kUserContext);
 			if (user)
@@ -172,9 +172,7 @@ namespace  gb_media_server
 	}
 	bool GbMediaService::Init()
 	{
-		// init rtc
-		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init();
-		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
+		
 		return true;
 	}
 	void GbMediaService::Start(const char * ip, uint16_t port)
@@ -212,8 +210,7 @@ namespace  gb_media_server
 	}
 	void GbMediaService::Destroy()
 	{
-		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Destroy();
-		libmedia_transfer_protocol::libsrtp::SrtpSession::DestroySrtpLibrary();
+		
 	}
 	//void OnTimer(const TaskPtr &t);
 

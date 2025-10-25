@@ -24,8 +24,9 @@
 #include "server/gb_media_service.h"
 #include "server/rtc_service.h"
 #include "utils/string_utils.h"
-#include "consumer/rtc_play_consumer.h"
-#include "producer/gb28181_push_producer.h"
+#include "consumer/rtc_consumer.h"
+#include "producer/gb28181_producer.h"
+#include "libmedia_transfer_protocol/libflv/cflv_context.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 namespace  gb_media_server
 {
@@ -39,7 +40,7 @@ namespace  gb_media_server
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
-
+		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
 	
 	}
 	WebService::~WebService()
@@ -94,12 +95,24 @@ namespace  gb_media_server
 				if (event_iter != http_event_callback_map_.end())
 				{
 					(this->*(event_iter->second))(conn, req, packet, http_ctx);
-				}
+				} 
 				else
 				{
-					RTC_LOG(LS_WARNING) << "http  event callback path:" << req->Path();
-
+					std::string ext = string_utils::FileExt(req->Path());
+					GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
+					event_iter = http_event_callback_map_.find(ext);
+					if (event_iter != http_event_callback_map_.end())
+					{
+						(this->*(event_iter->second))(conn, req, packet, http_ctx);
+					}
+					else
+					{
+						RTC_LOG(LS_WARNING) << "http  event callback path:" << req->Path();
+					}
 				}
+
+					
+ 
 
 			}); 
 		}
@@ -109,7 +122,7 @@ namespace  gb_media_server
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
 	{
-		GBMEDIASERVER_LOG(LS_INFO) << "request:\n" << packet->Data();
+		GBMEDIASERVER_LOG(LS_INFO) << "request:" << packet->Data();
 		Json::CharReaderBuilder builder;
 		Json::Value root;
 		Json::String err;
@@ -134,88 +147,147 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name;
 
 		
-			auto s = GbMediaService::GetInstance().CreateSession(session_name);
-			if (!s)
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
-				http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-					auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-					http_ctx->PostRequest(res);
-					http_ctx->WriteComplete(conn);
-				});
-
-				return;
-			}
-			std::shared_ptr<RtcPlayConsumer> consumer = std::dynamic_pointer_cast<RtcPlayConsumer>(s->CreateConsumer(
-				session_name, "", ShareResourceType::kConsumerTypePlayerWebRTC));
-
-			if (!consumer)
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << "cant create consumer session  name:" << session_name;
-				// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-				// http_ctx->PostRequest(res);
-				http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-					auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-					http_ctx->PostRequest(res);
-					http_ctx->WriteComplete(conn);
-				});
-				return;
-			}
-			consumer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-			s->AddConsumer( (consumer));
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-			//PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-			if (!consumer->ProcessOfferSdp(sdp))
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
-				http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-					auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-					http_ctx->PostRequest(res);
-					http_ctx->WriteComplete(conn);
-				});
-				return;
-			}
-
-			auto answer_sdp = consumer->BuildAnswerSdp();
-			GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
-			
-			consumer->MayRunDtls();
-			Json::Value result;
-			result["code"] = 0;
-			result["server"] = "WebServer";
-			result["type"] = "answer";
-			result["sdp"] = std::move(answer_sdp);
-			result["sessionid"] = consumer->RemoteUFrag() + ":" + consumer->LocalUFrag();
-
-			auto content = result.toStyledString();
+		auto s = GbMediaService::GetInstance().CreateSession(session_name);
+		if (!s)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-				res->SetStatusCode(200);
-				res->AddHeader("server", "WebServer");
-				res->AddHeader("content-length", std::to_string(content.size()));
-				res->AddHeader("content-type", "text/plain");
-				res->AddHeader("Access-Control-Allow-Origin", "*");
-				res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-				res->AddHeader("Allow", "POST, GET, OPTIONS");
-				res->AddHeader("Access-Control-Allow-Headers", "content-type");
-				res->AddHeader("Connection", "close");
-				res->SetBody(content);
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
 				http_ctx->PostRequest(res);
-
 				http_ctx->WriteComplete(conn);
 			});
+
+			return;
+		}
+		std::shared_ptr<RtcConsumer> consumer = std::dynamic_pointer_cast<RtcConsumer>(s->CreateConsumer(conn,
+			session_name, "", ShareResourceType::kConsumerTypeRTC));
+
+		if (!consumer)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create consumer session  name:" << session_name;
+			// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+			// http_ctx->PostRequest(res);
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+			return;
+		}
+		consumer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+		s->AddConsumer( (consumer));
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+		//PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
+		if (!consumer->ProcessOfferSdp(sdp))
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+			return;
+		}
+
+		auto answer_sdp = consumer->BuildAnswerSdp();
+		GBMEDIASERVER_LOG(LS_INFO) << " answer sdp:" << answer_sdp;
 			
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-			//采集桌面的画面
-			if (!capture_value.isNull() && capture_value.isInt())
-			{
-				consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
-			}
-			//GbMediaService::GetInstance().GetRtcServer()->A
-			RtcService::GetInstance().AddConsumer(consumer);
-			GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-		//});
+		consumer->MayRunDtls();
+		Json::Value result;
+		result["code"] = 0;
+		result["server"] = "WebServer";
+		result["type"] = "answer";
+		result["sdp"] = std::move(answer_sdp);
+		result["sessionid"] = consumer->RemoteUFrag() + ":" + consumer->LocalUFrag();
+
+		auto content = result.toStyledString();
+		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+			res->SetStatusCode(200);
+			res->AddHeader("server", "WebServer");
+			res->AddHeader("content-length", std::to_string(content.size()));
+			res->AddHeader("content-type", "text/plain");
+			res->AddHeader("Access-Control-Allow-Origin", "*");
+			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+			res->AddHeader("Allow", "POST, GET, OPTIONS");
+			res->AddHeader("Access-Control-Allow-Headers", "content-type");
+			res->AddHeader("Connection", "close");
+			res->SetBody(content);
+			http_ctx->PostRequest(res);
+
+			http_ctx->WriteComplete(conn);
+		});
+			
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+		//采集桌面的画面
+		if (!capture_value.isNull() && capture_value.isInt())
+		{
+			consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
+		} 
+		//这个是因为 stun交互时需要验证用户名和密码 所以需要分到全局中rtc管理服务中去
+		RtcService::GetInstance().AddConsumer(consumer);
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
+	 
+	}
+
+	void WebService::HandlerFlvConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+		std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
+	{
+		GBMEDIASERVER_LOG(LS_INFO) << "request:" << req->Path();
+		std::string streamUrl = req->Path();
+		auto pos = streamUrl.find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			streamUrl = "http://chensong.com"+streamUrl.substr(0, pos);
+		}
+		GBMEDIASERVER_LOG(LS_INFO) << "streamUrl:" << streamUrl;
+		std::string session_name = string_utils::GetSessionNameFromUrl(streamUrl);
+		GBMEDIASERVER_LOG(LS_INFO) << "flv  session name:" << session_name;
+		//GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
+
+		auto s = GbMediaService::GetInstance().CreateSession(session_name);
+		if (!s)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+
+			return;
+		}
+		std::shared_ptr<Consumer> consumer =s->CreateConsumer(conn,
+			session_name, "", ShareResourceType::kConsumerTypeFlv);
+
+		if (!consumer)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create consumer session  name:" << session_name;
+			// auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+			// http_ctx->PostRequest(res);
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+			return;
+		}
+		consumer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		GBMEDIASERVER_LOG(LS_INFO) << "flv   consumer : count : " << consumer.use_count();
+		 
+
+		conn->SetContext(libmedia_transfer_protocol::libnetwork::kUserContext, consumer);
+		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn);
+		conn->SetContext(libmedia_transfer_protocol::libnetwork::kFlvContext, flv);
+		 
+		s->AddConsumer((consumer));
+		GBMEDIASERVER_LOG(LS_INFO) << "flv   consumer : count : " << consumer.use_count();
+
+		 
+
 	}
 	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
@@ -241,9 +313,9 @@ namespace  gb_media_server
 		auto tcp_mode = root["tcpmode"].asUInt();
 		auto stream_id = root["streamid"].asString(); 
 
-		std::string session_name = "chensong.com/live/" + stream_id;
-		//std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);
-		GBMEDIASERVER_LOG(LS_INFO) << "open rtp port:" << port << ", tcp_mode: " << tcp_mode << ", stream_id: " << stream_id; // session name : " << session_name;
+		std::string streamUrl = "gb28181://chensong.com/live/" + stream_id;
+		 std::string session_name = string_utils::GetSessionNameFromUrl(streamUrl);
+		GBMEDIASERVER_LOG(LS_INFO) << "open rtp port:" << port << ", tcp_mode: " << tcp_mode << ", stream_id: " << session_name; // session name : " << session_name;
 
 
 		auto s = GbMediaService::GetInstance().CreateSession(session_name);
@@ -276,7 +348,7 @@ namespace  gb_media_server
 			return;
 		}
 		//auto  connection = std::make_shared<Connection>(conn->GetSocket());
-		auto producer = s->CreateProducer(  session_name, "", ShareResourceType::kProducerTypePublishGB28181);
+		auto producer = s->CreateProducer(  session_name, "", ShareResourceType::kProducerTypeGB28181);
 
 		if (!producer)
 		{
@@ -349,8 +421,8 @@ namespace  gb_media_server
 		//auto tcp_mode = root["tcpmode"].asUInt();
 		auto stream_id = root["streamid"].asString();
 
-		std::string session_name = "chensong.com/live/" + stream_id;
-		//std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);
+		std::string streamurl = "gb28181://chensong.com/live/" + stream_id;
+		 std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);
 		GBMEDIASERVER_LOG(LS_INFO) << "close rtp  stream_id: " << stream_id; // session name : " << session_name;
 
 

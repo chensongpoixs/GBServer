@@ -24,13 +24,13 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
 
 #include "server/stream.h"
-#include "producer/gb28181_push_producer.h"
+#include "producer/gb28181_producer.h"
 #include "server/session.h"
 namespace gb_media_server {
 
 
  
-	Gb28181PushProducer::Gb28181PushProducer( 
+	Gb28181Producer::Gb28181Producer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
 		:Producer(  stream, s),
@@ -38,11 +38,11 @@ namespace gb_media_server {
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0){
 		mpeg_decoder_ = std::make_unique<libmedia_transfer_protocol::libmpeg::MpegDecoder>();
-		mpeg_decoder_->SignalRecvVideoFrame.connect(this, &Gb28181PushProducer::OnProcessVideoFrame);
-		mpeg_decoder_->SignalRecvAudioFrame.connect(this, &Gb28181PushProducer::OnProcessAudioFrame);
+		mpeg_decoder_->SignalRecvVideoFrame.connect(this, &Gb28181Producer::OnProcessVideoFrame);
+		mpeg_decoder_->SignalRecvAudioFrame.connect(this, &Gb28181Producer::OnProcessAudioFrame);
 		
 	}
-	Gb28181PushProducer::~Gb28181PushProducer()
+	Gb28181Producer::~Gb28181Producer()
 	{
 		if (mpeg_decoder_)
 		{
@@ -56,7 +56,7 @@ namespace gb_media_server {
 			recv_buffer_ = nullptr;
 		}
 	}
-	void Gb28181PushProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
+	void Gb28181Producer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
 
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
@@ -134,7 +134,7 @@ namespace gb_media_server {
 		
 	}
 
-	void Gb28181PushProducer::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
+	void Gb28181Producer::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 
@@ -151,7 +151,7 @@ namespace gb_media_server {
 		GetStream()->AddVideoFrame(frame);
 
 	}
-	void Gb28181PushProducer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
+	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 #if 0

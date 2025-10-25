@@ -32,8 +32,9 @@
 #include "api/array_view.h"
 #include "absl/strings/string_view.h"
 #include "utils/string_utils.h" 
-#include "consumer/rtc_play_consumer.h"
-#include "producer/gb28181_push_producer.h"
+#include "consumer/rtc_consumer.h"
+#include "producer/gb28181_producer.h"
+#include "consumer/flv_consumer.h"
 namespace  gb_media_server
 {
 	namespace
@@ -73,9 +74,9 @@ namespace  gb_media_server
 		std::shared_ptr<Producer> producer;
 		switch (type)
 		{
-			case ShareResourceType::kProducerTypePublishGB28181:
+			case ShareResourceType::kProducerTypeGB28181:
 			{
-				producer = std::make_shared<Gb28181PushProducer>( stream_, shared_from_this());
+				producer = std::make_shared<Gb28181Producer>( stream_, shared_from_this());
 				break;
 			}
 			 
@@ -86,15 +87,15 @@ namespace  gb_media_server
 			}
 		}
 		 
-		producer->SetAppName(list[1]);
-		producer->SetStreamName(list[2]);
+		producer->SetAppName(list[0]);
+		producer->SetStreamName(list[1]);
 		producer->SetParam(param);
 		 
 
 		//conn->SetContext(kUserContext, producer);
 		return producer;
 	}
-	std::shared_ptr<Consumer> Session::CreateConsumer(   
+	std::shared_ptr<Consumer> Session::CreateConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::string &session_name,
 		const std::string &param,
 		ShareResourceType type)
@@ -103,32 +104,29 @@ namespace  gb_media_server
 		{
 			GBMEDIASERVER_LOG(LS_ERROR) << "create publish Consumer failed.Invalid session name:" << session_name;
 			return consumer_null;
-		}
-		//auto list = base::StringUtils::SplitString(session_name, "/");
-		std::vector<std::string> list;
-		//std::string p = session_name;
-		//absl::string_view  p();
-		//std::string p = rtc::hex_encode(session_name);
-		//GBMEDIASERVER_LOG(LS_INFO) << p;
+		} 
+		std::vector<std::string> list; 
 		string_utils:: split(/*rtc::ArrayView*/( session_name ), '/', &list);
-		if (list.size() != 3)
+		if (list.size() < 2)
 		{
 			GBMEDIASERVER_LOG(LS_ERROR) << "create publish user failed.Invalid session name:" << session_name;
 			return consumer_null;
 		}
 		std::shared_ptr< Consumer> consumer;
-		if (type == ShareResourceType::kConsumerTypePlayerWebRTC)
+		if (type == ShareResourceType::kConsumerTypeRTC)
 		{
-			consumer = std::make_shared<RtcPlayConsumer>(  stream_, shared_from_this());
+			consumer = std::make_shared<RtcConsumer>(  stream_, shared_from_this());
 		} 
+		else if (type == ShareResourceType::kConsumerTypeFlv)
+		{
+			consumer = std::make_shared<FlvConsumer>(conn, stream_, shared_from_this());
+		}
 		else
 		{
 			return consumer_null;
-		}
-		//user->SetAppInfo(app_info_);
-		//user->SetDomainName(list[0]);
-		consumer->SetAppName(list[1]);
-		consumer->SetStreamName(list[2]);
+		} 
+		consumer->SetAppName(list[0]);
+		consumer->SetStreamName(list[1]);
 		consumer->SetParam(param);
 		 
 		return consumer;
@@ -155,28 +153,22 @@ namespace  gb_media_server
 		{
 			GBMEDIASERVER_LOG(INFO) << " add consumer,  realy  -->  session name:" << session_name_ << ",consumer id:" << consumer->RemoteAddress().ToString();
 
-			//if (!pull_)
-			//{
-			//	pull_ = new PullerRelay(*this);
-			//}
-			//pull_->StartPullStream();
+		 
 		}
 		else
 		{
 			GBMEDIASERVER_LOG(INFO) << " add consumer,  local stream   -->  session name:" << session_name_ << ",consumer id:" << consumer->RemoteAddress().ToString();
 
-		}
-		//consumer->Active();
+		} 
 	}
 	 
 	void Session::RemoveConsumer(const std::shared_ptr<Consumer> & consumer)
-	{
-		 
-			{
-				std::lock_guard<std::mutex> lk(lock_);
-				// 类型错误导致释放对象错误了 修复bug 
+	{ 
+				
 				
 				{
+				std::lock_guard<std::mutex> lk(lock_);
+			// 类型错误导致释放对象错误了 修复bug 
 					GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
 						<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
 						//<< ",elapsed:" << consumer->ElapsedTime()
@@ -186,8 +178,7 @@ namespace  gb_media_server
 					consumers_.erase(consumer);
 					player_live_time_ = rtc::TimeMillis();
 				}
-			}
-		//	consumer->Close();
+		  
 		 
 	}
 	void Session::SetProducer(std::shared_ptr<Producer> &producer)
@@ -217,14 +208,14 @@ namespace  gb_media_server
 #endif //
 		for (auto consumer : consumers_)
 		{ 
-			consumer->OnVideoFrame(frame);
+			consumer->AddVideoFrame(frame);
 		}
 	}
 	void  Session::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
 	{
 		for (auto consumer : consumers_)
 		{
-			consumer->OnAudioFrame(frame);
+			consumer->AddAudioFrame(frame);
 		}
 	}
 
@@ -245,13 +236,11 @@ namespace  gb_media_server
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		if (producer_)
-		{
-			//CloseUserNoLock(publisher_);
+		{ 
 			producer_.reset();
 		}
 		for (  auto     p : consumers_)
-		{
-			//CloseUserNoLock( (p));
+		{ 
 			p.reset();
 		}
 		consumers_.clear();
