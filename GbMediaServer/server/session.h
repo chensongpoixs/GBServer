@@ -56,12 +56,12 @@ namespace  gb_media_server
 		
 		
 		void ActiveAllPlayers(); 
-		void SetProducer(std::shared_ptr<Producer> &user);
+		void SetProducer(std::shared_ptr<Producer> &producer);
 		
-		void  AddVideoFrame(const libmedia_codec::EncodedImage &frame);
+		void  AddVideoFrame(  libmedia_codec::EncodedImage&&frame);
 		 
 
-		void  AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+		void  AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame);
 	public:
 
 		std::shared_ptr<Stream> GetStream();

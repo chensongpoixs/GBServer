@@ -108,13 +108,13 @@ namespace gb_media_server
 		{
 			 
 		}
-		void Stream::AddVideoFrame(const libmedia_codec::EncodedImage& frame)
+		void Stream::AddVideoFrame(  libmedia_codec::EncodedImage&& frame)
 		{ 
-			session_.AddVideoFrame(frame);
+			session_.AddVideoFrame(std::move(frame));
 		}
-		void Stream::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
+		void Stream::AddAudioFrame(  rtc::CopyOnWriteBuffer&&frame)
 		{
-			session_.AddAudioFrame(frame);
+			session_.AddAudioFrame(std::move(frame));
 		}
 		 
 		// 流信息函数

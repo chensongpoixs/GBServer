@@ -158,7 +158,7 @@ namespace  gb_media_server
 	{
 	//	GBMEDIASERVER_LOG(LS_INFO) << "";
 		worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			std::shared_ptr<gb_media_server::ShareResource> user = conn->GetContext<gb_media_server::ShareResource>(libmedia_transfer_protocol::libnetwork::kUserContext);
+			std::shared_ptr<gb_media_server::ShareResource> user = conn->GetContext<gb_media_server::ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext);
 			if (user)
 			{
 				user->OnRecv(data);

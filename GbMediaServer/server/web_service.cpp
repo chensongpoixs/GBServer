@@ -35,7 +35,7 @@ namespace  gb_media_server
 		, http_event_callback_map_()
 	{
 		http_server_->SignalOnRequest.connect(this, &WebService::OnRequest);
-
+		http_server_->SignalOnDestory.connect(this, &WebService::OnDestroy);
 
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
@@ -48,6 +48,7 @@ namespace  gb_media_server
 		if (http_server_)
 		{
 			http_server_->SignalOnRequest.disconnect(this);
+			http_server_->SignalOnDestory.disconnect(this);
 		}
 	}
 	bool WebService::StartWebServer(const char * ip, uint16_t port)
@@ -115,6 +116,44 @@ namespace  gb_media_server
  
 
 			}); 
+		}
+	}
+	void WebService::OnDestroy(libmedia_transfer_protocol::libnetwork::Connection * conn)
+	{
+		auto shareResource = conn->GetContext<ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext);
+		if (shareResource)
+		{
+			switch (shareResource->ShareResouceType())
+			{
+			case kProducerTypeGB28181:
+			{
+				//shareResource->GetSession()->SetProducer(nullptr);
+				GBMEDIASERVER_LOG_T_F(LS_WARNING) << " producer  share resource type :" << shareResource->ShareResouceType();
+				break;
+			}
+			case kConsumerTypeRTC:
+			case kConsumerTypeFlv:
+			{
+				shareResource->GetSession()->RemoveConsumer(std::dynamic_pointer_cast<Consumer>(shareResource));
+				break;
+			}
+			default:
+				GBMEDIASERVER_LOG_T_F(LS_WARNING) << " share resource type :" << shareResource->ShareResouceType();
+				break;
+			}
+			gb_media_server::GbMediaService::GetInstance().worker_thread()->Invoke<void>(RTC_FROM_HERE, [&]() {
+				conn->ClearContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext);
+			});
+			
+			 
+		}
+		auto flv = conn->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
+		if (flv)
+		{ 
+			gb_media_server::GbMediaService::GetInstance().worker_thread()->Invoke<void>(RTC_FROM_HERE, [& ]() {
+				conn->ClearContext(libmedia_transfer_protocol::libnetwork::kFlvContext);
+			});
+			 
 		}
 	}
 	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
@@ -279,7 +318,7 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "flv   consumer : count : " << consumer.use_count();
 		 
 
-		conn->SetContext(libmedia_transfer_protocol::libnetwork::kUserContext, consumer);
+		conn->SetContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext, consumer);
 		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn
 #if 0
 			, "gb28181_test.flv"
@@ -370,7 +409,7 @@ namespace  gb_media_server
 	//	++port;
 		s->SetProducer(producer);
 
-		rtp->SetContext(libmedia_transfer_protocol::libnetwork::kUserContext, producer);
+		rtp->SetContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext, producer);
  
 		
 		Json::Value result;

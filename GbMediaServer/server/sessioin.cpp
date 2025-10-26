@@ -35,6 +35,8 @@
 #include "consumer/rtc_consumer.h"
 #include "producer/gb28181_producer.h"
 #include "consumer/flv_consumer.h"
+#include "server/gb_media_service.h"
+
 namespace  gb_media_server
 {
 	namespace
@@ -91,8 +93,7 @@ namespace  gb_media_server
 		producer->SetStreamName(list[1]);
 		producer->SetParam(param);
 		 
-
-		//conn->SetContext(kUserContext, producer);
+		 
 		return producer;
 	}
 	std::shared_ptr<Consumer> Session::CreateConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,
@@ -196,7 +197,7 @@ namespace  gb_media_server
 		producer_ = (producer);
 	}
 
-	void Session::AddVideoFrame(const libmedia_codec::EncodedImage &frame)
+	void Session::AddVideoFrame(  libmedia_codec::EncodedImage &&frame)
 	{
 #if 0
 		static FILE * out_file_ptr = fopen("ps.h264", "wb+");
@@ -206,17 +207,24 @@ namespace  gb_media_server
 			fflush(out_file_ptr);
 		}
 #endif //
-		for (auto consumer : consumers_)
-		{ 
-			consumer->AddVideoFrame(frame);
-		}
+
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame)]() {
+			for (auto consumer : consumers_)
+			{
+				consumer->AddVideoFrame(new_frame);
+			}
+		});
+		
 	}
-	void  Session::AddAudioFrame(const rtc::CopyOnWriteBuffer& frame)
+	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame)
 	{
-		for (auto consumer : consumers_)
-		{
-			consumer->AddAudioFrame(frame);
-		}
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame)]() {
+			for (auto consumer : consumers_)
+			{
+				consumer->AddAudioFrame(new_frame);
+			}
+		});
+		 
 	}
 
 	std::shared_ptr<Stream> Session::GetStream()

@@ -52,7 +52,7 @@ namespace  gb_media_server
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet);
 
 
-
+		void OnDestroy(libmedia_transfer_protocol::libnetwork::Connection *conn);
 	public:
 
 		void HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
