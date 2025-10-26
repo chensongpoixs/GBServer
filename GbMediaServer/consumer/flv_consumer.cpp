@@ -67,7 +67,8 @@ namespace gb_media_server
 			send_flv_header_ = true;
 			context->SendFlvHeader(true, true);
 		}
-		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()),  frame.Timestamp() );
+		GBMEDIASERVER_LOG(LS_INFO) << "ts:" << rtc::TimeMillis() << ", f:" << frame.Timestamp();
+		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp()   /*frame.Timestamp()*/ );
 
 
 	}
