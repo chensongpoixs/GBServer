@@ -64,7 +64,7 @@ namespace gb_media_server {
 		//recv_buffer_.SetData(buffer1);
 		int32_t   parse_size = 0;
 
-
+		 
 		while (recv_buffer_size_ - parse_size > 2)
 		{ 
 			int16_t  payload_size = libmedia_transfer_protocol::ByteReader<int16_t>::ReadBigEndian((&recv_buffer_[parse_size]));

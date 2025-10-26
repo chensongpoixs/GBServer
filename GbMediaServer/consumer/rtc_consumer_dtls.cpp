@@ -39,7 +39,7 @@ namespace gb_media_server
 	 
 	 void RtcConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
-		GBMEDIASERVER_LOG(LS_INFO) << "DTLS connecting" ;
+		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
 	}
 	void RtcConsumer::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 		libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
@@ -72,17 +72,7 @@ namespace gb_media_server
 		{
 			srtp_recv_session_ = new libmedia_transfer_protocol::libsrtp::SrtpSession(
 				libmedia_transfer_protocol::libsrtp::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
-
-			// Notify the Node WebRtcTransport.
-			//json data = json::object();
-			//
-			//data["dtlsState"] = "connected";
-			//data["dtlsRemoteCert"] = remoteCert;
-			//
-			//Channel::ChannelNotifier::Emit(this->id, "dtlsstatechange", data);
-			//DEBUG_EX_LOG("data = %s", data.dump().c_str());
-			//// Tell the parent class.
-			//RTC::Transport::Connected();
+ 
 		}
 		catch (const std::runtime_error& error)
 		{
@@ -97,22 +87,7 @@ namespace gb_media_server
 		// return;
 		 // 完成验证后进行发送
 
-#if TEST_RTC_PLAY
-		if (capture_type_)
-		{
-			x264_encoder_ = std::make_unique<libmedia_codec::X264Encoder>();
-			x264_encoder_->SignalVideoEncodedImage.connect(this, &RtcConsumer::SendVideoEncode);
-			x264_encoder_->Start();
-			video_encoder_thread_ = rtc::Thread::Create();
-			video_encoder_thread_->SetName("video_encoder_thread", NULL);
-			video_encoder_thread_->Start();
-
-			capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
-			capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
-			capturer_track_source_->StartCapture();
-		}
-
-#endif // 1
+		StartCapture();
 	}
 	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{
@@ -126,26 +101,8 @@ namespace gb_media_server
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS remotely closed";
 		dtls_done_ = false;
-#if TEST_RTC_PLAY
-		if (capture_type_)
-		{
-			if (video_encoder_thread_)
-			{
-				video_encoder_thread_->Stop();
-			}
-			if (x264_encoder_)
-			{
-				//	x264_encoder_->SetSendFrame(nullptr);
-				x264_encoder_->Stop();
-			}
-			if (capturer_track_source_)
-			{
-				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-				capturer_track_source_->Stop();
-			}
-		}
-		// GetSession()->CloseUser()
-#endif //
+
+		StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
@@ -160,26 +117,8 @@ namespace gb_media_server
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
 		dtls_done_ = false;
-#if TEST_RTC_PLAY
-		if (capture_type_)
-		{
-			if (video_encoder_thread_)
-			{
-				video_encoder_thread_->Stop();
-			}
-			if (x264_encoder_)
-			{
-				//	x264_encoder_->SetSendFrame(nullptr);
-				x264_encoder_->Stop();
-			}
-			if (capturer_track_source_)
-			{
-				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-				capturer_track_source_->Stop();
-			}
-		}
-		// GetSession()->CloseUser()
-#endif //
+
+		StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {

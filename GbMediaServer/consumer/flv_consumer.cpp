@@ -40,6 +40,11 @@ namespace gb_media_server
 		std::shared_ptr<Stream>& stream, std::shared_ptr<Session>& s)
 		: Consumer(stream, s), connection_(connection), send_flv_header_(false)
 	{
+#if 0
+		// ²âÊÔÊ¹ÓÃµÄ
+		capture_type_ = true;
+		StartCapture();
+#endif //
 	}
 	FlvConsumer::~FlvConsumer()
 	{
@@ -62,7 +67,7 @@ namespace gb_media_server
 			send_flv_header_ = true;
 			context->SendFlvHeader(true, true);
 		}
-		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp() * 90);
+		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()),  frame.Timestamp() );
 
 
 	}

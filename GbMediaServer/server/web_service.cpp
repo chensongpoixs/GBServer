@@ -280,7 +280,11 @@ namespace  gb_media_server
 		 
 
 		conn->SetContext(libmedia_transfer_protocol::libnetwork::kUserContext, consumer);
-		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn);
+		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn
+#if 0
+			, "gb28181_test.flv"
+#endif // test 
+			);
 		conn->SetContext(libmedia_transfer_protocol::libnetwork::kFlvContext, flv);
 		 
 		s->AddConsumer((consumer));

@@ -39,10 +39,10 @@ namespace gb_media_server
 	:Consumer(  stream, s)
 		, dtls_(RtcService::GetInstance().GetTaskQueueFactory())
 		, rtp_header_extension_map_()
-		, capture_type_(false)
+		
 		, srtp_send_session_(nullptr)
 		, srtp_recv_session_(nullptr)
-		, muxer_(nullptr)
+		
 	{
 	
 		local_ufrag_ = GetUFrag(8);
@@ -82,44 +82,12 @@ namespace gb_media_server
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 
-		muxer_ = new libmedia_transfer_protocol::Muxer();
-		muxer_->SignalAudioEncoderInfoFrame.connect(this, &RtcConsumer::SendAudioEncode);
-		muxer_->SignalVideoEncodedImage.connect(this, &RtcConsumer::SendVideoEncode);
+	
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
 	RtcConsumer:: ~RtcConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
-		if (muxer_)
-		{
-			muxer_->SignalAudioEncoderInfoFrame.disconnect_all();
-			muxer_->SignalVideoEncodedImage.disconnect_all();
-			delete muxer_;
-			muxer_ = nullptr;
-		}
-		if (x264_encoder_)
-		{
-			x264_encoder_->SignalVideoEncodedImage.disconnect_all();
-		}
-#if TEST_RTC_PLAY
-		{
-			if (capture_type_)
-				if (video_encoder_thread_)
-				{
-					video_encoder_thread_->Stop();
-				}
-			if (x264_encoder_)
-			{
-				//	x264_encoder_->SetSendFrame(nullptr);
-				x264_encoder_->Stop();
-			}
-			if (capturer_track_source_)
-			{
-				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-				capturer_track_source_->Stop();
-			}
-		}
-
-#endif // 	
+		
 		//dtls_.SignalDtlsSendPakcet.disconnect(this);
 		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
 		//dtls_.SignalDtlsClose.disconnect(this);
@@ -155,10 +123,7 @@ namespace gb_media_server
 	}
 
  
-	void RtcConsumer::SetCapture(bool value)
-	{
-		capture_type_ = value;
-	}
+	
 
 	bool RtcConsumer::ProcessOfferSdp(const std::string &sdp) {
 		return sdp_.Decode(sdp);
@@ -240,21 +205,7 @@ namespace gb_media_server
 	  {
 	  }
   
-#if TEST_RTC_PLAY
-	  void RtcConsumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
-	  {
-		   // rtc::CopyOnWriteBuffer  buffer;
-			//buffer.AppendData(*encoded_image.get());
-			OnVideoFrame(*encoded_image.get());
-			//buffer.Clear();
-		  
-		 
-		  
-		  return;
-		
-	  }
-#endif //
-	  
+
 	  void RtcConsumer::OnVideoFrame(const libmedia_codec::EncodedImage &frame)
 	  {
 		  if (!dtls_done_)
@@ -337,52 +288,4 @@ namespace gb_media_server
 #endif //
 	  }
 
-	  void RtcConsumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
-	  {
-		  GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
-		  if (!dtls_done_)
-		  {
-			  return;
-		  }
-		   
-
-		  uint32_t rtp_timestamp = audio_frame->encoded_timestamp * 90;
-
-		  if (!srtp_send_session_)
-		  {
-			  GBMEDIASERVER_LOG(LS_WARNING) << "ignoring RTP packet due to non sending SRTP session";
-			  return;
-		  }
-
-		  auto  single_packet =
-			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
-		  single_packet->SetPayloadType(sdp_.GetAudioPayloadType());
-		  single_packet->SetTimestamp(rtp_timestamp);
-		  single_packet->SetSsrc(sdp_.AudioSsrc());
-		  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
-		  uint8_t* payload = single_packet->AllocatePayload(audio_frame->encoded_bytes);
-		  if (!payload)  // Too large payload buffer.
-		  {
-			  GBMEDIASERVER_LOG_T_F(LS_WARNING)<<"alloc audio payload size:" << audio_frame->encoded_bytes  << " failed !!!";
-			  return  ;
-		  }
-		  memcpy(payload, audio_frame->audio_encode_data.data(), audio_frame->encoded_bytes);
-		  //  //int16_t   packet_id = transprot_seq_++;
-		  single_packet->SetSequenceNumber(audio_seq_++);
-		  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kAudio);
-
-
-
-		  const uint8_t *data = single_packet->data();
-		  size_t   len = single_packet->size();
-		  if (!srtp_send_session_->EncryptRtp(&data, &len))
-		  {
-			  GBMEDIASERVER_LOG_T_F(LS_WARNING) << "srtp session ecryptrtp failed !!! ";
-			  return;
-		  }
-
-
-		  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, len), remote_address_, rtc::PacketOptions());
-		  });
-	  }
 }

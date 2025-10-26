@@ -33,10 +33,7 @@
 #include "libmedia_transfer_protocol/librtc/dtls.h"
 #include "rtc_base/socket_address.h"
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
-#if TEST_RTC_PLAY
-#include "libmedia_codec/x264_encoder.h"
-#include "libcross_platform_collection_render/track_capture/ctrack_capture.h"
-#endif // 
+
 
 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
@@ -44,18 +41,17 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 namespace gb_media_server {
 	 
-	class RtcConsumer : public  Consumer  ,
+	class RtcConsumer : public  Consumer // ,
 //#if TEST_RTC_PLAY
 //		public  libmedia_codec::EncodeImageObser, public libmedia_codec::EncodeAudioObser,
 //#endif // 
-		public sigslot::has_slots<>
+	//	public sigslot::has_slots<>
 	{
 	public:
 		explicit RtcConsumer(   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
 		virtual ~RtcConsumer();
 
-	public:
-		void SetCapture(bool value);
+	
 	public:
 		bool ProcessOfferSdp(const std::string &sdp);
 		const std::string &LocalUFrag() const;
@@ -78,9 +74,7 @@ namespace gb_media_server {
 
 	public:
 
-	// 本地采集的数据进行编码后进行发送的接口
-		  void   SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f)  ; 
-		 void   SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f) ;
+	
 	public:
 		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
 		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
@@ -121,19 +115,14 @@ namespace gb_media_server {
 		libmedia_transfer_protocol::libsrtp::SrtpSession *  srtp_recv_session_;
 
 
-#if TEST_RTC_PLAY
-		std::unique_ptr< rtc::Thread>        video_encoder_thread_;
-		std::unique_ptr< libmedia_codec::X264Encoder>                          x264_encoder_;
-		rtc::scoped_refptr<libcross_platform_collection_render::CapturerTrackSource>     capturer_track_source_;
-#endif //
+
 
 		uint32_t      audio_seq_ = 100;
 		uint32_t      video_seq_ = 100;
 		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 
 		
-		 bool										capture_type_;//采集桌面画面播放
-		 libmedia_transfer_protocol::Muxer    *      muxer_;
+		
 
 	};
 }
