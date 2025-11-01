@@ -161,7 +161,7 @@ set(ALL_LIB
 			iphlpapi.lib
 			secur32.lib
 			 # absl 
-			 abseil_dll
+			# abseil_dll
 			# Meida_LIB
 		#absl_cordz_functions
 		#absl_cordz_handle
@@ -277,7 +277,7 @@ libcross_platform_collection_render
         strmiids.lib
         user32.lib
 		 
-		abseil_dll
+		#abseil_dll
 		absl_cordz_functions
 		absl_cordz_handle
 		absl_cordz_info
@@ -317,7 +317,7 @@ libcross_platform_collection_render
 			winmm.lib
 
 
-			libyuv
+			yuv
 		libcrypto.lib 
 		libssl.lib 
 		#

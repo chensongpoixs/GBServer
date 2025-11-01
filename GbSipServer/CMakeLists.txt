@@ -27,6 +27,7 @@ add_definitions(
 #-D_CRT_NONSTDC_NO_WARNINGS
 #-DWIN32
 #-D_DEBUG
+#-D_DEBUG
 #-D_CONSOLE
 
 
@@ -136,7 +137,7 @@ ws2_32.lib
  sqlite
 
  # absl 
- abseil_dll
+ #abseil_dll
 		absl_cordz_functions
 		absl_cordz_handle
 		absl_cordz_info
