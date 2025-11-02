@@ -112,9 +112,9 @@ namespace gb_media_server
 		{ 
 			session_.AddVideoFrame(std::move(frame));
 		}
-		void Stream::AddAudioFrame(  rtc::CopyOnWriteBuffer&&frame)
+		void Stream::AddAudioFrame(  rtc::CopyOnWriteBuffer&&frame, int64_t  pts)
 		{
-			session_.AddAudioFrame(std::move(frame));
+			session_.AddAudioFrame(std::move(frame), pts);
 		}
 		 
 		// 流信息函数

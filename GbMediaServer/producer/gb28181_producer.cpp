@@ -151,7 +151,7 @@ namespace gb_media_server {
 		GetStream()->AddVideoFrame(std::move(frame));
 
 	}
-	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
+	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame, int64_t  pts)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 #if 0
@@ -162,7 +162,7 @@ namespace gb_media_server {
 			fflush(out_file_ptr);
 		}
 #endif // 0
-		GetStream()->AddAudioFrame(std::move(frame));
+		GetStream()->AddAudioFrame(std::move(frame), pts);
 	}
 	 
 }

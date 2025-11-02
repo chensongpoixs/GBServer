@@ -92,10 +92,10 @@ namespace gb_media_server
 			   audio: 不处理直接转发
 			*/
 			void     AddVideoFrame(const libmedia_codec::EncodedImage &frame);
-			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
 			//播放端继承
 			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
-			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame) {}
+			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts) {}
 		public:
 			//网络层接口
 			//void Close();

@@ -216,12 +216,12 @@ namespace  gb_media_server
 		});
 		
 	}
-	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame)
+	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t pts)
 	{
-		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame)]() {
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame), pts]() {
 			for (auto consumer : consumers_)
 			{
-				consumer->AddAudioFrame(new_frame);
+				consumer->AddAudioFrame(new_frame, pts);
 			}
 		});
 		 

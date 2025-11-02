@@ -72,9 +72,9 @@ namespace gb_media_server
 
 
 	}
-	void FlvConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	void FlvConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
-		return;
+		//return;
 		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (!context)
 		{
@@ -87,7 +87,7 @@ namespace gb_media_server
 			context->SendFlvHeader(true, true);
 		}
 		rtc::CopyOnWriteBuffer  new_frame = frame;
-		context->SendFlvAudioFrame(new_frame, 0);
+		context->SendFlvAudioFrame(new_frame, pts);
 
 	}
 }

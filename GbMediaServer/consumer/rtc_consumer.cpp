@@ -280,7 +280,7 @@ namespace gb_media_server
 			  }
 		  }
 	  }
-	  void RtcConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	  void RtcConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	  {
 #if 0
 		  // TODO@chensong  2025-10-24  AAC 转OPUS暂时不支持 后期支持

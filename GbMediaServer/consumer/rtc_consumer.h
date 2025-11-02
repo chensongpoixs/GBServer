@@ -70,7 +70,7 @@ namespace gb_media_server {
 		void OnSrtpRtcp(const uint8_t * data, size_t size);
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
-		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
 
 	public:
 

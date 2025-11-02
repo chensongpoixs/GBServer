@@ -196,9 +196,9 @@ namespace gb_media_server
 		OnVideoFrame(std::move(enocded_image));
 	}
 
-	void Consumer::AddAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	void Consumer::AddAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
-		OnAudioFrame(frame);
+		OnAudioFrame(frame, pts);
 	}
 		 
 #if TEST_RTC_PLAY
