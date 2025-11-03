@@ -56,7 +56,7 @@ namespace  gb_media_server
 		
 		
 		void ActiveAllPlayers(); 
-		void SetProducer(std::shared_ptr<Producer> &producer);
+		void SetProducer(std::shared_ptr<Producer>  producer);
 		
 		void  AddVideoFrame(  libmedia_codec::EncodedImage&&frame);
 		 

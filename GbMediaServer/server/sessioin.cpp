@@ -36,6 +36,7 @@
 #include "producer/gb28181_producer.h"
 #include "consumer/flv_consumer.h"
 #include "server/gb_media_service.h"
+#include "producer/rtc_producer.h"
 
 namespace  gb_media_server
 {
@@ -79,6 +80,11 @@ namespace  gb_media_server
 			case ShareResourceType::kProducerTypeGB28181:
 			{
 				producer = std::make_shared<Gb28181Producer>( stream_, shared_from_this());
+				break;
+			}
+			case ShareResourceType::kProducerTypeRtc:
+			{
+				producer = std::make_shared<RtcProducer>(stream_, shared_from_this());
 				break;
 			}
 			 
@@ -182,19 +188,25 @@ namespace  gb_media_server
 		  
 		 
 	}
-	void Session::SetProducer(std::shared_ptr<Producer> &producer)
+	void Session::SetProducer(std::shared_ptr<Producer>  producer)
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		if (producer_ == producer)
 		{
-			return;
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "SetProducer  producer_ == producer   !!!";
+			//return;
 		}
 		if (producer_  )
 		{ 
 			//producer_->Close();
 			producer_.reset();
+			
 		}
-		producer_ = (producer);
+		if (producer)
+		{
+			producer_ = (producer);
+		}
+		
 	}
 
 	void Session::AddVideoFrame(  libmedia_codec::EncodedImage &&frame)

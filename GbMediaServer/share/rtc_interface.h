@@ -1,0 +1,123 @@
+/******************************************************************************
+ *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
+ *
+ *  Please visit https://chensongpoixs.github.io for detail
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS.  All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ ******************************************************************************/
+ /*****************************************************************************
+				   Author: chensong
+				   date:  2025-11-03
+
+
+
+ ******************************************************************************/
+
+
+#ifndef _C_GB_MEDIA_SERVER_RTC_INTERFACE_H_
+#define _C_GB_MEDIA_SERVER_RTC_INTERFACE_H_
+
+#include <algorithm>
+
+#include "absl/types/optional.h"
+#include "rtc_base/system/rtc_export.h"
+#include <memory>
+#include "consumer/consumer.h"
+#include "libmedia_transfer_protocol/librtc/rtc_sdp.h"
+#include "libmedia_transfer_protocol/librtc/dtls_certs.h"
+
+#include "libmedia_transfer_protocol/librtc/dtls.h"
+#include "rtc_base/socket_address.h"
+#include "libmedia_transfer_protocol/librtc/srtp_session.h"
+
+
+
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
+#include "libmedia_transfer_protocol/muxer/muxer.h"
+#include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "share/share_resource.h"
+namespace gb_media_server {
+ 
+	class RtcInterface  
+	{
+	public:
+		explicit RtcInterface();
+		virtual ~RtcInterface() ;
+
+	public:
+	   virtual 	bool ProcessOfferSdp(const std::string& sdp) = 0;
+	   virtual const std::string& LocalUFrag() const = 0;
+	   virtual const std::string& LocalPasswd() const = 0;
+	   virtual const std::string& RemoteUFrag() const = 0;
+	   virtual std::string BuildAnswerSdp() = 0;
+
+		//开始DTLS选择客户端还是服务端挥手交换 
+	   virtual void MayRunDtls() = 0;
+	public:
+
+
+
+		virtual void OnDtlsRecv(const uint8_t* buf, size_t size) = 0;
+		virtual void OnSrtpRtp(const uint8_t* data, size_t size) = 0;
+		virtual void OnSrtpRtcp(const uint8_t* data, size_t size) = 0;
+	
+		
+	public:
+		virtual void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		virtual void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
+			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
+			uint8_t* srtpLocalKey,
+			size_t srtpLocalKeyLen,
+			uint8_t* srtpRemoteKey,
+			size_t srtpRemoteKeyLen,
+			std::string& remote_cert) = 0;
+		virtual void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
+
+		virtual void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		virtual void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
+
+	public:
+		// rtc 特别增加的接口
+		virtual  const rtc::SocketAddress& RtcRemoteAddress() const
+		{
+			return rtc_remote_address_;
+		}
+		virtual void  SetRtcRemoteAddress(const rtc::SocketAddress& addr);
+
+	
+	public:
+		static std::string GetUFrag(int size);
+		static uint32_t GetSsrc(int size);
+	protected:
+
+
+		std::string local_ufrag_;
+		std::string local_passwd_;  //[12, 32]
+		libmedia_transfer_protocol::librtc::RtcSdp sdp_;
+		//Dtls dtls_;
+
+		//libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
+		libmedia_transfer_protocol::libssl::Dtls   dtls_;
+
+		bool dtls_done_{ false };
+
+		rtc::SocketAddress             rtc_remote_address_;
+		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_send_session_;
+		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_recv_session_;
+
+
+
+
+		uint32_t      audio_seq_ = 100;
+		uint32_t      video_seq_ = 100;
+		libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
+
+	};
+ 
+}
+#endif // _C_GB_MEDIA_SERVER_RTC_INTERFACE_H_

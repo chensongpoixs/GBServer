@@ -38,6 +38,7 @@ namespace  gb_media_server
 	{
 	 
 		kProducerTypeGB28181 = 0,
+		kProducerTypeRtc=1,
 		//  
 		kConsumerTypeRTC,
 		kConsumerTypeFlv,
@@ -70,11 +71,11 @@ namespace  gb_media_server
 
 		virtual ShareResourceType ShareResouceType() const { return kShareResourceTypeUnknowed; }
 		 
-		const rtc::SocketAddress &RemoteAddress() const
+		virtual const rtc::SocketAddress &RemoteAddress() const
 		{
 			return remote_address_;
 		}
-		void  SetRemoteAddress(const rtc::SocketAddress & addr);
+		virtual void  SetRemoteAddress(const rtc::SocketAddress & addr);
 
 		std::shared_ptr<Session> GetSession() const
 		{

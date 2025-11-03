@@ -39,9 +39,11 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
 #include "libmedia_transfer_protocol/muxer/muxer.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "consumer/rtc_consumer.h"
+#include "share/rtc_interface.h"
 namespace gb_media_server {
 	 
-	class RtcConsumer : public  Consumer // ,
+	class RtcConsumer : public  RtcInterface,  public  Consumer // ,
 //#if TEST_RTC_PLAY
 //		public  libmedia_codec::EncodeImageObser, public libmedia_codec::EncodeAudioObser,
 //#endif // 
@@ -53,21 +55,21 @@ namespace gb_media_server {
 
 	
 	public:
-		bool ProcessOfferSdp(const std::string &sdp);
-		const std::string &LocalUFrag() const;
-		const std::string &LocalPasswd() const;
-		const std::string &RemoteUFrag() const;
-		std::string BuildAnswerSdp();
+		virtual  bool ProcessOfferSdp(const std::string &sdp);
+		virtual const std::string &LocalUFrag() const;
+		virtual const std::string &LocalPasswd() const;
+		virtual const std::string &RemoteUFrag() const;
+		virtual std::string BuildAnswerSdp();
 
 		//开始DTLS选择客户端还是服务端挥手交换 
-		void MayRunDtls();
+		virtual void MayRunDtls();
 	public:
 
 
 		 
-		void OnDtlsRecv(const uint8_t *buf, size_t size);
-		void OnSrtpRtp(const uint8_t * data, size_t size);
-		void OnSrtpRtcp(const uint8_t * data, size_t size);
+		virtual void OnDtlsRecv(const uint8_t *buf, size_t size);
+		virtual void OnSrtpRtp(const uint8_t * data, size_t size);
+		virtual void OnSrtpRtcp(const uint8_t * data, size_t size);
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
 		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
@@ -76,19 +78,19 @@ namespace gb_media_server {
 
 	
 	public:
-		void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
-		void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
+		virtual void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
+		virtual void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 			uint8_t* srtpLocalKey,
 			size_t srtpLocalKeyLen,
 			uint8_t* srtpRemoteKey,
 			size_t srtpRemoteKeyLen,
 			std::string& remote_cert);
-		void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len);
+		virtual void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len);
 		 
-		void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls);
-		void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls);
-		void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len);
+		virtual void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		virtual void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls);
+		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len);
 		 
 	public:
 
@@ -97,29 +99,29 @@ namespace gb_media_server {
 		virtual ShareResourceType ShareResouceType() const   { return kConsumerTypeRTC; }
 		 
 	private:
-		static std::string GetUFrag(int size);
-		static uint32_t GetSsrc(int size);
+		//static std::string GetUFrag(int size);
+		//static uint32_t GetSsrc(int size);
 	private:
-		std::string local_ufrag_;
-		std::string local_passwd_;  //[12, 32]
-		libmedia_transfer_protocol::librtc::RtcSdp sdp_;
-		//Dtls dtls_;
-
-		//libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
-		libmedia_transfer_protocol::libssl::Dtls   dtls_;
-
-		bool dtls_done_{ false };
-
-		//rtc::SocketAddress             remote_address_;
-		libmedia_transfer_protocol::libsrtp::SrtpSession*   srtp_send_session_;
-		libmedia_transfer_protocol::libsrtp::SrtpSession *  srtp_recv_session_;
-
-
-
-
-		uint32_t      audio_seq_ = 100;
-		uint32_t      video_seq_ = 100;
-		 libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
+		// std::string local_ufrag_;
+		// std::string local_passwd_;  //[12, 32]
+		// libmedia_transfer_protocol::librtc::RtcSdp sdp_;
+		// //Dtls dtls_;
+		// 
+		// //libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
+		// libmedia_transfer_protocol::libssl::Dtls   dtls_;
+		// 
+		// bool dtls_done_{ false };
+		// 
+		// //rtc::SocketAddress             remote_address_;
+		// libmedia_transfer_protocol::libsrtp::SrtpSession*   srtp_send_session_;
+		// libmedia_transfer_protocol::libsrtp::SrtpSession *  srtp_recv_session_;
+		// 
+		// 
+		// 
+		// 
+		// uint32_t      audio_seq_ = 100;
+		// uint32_t      video_seq_ = 100;
+		//  libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 
 		
 		

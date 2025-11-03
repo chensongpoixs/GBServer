@@ -1,4 +1,4 @@
-ï»¿/******************************************************************************
+/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -11,12 +11,14 @@
  ******************************************************************************/
  /*****************************************************************************
 				   Author: chensong
-				   date:  2025-10-13
+				   date:  2025-11-03
 
 
 
  ******************************************************************************/
- 
+
+#include "share/rtc_interface.h"
+
 #include <random>
 #include "consumer/rtc_consumer.h"
 #include "server/session.h"
@@ -33,15 +35,20 @@
 #include "server/rtc_service.h"
 #include "common_video/h264/h264_common.h"
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
-
 namespace gb_media_server
 {
+
+
  
-	 void RtcConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
+
+#if 0
+
+	void RtcInterface::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
+		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting";
 	}
-	void RtcConsumer::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
+
+	void RtcInterface::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 		libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 		uint8_t* srtpLocalKey,
 		size_t srtpLocalKeyLen,
@@ -66,13 +73,13 @@ namespace gb_media_server
 		}
 		catch (const std::runtime_error& error)
 		{
-			GBMEDIASERVER_LOG_T_F(LS_ERROR)<< "error creating SRTP sending session: " <<  error.what();
+			GBMEDIASERVER_LOG_T_F(LS_ERROR) << "error creating SRTP sending session: " << error.what();
 		}
 		try
 		{
 			srtp_recv_session_ = new libmedia_transfer_protocol::libsrtp::SrtpSession(
 				libmedia_transfer_protocol::libsrtp::INBOUND, srtpCryptoSuite, srtpRemoteKey, srtpRemoteKeyLen);
- 
+
 		}
 		catch (const std::runtime_error& error)
 		{
@@ -85,24 +92,24 @@ namespace gb_media_server
 		dtls_done_ = true;
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
-		 // å®ŒæˆéªŒè¯åŽè¿›è¡Œå‘é€
+		 // Íê³ÉÑéÖ¤ºó½øÐÐ·¢ËÍ
 
-		//StartCapture();
+		StartCapture();
 	}
-	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
+	void RtcInterface::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len)
 	{
 		GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << len;
-		 
+
 		rtc::Buffer buffer(data, len);
 		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), remote_address_, rtc::PacketOptions());
 	}
 	//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
-	void RtcConsumer::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
+	void RtcInterface::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS remotely closed";
 		dtls_done_ = false;
 
-		//StopCapture();
+		StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
@@ -110,15 +117,15 @@ namespace gb_media_server
 			RtcService::GetInstance().RemoveConsumer(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
 			GetSession()->RemoveConsumer(slef);
-		});
+			});
 		// 
 	}
-	void RtcConsumer::OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls)
+	void RtcInterface::OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
 		dtls_done_ = false;
 
-		//StopCapture();
+		StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
@@ -126,18 +133,57 @@ namespace gb_media_server
 			RtcService::GetInstance().RemoveConsumer(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
 			GetSession()->RemoveConsumer(slef);
-			
-		});
+
+			});
 		// 
 	}
-	void RtcConsumer::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
+	void RtcInterface::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len)
 	{
 		// Pass it to the parent transport.
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
 	}
-
-
   
+#endif // 0
 
 
+
+	RtcInterface::RtcInterface()
+		: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
+		, rtp_header_extension_map_() 
+		, srtp_send_session_(nullptr)
+		, srtp_recv_session_(nullptr)
+	{
+		local_ufrag_ = GetUFrag(8);
+		local_passwd_ = GetUFrag(32);
+		sdp_.SetLocalUFrag(local_ufrag_);
+		sdp_.SetLocalPasswd(local_passwd_);
+	}
+	RtcInterface::~RtcInterface() {}
+
+	std::string RtcInterface::GetUFrag(int size) {
+		static std::string table = "1234567890abcdefgihjklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+		std::string frag;
+
+		static std::mt19937 mt{ std::random_device{}() };
+		static std::uniform_int_distribution<> rand(0, table.size());
+
+		frag.resize(size);
+		for (int i = 0; i < size; i++)
+		{
+			frag[i] = table[(rand(mt) % table.size())];
+		}
+
+		return frag;
+	}
+	uint32_t RtcInterface::GetSsrc(int size)
+	{
+		static std::mt19937 mt{ std::random_device{}() };
+		static std::uniform_int_distribution<> rand(10000000, 99999999);
+
+		return rand(mt);
+	}
+	void  RtcInterface::SetRtcRemoteAddress(const rtc::SocketAddress& addr)
+	{
+		rtc_remote_address_ = addr;
+	}
 }

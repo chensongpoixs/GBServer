@@ -59,6 +59,12 @@ namespace  gb_media_server
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		void HandlerRtcProducer(libmedia_transfer_protocol::libnetwork::Connection* conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
 		void HandlerFlvConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,

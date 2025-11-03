@@ -27,6 +27,7 @@
 #include "producer/gb28181_producer.h"
 #include "consumer/rtc_consumer.h"
 //#include "swagger/dto/RtcApiDto.hpp"
+#include "share/rtc_interface.h"
 namespace  gb_media_server
 {
 	class RtcService : public sigslot::has_slots<>
@@ -43,8 +44,8 @@ namespace  gb_media_server
 		}
 
 
-		void AddConsumer(std::shared_ptr<RtcConsumer> uesr);
-		void RemoveConsumer(std::shared_ptr<RtcConsumer> uesr);
+		void AddConsumer(std::shared_ptr<RtcInterface>  rtc_interface);
+		void RemoveConsumer(std::shared_ptr<RtcInterface> rtc_interface);
 
 
 		webrtc::TaskQueueFactory*  GetTaskQueueFactory();
@@ -88,9 +89,9 @@ namespace  gb_media_server
 
 	//	static std::string GetSessionNameFromUrl(const std::string &url);
 		std::mutex lock_;
-		std::unordered_map<std::string, std::shared_ptr<RtcConsumer>> name_consumers_;
-		std::mutex consumers_lock_;
-		std::unordered_map<std::string, std::shared_ptr<RtcConsumer>> consumers_;
+		std::unordered_map<std::string, std::shared_ptr<RtcInterface>> name_rtc_interface_;
+		std::mutex rtcinterface_lock_;
+		std::unordered_map<std::string, std::shared_ptr<RtcInterface>> rtc_interfaces_;
 	public:
 	private:
 		std::unique_ptr<webrtc::TaskQueueFactory>                       task_queue_factory_;

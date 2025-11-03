@@ -36,22 +36,17 @@
 namespace gb_media_server
 {
 	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
-	:Consumer(  stream, s)
-		, dtls_(RtcService::GetInstance().GetTaskQueueFactory())
-		, rtp_header_extension_map_()
+	: RtcInterface ()
+	, Consumer(stream, s)
 		
-		, srtp_send_session_(nullptr)
-		, srtp_recv_session_(nullptr)
 		
 	{
 	
-		local_ufrag_ = GetUFrag(8);
-		local_passwd_ = GetUFrag(32);
-		uint32_t audio_ssrc = GetSsrc(10);
+		
+		uint32_t audio_ssrc = RtcInterface::GetSsrc(10);
 		uint32_t video_ssrc = audio_ssrc + 1;
 
-		sdp_.SetLocalUFrag(local_ufrag_);
-		sdp_.SetLocalPasswd(local_passwd_);
+		
 		sdp_.SetAudioSsrc(audio_ssrc);
 		sdp_.SetVideoSsrc(video_ssrc);
 		//dtls_certs_.Init();
@@ -168,7 +163,7 @@ namespace gb_media_server
 		dtls_.Run(local_role);
 	}
 
- 
+#if 0
 	  std::string RtcConsumer::GetUFrag(int size) {
 		  static std::string table = "1234567890abcdefgihjklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		  std::string frag;
@@ -191,7 +186,7 @@ namespace gb_media_server
 
 		  return rand(mt);
 	  }
-
+#endif // 
 
 	   
 	  void RtcConsumer::OnDtlsRecv(const uint8_t *buf, size_t size)
