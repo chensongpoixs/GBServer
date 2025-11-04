@@ -199,12 +199,13 @@ function pushStream() {
 
          
 
-        push_pc.onicegatheringstatechange = function(state) {
-			 console.log('iceconnectionstatechange ---> [' +  push_pc.iceConnectionState + '] ^_^ !!!');
-            console.info('ice gathering state change:', state)
-        } 
+    push_pc.onicegatheringstatechange = function(state) {
+            console.log('iceconnectionstatechange ---> [' +  push_pc.iceConnectionState + '] ^_^ !!!');
+        console.info('ice gathering state change:', state)
+    } 
 
-
+           // pc.addTransceiver("audio", { direction: "sendonly" });
+		    //pc.addTransceiver("video", { direction: "sendonly" });
         push_pc.ontrack = function(e) {
        // remoteStream = e.stream;
        // remoteVideo.srcObject = e.stream;
@@ -313,6 +314,7 @@ function handlePushOfferError(err)
 function getPushOffer(desc)
 {
 	console.log('offer desc ==> ', desc );
+    console.log(desc.sdp);
 	//设置Offer
 	push_pc.setLocalDescription(desc);
 	
@@ -367,7 +369,7 @@ function sendPushOffer(offerSdp) {
         console.log(xhr.responseText);
         var ret_data =  JSON.parse(xhr.responseText)
         console.log('ret_data :' + ret_data.sdp);
-        pc.setRemoteDescription(ret_data).then(
+        push_pc.setRemoteDescription(ret_data).then(
             setPushRemoteDescriptionSuccess,
             setPushRemoteDescriptionError
         );
@@ -379,6 +381,11 @@ function sendPushOffer(offerSdp) {
  
 function setPushLocalDescriptionSuccess() {
     console.log("set Push local description success");
+}
+
+function setPushRemoteDescriptionSuccess()
+{
+    console.log('set Push Remote  Descritption success !!!');
 }
 
 function setPushRemoteDescriptionError(error) {

@@ -55,7 +55,7 @@ namespace gb_media_server {
 
 	
 	public:
-		virtual  bool ProcessOfferSdp(const std::string &sdp);
+		virtual  bool ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string &sdp);
 		virtual const std::string &LocalUFrag() const;
 		virtual const std::string &LocalPasswd() const;
 		virtual const std::string &RemoteUFrag() const;

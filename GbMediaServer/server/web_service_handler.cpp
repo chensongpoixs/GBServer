@@ -99,13 +99,13 @@ namespace gb_media_server
 				});
 			return;
 		}
-		producer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		producer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		
 		s->SetProducer(producer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		 
-		if (!producer->ProcessOfferSdp(sdp))
+		if (!producer->ProcessOfferSdp(libmedia_transfer_protocol::librtc::kRtcSdpPush, sdp))
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
@@ -149,7 +149,7 @@ namespace gb_media_server
 		 
 		//这个是因为 stun交互时需要验证用户名和密码 所以需要分到全局中rtc管理服务中去
 		RtcService::GetInstance().AddConsumer(producer);
-		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << producer.use_count();
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 
 	}
 
@@ -211,12 +211,12 @@ namespace gb_media_server
 				});
 			return;
 		}
-		consumer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		consumer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		s->AddConsumer((consumer));
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		//PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
-		if (!consumer->ProcessOfferSdp(sdp))
+		if (!consumer->ProcessOfferSdp(libmedia_transfer_protocol::librtc::kRtcSdpPlay, sdp))
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "parse sdp error. session name:" << session_name;
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {

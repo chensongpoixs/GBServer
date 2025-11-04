@@ -120,7 +120,8 @@ namespace gb_media_server
  
 	
 
-	bool RtcConsumer::ProcessOfferSdp(const std::string &sdp) {
+	bool RtcConsumer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string &sdp) {
+		sdp_.SetSdpType(rtc_sdp_type);
 		return sdp_.Decode(sdp);
 	}
 	const std::string &RtcConsumer::LocalUFrag() const {
