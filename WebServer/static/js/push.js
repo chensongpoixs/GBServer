@@ -47,7 +47,7 @@ function startPush() {
 */ 
 function open_device()
 {
-    sendPushOffer('');
+    //sendPushOffer('');
 	if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
 	{
 		console.log('the getUserMedia is not supported !!!');
@@ -345,35 +345,34 @@ function sendPushOffer(offerSdp) {
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 
 	// 创建一个新的XMLHttpRequest对象
-var xhr = new XMLHttpRequest();
-// 打开一个新的请求
-xhr.open('POST', rtc_api_server+'/rtc/push', true);
-// 设置请求头，指定发送的数据类型
-xhr.setRequestHeader('Content-Type', 'application/json');
-// 创建要发送的数据对象
-var data = {
-   type: 'offer',
-   sdp: offerSdp,
-   streamurl: StreamUrl, 
-   clientid: clientId
-  
-};
-console.log('JSON.stringify(data) :' + JSON.stringify(data));
-// 发送请求并将数据转换为JSON字符串
-xhr.send(JSON.stringify(data));
-// 设置请求完成时的回调函数
-xhr.onreadystatechange = function() {
-   if (xhr.readyState === 4 && xhr.status === 200) {
-       // 请求成功，处理响应数据
-       console.log(xhr.responseText);
-	   var ret_data =  JSON.parse(xhr.responseText)
-	   console.log('ret_data :' + ret_data.sdp);
-	   pc.setRemoteDescription(ret_data).then(
-        setPushRemoteDescriptionSuccess,
-        setPushRemoteDescriptionError
-    );
-   }
-};
+    var xhr = new XMLHttpRequest();
+    // 打开一个新的请求
+    xhr.open('POST', rtc_api_server+'/api/rtc/push', true);
+    // 设置请求头，指定发送的数据类型
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    // 创建要发送的数据对象
+    var data = {
+        type: 'offer',
+        sdp: offerSdp,
+        streamurl: StreamUrl, 
+        clientid: clientId
+    };
+    console.log('JSON.stringify(data) :' + JSON.stringify(data));
+    // 发送请求并将数据转换为JSON字符串
+    xhr.send(JSON.stringify(data));
+    // 设置请求完成时的回调函数
+    xhr.onreadystatechange = function() {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+        // 请求成功，处理响应数据
+        console.log(xhr.responseText);
+        var ret_data =  JSON.parse(xhr.responseText)
+        console.log('ret_data :' + ret_data.sdp);
+        pc.setRemoteDescription(ret_data).then(
+            setPushRemoteDescriptionSuccess,
+            setPushRemoteDescriptionError
+        );
+    }
+    };
 	
 	
 }

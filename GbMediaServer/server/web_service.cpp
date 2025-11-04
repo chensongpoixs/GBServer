@@ -38,6 +38,8 @@ namespace  gb_media_server
 		http_server_->SignalOnDestory.connect(this, &WebService::OnDestroy);
 
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
+		http_event_callback_map_["/rtc/push"] = &WebService::HandlerRtcProducer;
+
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
 		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;

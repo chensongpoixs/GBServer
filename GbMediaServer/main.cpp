@@ -190,7 +190,7 @@ int main(int argc, char *argv[])
 #endif // 
 	gb_media_server::WebService  web_server_;
 	gb_media_server::GbMediaService::GetInstance().Init();
-	web_server_.StartWebServer("192.168.9.70", 8001);
+	web_server_.StartWebServer("0.0.0.0", 8001);
 	{
 		
 	}

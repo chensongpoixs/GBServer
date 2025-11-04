@@ -101,7 +101,7 @@ namespace gb_media_server
 		}
 		producer->SetRemoteAddress(conn->GetSocket()->GetRemoteAddress());
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
-		//s->AddConsumer((consumer));
+		
 		s->SetProducer(producer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		 
@@ -133,7 +133,7 @@ namespace gb_media_server
 			res->SetStatusCode(200);
 			res->AddHeader("server", "WebServer");
 			res->AddHeader("content-length", std::to_string(content.size()));
-			res->AddHeader("content-type", "text/plain");
+			res->AddHeader("content-type", "application/json");
 			res->AddHeader("Access-Control-Allow-Origin", "*");
 			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 			res->AddHeader("Allow", "POST, GET, OPTIONS");
