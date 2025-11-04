@@ -36,7 +36,7 @@ namespace  gb_media_server
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 	{
 		// init rtc
-		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init();
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(/*"fullchain.pem", "privkey.pem"*/);
 		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
 	}
 	RtcService::~RtcService()
@@ -143,7 +143,7 @@ namespace  gb_media_server
 		auto iter1 = rtc_interfaces_.find(key);
 		if (iter1 != rtc_interfaces_.end())
 		{
-			iter1->second->OnDtlsRecv(data, len);
+			iter1->second->OnSrtpRtp(data, len);
 		}
 		else
 		{
@@ -159,7 +159,7 @@ namespace  gb_media_server
 		auto iter1 = rtc_interfaces_.find(key);
 		if (iter1 != rtc_interfaces_.end())
 		{
-			iter1->second->OnDtlsRecv(data, len);
+			iter1->second->OnSrtpRtcp(data, len);
 		}
 		else
 		{

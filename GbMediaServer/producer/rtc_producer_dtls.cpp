@@ -95,7 +95,7 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << len;
 		 
 		rtc::Buffer buffer(data, len);
-		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), remote_address_, rtc::PacketOptions());
+		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 	}
 	//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
 	void RtcProducer::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
@@ -108,7 +108,7 @@ namespace gb_media_server
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			//RtcService::GetInstance().RemoveConsumer(slef);
+			RtcService::GetInstance().RemoveConsumer(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
 			GetSession()->SetProducer(nullptr);
 		});
@@ -124,7 +124,7 @@ namespace gb_media_server
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			 
+			RtcService::GetInstance().RemoveConsumer(slef);
 			GetSession()->SetProducer(nullptr);
 			
 		});
