@@ -36,7 +36,7 @@ namespace  gb_media_server
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 	{
 		// init rtc
-		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(/*"fullchain.pem", "privkey.pem"*/);
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init( "fullchain.pem", "privkey.pem" );
 		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
 	}
 	RtcService::~RtcService()

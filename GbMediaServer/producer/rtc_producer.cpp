@@ -39,6 +39,7 @@ namespace gb_media_server {
 		, Producer(  stream, s), 
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0) 
+		 ,nal_parse_(nullptr)
 	{
 		//local_ufrag_ = GetUFrag(8);
 		//local_passwd_ = GetUFrag(32);
@@ -75,7 +76,8 @@ namespace gb_media_server {
 		sdp_.SetServerAddr(GbMediaService::GetInstance().RtpWanIp());
 		sdp_.SetServerPort(GbMediaService::GetInstance().RtpPort());
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
-
+		nal_parse_ = libmedia_codec::NalParseFactory::Create( 
+			libmedia_codec::ENalParseType::ENalH264Prase );;
 		
 	}
 	RtcProducer::~RtcProducer()
@@ -114,7 +116,7 @@ namespace gb_media_server {
 	}
 	void RtcProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
-
+#if 0
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
 		recv_buffer_size_ += buffer1.size();
 		//recv_buffer_.SetData(buffer1);
@@ -187,7 +189,7 @@ namespace gb_media_server {
 			//recv_buffer_size_ = read_bytes - parse_size;
 		}
 		
-		
+#endif // recv_buffer_size_
 	}
 
 
@@ -244,11 +246,76 @@ namespace gb_media_server {
 	}
 	void RtcProducer::OnSrtpRtp(const uint8_t* data, size_t size)
 	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		//GBMEDIASERVER_LOG_T_F(LS_INFO);
+		if (!srtp_recv_session_->DecryptSrtp((uint8_t*)data, (size_t*)&size))
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtp failed !!!";
+			return;
+		}
+
+
+		libmedia_transfer_protocol::RtpPacketReceived  rtp_packet_received;
+		bool ret = rtp_packet_received.Parse(data , size);
+		if (!ret)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" ; //<< "  , hex :" << rtc::hex_encode((const char *)(buffer.begin() + paser_size), (size_t)(read_bytes - paser_size));
+		}
+		else
+		{
+			//RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.ToString();
+			//if (rtp_packet_received.PayloadType() == 96)
+			//{
+			//	//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
+			//}
+			memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.size());
+			recv_buffer_size_ += rtp_packet_received.size();
+			if (rtp_packet_received.Marker())
+			{
+				nal_parse_->parse_packet(recv_buffer_, recv_buffer_size_);
+				recv_buffer_size_ = 0;
+				libmedia_codec::EncodedImage encode_image;
+				encode_image.SetEncodedData(
+					libmedia_codec::EncodedImageBuffer::Create(
+						nal_parse_->buffer_stream_,
+						nal_parse_->buffer_index_
+					));
+
+#if 1
+
+				static FILE* out_file_ptr = fopen("rtc_push.h264", "wb+");
+				if (out_file_ptr)
+				{
+					fwrite(nal_parse_->buffer_stream_, 1, nal_parse_->buffer_index_, out_file_ptr);
+					fflush(out_file_ptr);
+				}
+
+#endif 
+				//decoder_->Decode(encode_image, true, 1);
+				GetStream()->AddVideoFrame(std::move(encode_image));
+				nal_parse_->buffer_index_ = 0;
+				//decoder_->Decode();
+			}
+		}
+
 	}
 	void RtcProducer::OnSrtpRtcp(const uint8_t* data, size_t size)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		if (!srtp_recv_session_->DecryptSrtcp((uint8_t*)data, (size_t*)&size))
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtcp failed !!!";
+			return;
+		}
+		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;  //rtcp_packet;
+		bool ret = rtcp_block.Parse(data, size);
+		if (!ret)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed !!!";
+		}
+		else {
+			GBMEDIASERVER_LOG(LS_INFO) << "rtcp info:" << rtcp_block.ToString();
+		}
+		//OnRecv(data, size);
 	}
 
 #if 0

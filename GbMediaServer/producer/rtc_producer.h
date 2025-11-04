@@ -44,6 +44,8 @@
 #include "share/rtc_interface.h"
 
 
+#include "libmedia_codec/video_codecs/nal_parse_factory.h"
+
 namespace gb_media_server {
 
 
@@ -137,6 +139,9 @@ namespace gb_media_server {
 		//rtc::Buffer recv_buffer_;
 		   uint8_t  * recv_buffer_;
 		int32_t recv_buffer_size_;
+
+
+		std::unique_ptr<libmedia_codec::NalParseInterface>  nal_parse_;
 	};
 }
 
