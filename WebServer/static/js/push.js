@@ -142,41 +142,11 @@ function stopPush() {
         pc = null;
     }
 
-    // $("#tips1").html("");
-    // $("#tips2").html("");
-    // $("#tips3").html("");
-
-    // $.post("/signaling/stoppush",
-    //     {"uid": uid, "streamName": streamName},
-    //     function(data, textStatus) {
-    //         console.log("stop push response: " + JSON.stringify(data));
-    //         if ("success" == textStatus && 0 == data.errNo) {
-    //             $("#tips1").html("<font color='blue'>停止推流请求成功!</font>");
-    //         } else {
-    //             $("#tips1").html("<font color='red'>停止推流请求失败!</font>");
-    //         }
-    //     },
-    //     "json"
-    // );
+     
 
 }
 
-function sendAnswer(answerSdp) {
-    // console.log("send answer: /signaling/sendanswer");
-
-    // $.post("/signaling/sendanswer",
-    //     {"uid": uid, "streamName": streamName, "answer": answerSdp, "type": "push"},
-    //     function(data, textStatus) {
-    //         console.log("send answer response: " + JSON.stringify(data));
-    //         if ("success" == textStatus && 0 == data.errNo) {
-    //             $("#tips3").html("<font color='blue'>answer发送成功!</font>");
-    //         } else {
-    //             $("#tips3").html("<font color='red'>answer发送失败!</font>");
-    //         }
-    //     },
-    //     "json"
-    // );
-}
+ 
 
 function pushStream() {
     // config
@@ -228,10 +198,7 @@ function pushStream() {
 		// }	
 	
     }
-    // pc.setRemoteDescription(offer).then(
-    //     setRemoteDescriptionSuccess,
-    //     setRemoteDescriptionError
-    // );
+   
 
 
 
@@ -390,7 +357,7 @@ function setPushRemoteDescriptionSuccess()
 }
 
 function setPushRemoteDescriptionError(error) {
-    console.log("pc set remote description error: " + error);
+    console.log("Push pc set remote description error: " + error);
 }
 
 function setPushLocalDescriptionError(error) {
