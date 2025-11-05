@@ -57,11 +57,12 @@ function open_device()
 	var constraints;
 	constraints = {
 		video : true,
-		audio :{
-			echoCancellation : true,
-			noiseSuppression: true,
-			autoGainControl: true
-		}
+       // audio: true
+		 audio :{
+		 	echoCancellation : true,
+		 	noiseSuppression: true,
+		 	autoGainControl: true
+		 }
 	};
 
 	
