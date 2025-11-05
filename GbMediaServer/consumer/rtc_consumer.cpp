@@ -282,6 +282,40 @@ namespace gb_media_server
 		  // TODO@chensong  2025-10-24  AAC 转OPUS暂时不支持 后期支持
 		  muxer_->EncodeAudio(frame);
 #endif //
+
+		  auto  single_packet =
+			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
+
+		  single_packet->SetPayloadType(sdp_.GetAudioPayloadType());
+		  single_packet->SetTimestamp(pts);
+		  single_packet->SetSsrc(sdp_.AudioSsrc());
+		  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
+
+		 // if (!packetizer->NextPacket(single_packet.get()))
+		 // {
+		//	  break;
+		 // }
+		  //  //int16_t   packet_id = transprot_seq_++;
+		  single_packet->SetSequenceNumber(audio_seq_++);
+		  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kAudio);
+
+		  uint8_t* audio_ptr =  single_packet->AllocatePayload(frame.size());
+		  if (audio_ptr)
+		  {
+			  memcpy(audio_ptr, frame.data(), frame.size());
+			  single_packet->SetPayloadSize(frame.size());
+		  }
+		  const uint8_t* data = single_packet->data();
+		  size_t   len = single_packet->size();
+		  if (!srtp_send_session_->EncryptRtp(&data, &len))
+		  {
+			 // continue;
+			  return;
+		  }
+
+
+		  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, len), rtc_remote_address_, rtc::PacketOptions());
+		  //packets.push_back( std::move(single_packet));
 	  }
 
 }

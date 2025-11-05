@@ -274,6 +274,8 @@ namespace gb_media_server {
 			{
 				//GBMEDIASERVER_LOG(LS_INFO) << "payload_type:" << rtp_packet_received.PayloadType()
 				//	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType()  ;
+				GetStream()->AddAudioFrame(rtc::CopyOnWriteBuffer(rtp_packet_received.payload().data(), rtp_packet_received.payload_size())
+				, rtp_packet_received.Timestamp());
 				return;
 			}
 			GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
@@ -302,7 +304,7 @@ namespace gb_media_server {
 						//video_parse->video_payload.size()
 					));
 
-#if 1
+#if 0
 
 				static FILE* out_file_ptr = fopen("rtc_push.h264", "wb+");
 				if (out_file_ptr)
