@@ -272,14 +272,23 @@ namespace gb_media_server {
 			//}
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{
-				//GBMEDIASERVER_LOG(LS_INFO) << "payload_type:" << rtp_packet_received.PayloadType()
-				//	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType()  ;
-				GetStream()->AddAudioFrame(rtc::CopyOnWriteBuffer(rtp_packet_received.payload().data(), rtp_packet_received.payload_size())
-				, rtp_packet_received.Timestamp());
+				
+				if (rtp_packet_received.PayloadType() == sdp_.GetAudioPayloadType())
+				{
+
+					GetStream()->AddAudioFrame(rtc::CopyOnWriteBuffer(rtp_packet_received.payload().data(), rtp_packet_received.payload_size())
+						, rtp_packet_received.Timestamp());
+				}
+				else
+				{
+					 GBMEDIASERVER_LOG(LS_INFO) << "payload_type:" << rtp_packet_received.PayloadType()
+				 	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType()  ;
+
+				}
 				return;
 			}
-			GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
-				<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();
+			//GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
+			//	<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();
 			//memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
 			//recv_buffer_size_ += rtp_packet_received.payload_size();
 			nal_parse_->parse_packet(rtp_packet_received.payload().data(), rtp_packet_received.payload_size());

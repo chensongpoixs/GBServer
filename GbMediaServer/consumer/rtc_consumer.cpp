@@ -285,17 +285,13 @@ namespace gb_media_server
 
 		  auto  single_packet =
 			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
-
+		  //GBMEDIASERVER_LOG(LS_INFO) << "audio size:" << frame.size() << ", pts: " << pts;
 		  single_packet->SetPayloadType(sdp_.GetAudioPayloadType());
 		  single_packet->SetTimestamp(pts);
 		  single_packet->SetSsrc(sdp_.AudioSsrc());
 		  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
-
-		 // if (!packetizer->NextPacket(single_packet.get()))
-		 // {
-		//	  break;
-		 // }
-		  //  //int16_t   packet_id = transprot_seq_++;
+		  single_packet->SetMarker(true);
+	 
 		  single_packet->SetSequenceNumber(audio_seq_++);
 		  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kAudio);
 

@@ -9,7 +9,7 @@ var stopPullBtn = document.getElementById("stopPullBtn");
 
 var pullCaptureBtn = document.getElementById("pullCaptureBtn");
 
-pullBtn.addEventListener("click", startPull);
+pullBtn.addEventListener("click", pullStream);
 stopPullBtn.addEventListener("click", stopPull);
 
 pullCaptureBtn.addEventListener("click",  CaptureBtnpull);
@@ -24,16 +24,14 @@ const config = {};
 var remoteStream;
 var captureType = 1;
 
+
+
+let audioElem ;
 //本地视频流
 //var localStream = null;
 var lastConnectionState = "";
 
-function startPull() {
-    console.log("send pull: /RtcApi/pull");
-
-pullStream();
-    
-}
+ 
 
 
 function CaptureBtnpull()
@@ -64,36 +62,35 @@ function sendOffer(offerSdp) {
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 
 	// 创建一个新的XMLHttpRequest对象
-var xhr = new XMLHttpRequest();
-// 打开一个新的请求
-xhr.open('POST', rtc_api_server+'/api/rtc/play', true);
-// 设置请求头，指定发送的数据类型
-xhr.setRequestHeader('Content-Type', 'application/json');
-// 创建要发送的数据对象
-var data = {
-   type: 'offer',
-   sdp: offerSdp,
-   streamurl: StreamUrl,
-   caputretype: captureType,
-   clientid: clientId
-  
-};
-console.log('JSON.stringify(data) :' + JSON.stringify(data));
-// 发送请求并将数据转换为JSON字符串
-xhr.send(JSON.stringify(data));
-// 设置请求完成时的回调函数
-xhr.onreadystatechange = function() {
-   if (xhr.readyState === 4 && xhr.status === 200) {
-       // 请求成功，处理响应数据
-       console.log(xhr.responseText);
-	   var ret_data =  JSON.parse(xhr.responseText)
-	   console.log('ret_data :' + ret_data.sdp);
-	   pc.setRemoteDescription(ret_data).then(
-        setRemoteDescriptionSuccess,
-        setRemoteDescriptionError
-    );
-   }
-};
+	var xhr = new XMLHttpRequest();
+	// 打开一个新的请求
+	xhr.open('POST', rtc_api_server+'/api/rtc/play', true);
+	// 设置请求头，指定发送的数据类型
+	xhr.setRequestHeader('Content-Type', 'application/json');
+	// 创建要发送的数据对象
+	var data = {
+		type: 'offer',
+		sdp: offerSdp,
+		streamurl: StreamUrl,
+		caputretype: captureType,
+		clientid: clientId 
+	};
+	console.log('JSON.stringify(data) :' + JSON.stringify(data));
+	// 发送请求并将数据转换为JSON字符串
+	xhr.send(JSON.stringify(data));
+	// 设置请求完成时的回调函数
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState === 4 && xhr.status === 200) {
+			// 请求成功，处理响应数据
+			console.log(xhr.responseText);
+			var ret_data =  JSON.parse(xhr.responseText)
+			console.log('ret_data :' + ret_data.sdp);
+			pc.setRemoteDescription(ret_data).then(
+				setRemoteDescriptionSuccess,
+				setRemoteDescriptionError
+			);
+		}
+	};
 	
 	
 }
@@ -173,7 +170,7 @@ function handleOnAudioTrack  ( audioMediaStream)
 	else if( remoteVideo.srcObject !== audioMediaStream)
 	{
 		// create a new audio element
-		let audioElem = document.createElement("Audio");
+		audioElem = document.createElement("Audio");
 		audioElem.srcObject = audioMediaStream;
 
 		// there is no way to autoplay audio (even muted), so we defer audio until first click
