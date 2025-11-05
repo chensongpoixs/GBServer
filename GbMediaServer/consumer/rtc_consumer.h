@@ -68,8 +68,8 @@ namespace gb_media_server {
 
 		 
 		virtual void OnDtlsRecv(const uint8_t *buf, size_t size);
-		virtual void OnSrtpRtp(const uint8_t * data, size_t size);
-		virtual void OnSrtpRtcp(const uint8_t * data, size_t size);
+		virtual void OnSrtpRtp(  uint8_t * data, size_t size);
+		virtual void OnSrtpRtcp(  uint8_t * data, size_t size);
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
 		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);

@@ -143,7 +143,7 @@ namespace  gb_media_server
 		auto iter1 = rtc_interfaces_.find(key);
 		if (iter1 != rtc_interfaces_.end())
 		{
-			iter1->second->OnSrtpRtp(data, len);
+			iter1->second->OnSrtpRtp((uint8_t *)data, len);
 		}
 		else
 		{
@@ -159,7 +159,7 @@ namespace  gb_media_server
 		auto iter1 = rtc_interfaces_.find(key);
 		if (iter1 != rtc_interfaces_.end())
 		{
-			iter1->second->OnSrtpRtcp(data, len);
+			iter1->second->OnSrtpRtcp((uint8_t *)data, len);
 		}
 		else
 		{

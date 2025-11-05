@@ -28,6 +28,9 @@
 #include "server/session.h"
 #include "server/gb_media_service.h"
 #include "server/rtc_service.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/video_rtp_depacketizer_h264.h"
+
+
 namespace gb_media_server {
 
 
@@ -244,7 +247,7 @@ namespace gb_media_server {
 	{
 		dtls_.OnRecv(buf, size);
 	}
-	void RtcProducer::OnSrtpRtp(const uint8_t* data, size_t size)
+	void RtcProducer::OnSrtpRtp(  uint8_t* data, size_t size)
 	{
 		//GBMEDIASERVER_LOG_T_F(LS_INFO);
 		if (!srtp_recv_session_->DecryptSrtp((uint8_t*)data, (size_t*)&size))
@@ -258,7 +261,7 @@ namespace gb_media_server {
 		bool ret = rtp_packet_received.Parse(data , size);
 		if (!ret)
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" ; //<< "  , hex :" << rtc::hex_encode((const char *)(buffer.begin() + paser_size), (size_t)(read_bytes - paser_size));
+			GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" << size; //<< "  , hex :" << rtc::hex_encode((const char *)(buffer.begin() + paser_size), (size_t)(read_bytes - paser_size));
 		}
 		else
 		{
@@ -267,17 +270,36 @@ namespace gb_media_server {
 			//{
 			//	//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
 			//}
-			memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.size());
-			recv_buffer_size_ += rtp_packet_received.size();
+			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
+			{
+				//GBMEDIASERVER_LOG(LS_INFO) << "payload_type:" << rtp_packet_received.PayloadType()
+				//	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType()  ;
+				return;
+			}
+			GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
+				<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();
+			//memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
+			//recv_buffer_size_ += rtp_packet_received.payload_size();
+			nal_parse_->parse_packet(rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
 			if (rtp_packet_received.Marker())
 			{
-				nal_parse_->parse_packet(recv_buffer_, recv_buffer_size_);
-				recv_buffer_size_ = 0;
+				 // libmedia_transfer_protocol::VideoRtpDepacketizerH264   video_rtp_depacket_h264;
+				//absl::optional<libmedia_transfer_protocol::VideoRtpDepacketizer::ParsedRtpPayload>   video_parse =  video_rtp_depacket_h264.Parse(rtc::CopyOnWriteBuffer(recv_buffer_, recv_buffer_size_));
+				
+				//if (!video_parse)
+				//{
+				//	return;
+				//}
+				//recv_buffer_size_ = 0;
+				
 				libmedia_codec::EncodedImage encode_image;
+				encode_image.SetTimestamp(rtp_packet_received.Timestamp());
 				encode_image.SetEncodedData(
 					libmedia_codec::EncodedImageBuffer::Create(
 						nal_parse_->buffer_stream_,
 						nal_parse_->buffer_index_
+						//video_parse->video_payload.data(),
+						//video_parse->video_payload.size()
 					));
 
 #if 1
@@ -285,7 +307,10 @@ namespace gb_media_server {
 				static FILE* out_file_ptr = fopen("rtc_push.h264", "wb+");
 				if (out_file_ptr)
 				{
+					char start_code[4] = {0x00, 0x00, 0x00, 0x01};
+					//fwrite(start_code, 1, sizeof(start_code), out_file_ptr);
 					fwrite(nal_parse_->buffer_stream_, 1, nal_parse_->buffer_index_, out_file_ptr);
+					//fwrite(video_parse->video_payload.data(), 1, video_parse->video_payload.size(), out_file_ptr);
 					fflush(out_file_ptr);
 				}
 
@@ -298,7 +323,7 @@ namespace gb_media_server {
 		}
 
 	}
-	void RtcProducer::OnSrtpRtcp(const uint8_t* data, size_t size)
+	void RtcProducer::OnSrtpRtcp(  uint8_t* data, size_t size)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 		if (!srtp_recv_session_->DecryptSrtcp((uint8_t*)data, (size_t*)&size))

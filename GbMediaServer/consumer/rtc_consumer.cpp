@@ -194,10 +194,10 @@ namespace gb_media_server
 	  {
 		  dtls_.OnRecv(buf, size);
 	  }
-	  void RtcConsumer::OnSrtpRtp(const uint8_t * data, size_t size)
+	  void RtcConsumer::OnSrtpRtp(  uint8_t * data, size_t size)
 	  {
 	  }
-	  void RtcConsumer::OnSrtpRtcp(const uint8_t * data, size_t size)
+	  void RtcConsumer::OnSrtpRtcp(  uint8_t * data, size_t size)
 	  {
 	  }
   
