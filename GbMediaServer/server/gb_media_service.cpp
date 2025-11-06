@@ -47,6 +47,14 @@ namespace  gb_media_server
 		rtc_server_->SignalDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
 		rtc_server_->SignalRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
 		rtc_server_->SignalRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
+
+		/// <summary>
+		/// 
+		/// </summary>
+		rtc_server_->SignalSyncStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
+		rtc_server_->SignalSyncDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
+		rtc_server_->SignalSyncRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
+		rtc_server_->SignalSyncRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
 	}
 	GbMediaService::~GbMediaService()
 	{

@@ -81,6 +81,36 @@ namespace  gb_media_server
 			// timestamp by value.
 			const int64_t& ms) ;
 
+
+	public:
+		void OnStun(rtc::Socket* socket,
+			const uint8_t* data,
+			size_t len,
+			const rtc::SocketAddress& addr,
+			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
+			// timestamp by value.
+			const int64_t& ms);
+		void OnDtls(rtc::Socket* socket,
+			const uint8_t* data,
+			size_t len,
+			const rtc::SocketAddress& addr,
+			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
+			// timestamp by value.
+			const int64_t& ms);
+		void OnRtp(rtc::Socket* socket,
+			const uint8_t* data,
+			size_t len,
+			const rtc::SocketAddress& addr,
+			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
+			// timestamp by value.
+			const int64_t& ms);
+		void OnRtcp(rtc::Socket* socket,
+			const uint8_t* data,
+			size_t len,
+			const rtc::SocketAddress& addr,
+			// TODO(bugs.webrtc.org/9584): Change to passing the int64_t
+			// timestamp by value.
+			const int64_t& ms);
 	public:
 		 
 		

@@ -126,7 +126,7 @@ function getMediaStream(stream)
 }
 
 function stopPush() {
-    console.log("send stop push: /signaling/stoppush");
+    console.log("send stop push: /api/rtc/stoppush");
 
     localVideo.srcObject = null;
     if (localStream && localStream.getAudioTracks()) {
@@ -159,7 +159,7 @@ function pushStream() {
             state = push_pc.iceConnectionState;
         }
 
-        $("#tips2").html("连接状态: " + state);
+        $("#pushTips2").html("Connection Status: " + state);
         lastConnectionState = push_pc.iceConnectionState;
     }
      push_pc.onsignalingstatechange = function(state)

@@ -177,7 +177,7 @@ namespace gb_media_server
 		auto streamurl = root["streamurl"].asString();
 		auto clientip = root["clientid"].asString();
 		auto sdp = root["sdp"].asString();
-		auto capture_value = root["caputretype"];
+		//auto capture_value = root["caputretype"];
 
 
 		std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);

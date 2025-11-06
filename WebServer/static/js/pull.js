@@ -105,7 +105,7 @@ function pullStream() {
             state = pc.iceConnectionState;
         }
 
-        $("#tips2").html("连接状态: " + state);
+        $("#pullTips2").html("Connection Status: " + state);
         lastConnectionState = pc.iceConnectionState;
     }
      pc.onsignalingstatechange = function(state)

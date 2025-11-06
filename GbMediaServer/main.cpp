@@ -195,7 +195,9 @@ int main(int argc, char *argv[])
 		
 	}
 	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
-	gb_media_server::GbMediaService::GetInstance().Start(gb_media_server::GbMediaService::GetInstance().RtpWanIp().c_str(),
+	gb_media_server::GbMediaService::GetInstance().Start(
+		"0.0.0.0",
+		//gb_media_server::GbMediaService::GetInstance().RtpWanIp().c_str(),
 		gb_media_server::GbMediaService::GetInstance().RtpPort());
 	while (true)
 	{

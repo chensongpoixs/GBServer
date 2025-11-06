@@ -118,8 +118,8 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				GBMEDIASERVER_LOG_T_F(LS_INFO) << "======" << nal_index << "============>kSlice, size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize( frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize( frame.size());
 				break;
 			}
 												 // Slices below don't contain SPS or PPS ids.
@@ -132,8 +132,8 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>kAud, size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4)video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 			case webrtc::H264::NaluType::kStapA:
@@ -142,16 +142,16 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "========" << nal_index << "==========>kFuA---kStapA  , size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 			default: {
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "=====" << nal_index << "=============>default  packet  , size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 

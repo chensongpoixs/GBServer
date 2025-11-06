@@ -252,7 +252,7 @@ namespace gb_media_server {
 		//GBMEDIASERVER_LOG_T_F(LS_INFO);
 		if (!srtp_recv_session_->DecryptSrtp((uint8_t*)data, (size_t*)&size))
 		{
-			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtp failed !!!";
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtp failed  size : " <<size<<" !!!";
 			return;
 		}
 
@@ -265,7 +265,7 @@ namespace gb_media_server {
 		}
 		else
 		{
-			//RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.ToString();
+		//	if ()
 			//if (rtp_packet_received.PayloadType() == 96)
 			//{
 			//	//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
@@ -277,7 +277,7 @@ namespace gb_media_server {
 				{
 
 					GetStream()->AddAudioFrame(rtc::CopyOnWriteBuffer(rtp_packet_received.payload().data(), rtp_packet_received.payload_size())
-						, rtp_packet_received.Timestamp());
+						, rtp_packet_received.Timestamp()/90);
 				}
 				else
 				{
@@ -287,6 +287,8 @@ namespace gb_media_server {
 				}
 				return;
 			}
+			RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber();
+
 			//GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
 			//	<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();
 			//memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
@@ -304,7 +306,7 @@ namespace gb_media_server {
 				//recv_buffer_size_ = 0;
 				
 				libmedia_codec::EncodedImage encode_image;
-				encode_image.SetTimestamp(rtp_packet_received.Timestamp());
+				encode_image.SetTimestamp(rtp_packet_received.Timestamp()/90);
 				encode_image.SetEncodedData(
 					libmedia_codec::EncodedImageBuffer::Create(
 						nal_parse_->buffer_stream_,
