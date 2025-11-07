@@ -68,7 +68,7 @@ namespace gb_media_server
 			context->SendFlvHeader(true, true);
 		}
 		//GBMEDIASERVER_LOG(LS_INFO) << "ts:" << rtc::TimeMillis() << ", f:" << frame.Timestamp();
-		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp()  /*frame.Timestamp()*/ );
+		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp() /1000 /*frame.Timestamp()*/ );
 
 
 	}
@@ -87,7 +87,8 @@ namespace gb_media_server
 			context->SendFlvHeader(true, true);
 		}
 		rtc::CopyOnWriteBuffer  new_frame = frame;
-		context->SendFlvAudioFrame(new_frame, pts);
+		// flv 的 pts精确到毫秒级别
+		context->SendFlvAudioFrame(new_frame, pts / 1000);
 
 	}
 }
