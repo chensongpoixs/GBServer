@@ -33,6 +33,7 @@
 #include "server/rtc_service.h"
 #include "common_video/h264/h264_common.h"
 #include "server/stream.h"
+#include "utils/yaml_config.h"
 namespace gb_media_server
 {
 	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
@@ -72,8 +73,8 @@ namespace gb_media_server
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
 		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
 		// 本地ip port 
-		sdp_.SetServerAddr(GbMediaService::GetInstance().RtpWanIp());
-		sdp_.SetServerPort(GbMediaService::GetInstance().RtpPort());
+		sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
+		sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 

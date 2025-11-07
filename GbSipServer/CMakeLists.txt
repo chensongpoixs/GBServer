@@ -119,6 +119,9 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
 
 set(ALL_LIB 
 
+	yaml_cpp
+
+
  crypt32.lib
 			iphlpapi.lib
 			secur32.lib
@@ -193,7 +196,7 @@ ws2_32.lib
 			p2p 
 			pc 
 			rtc_base
-			yaml-cpp.lib
+			 
 
 			)
  

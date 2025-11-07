@@ -374,7 +374,7 @@ libcross_platform_collection_render
 		libvpx.lib
 		libvpx_asm.lib
 
-		yaml-cpp
+		yaml_cpp
 		 
 
 			)
