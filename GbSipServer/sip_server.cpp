@@ -100,7 +100,7 @@ namespace gbsip_server
 			//eXosip_free
 		}
 	}
-	bool SipServer::init(const SipServerInfo & info)
+	bool SipServer::init(const SipServerConfig & info)
 	{
 		sip_server_info_ = std::move(info);
 

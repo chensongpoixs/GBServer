@@ -5,7 +5,7 @@
 #include "oatpp-swagger/Model.hpp"
 #include "oatpp-swagger/Resources.hpp"
 #include "oatpp/macro/component.hpp"
-
+#include "utils/yaml_config.h"
 /**
  *  Swagger ui is served at
  *  http://host:port/swagger/ui
@@ -30,7 +30,8 @@ public:
     .setLicenseName("Apache License, Version 2.0")
     .setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0")
     
-    .addServer("http://localhost:8000", "server on localhost");
+    .addServer("http://" +gbsip_server::YamlConfig::GetInstance().GetHttpServerConfig().ip + ":" + 
+        std::to_string(gbsip_server::YamlConfig::GetInstance().GetHttpServerConfig().port), "server on localhost");
     
     return builder.build();
     

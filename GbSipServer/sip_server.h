@@ -32,22 +32,11 @@ extern "C" {
 #include "oatpp/network/Server.hpp"
 #include "AppComponent.hpp"
 #include "libp2p_peerconnection/connection_context.h"
+#include "utils/yaml_config.h"
 namespace gbsip_server
 {
 
-	struct SipServerInfo
-	{
-		std::string ua;
-		std::string nonce; //sip服务的随机数字
-		std::string ip; // sip 
-		uint16_t   port; // sip 
-		std::string  sipServerId; //  sip服务的ID
-		std::string  SipServerRealm; //sip服务域名
-		std::string  SipSeverPass; // sip password 
-		int32_t      SipTimeout;
-		int32_t      SipExpiry; //sip
-		
-	};
+	
 
 
 	struct SipClient
@@ -77,7 +66,7 @@ namespace gbsip_server
 	public:
 		OATPP_COMPONENT(std::shared_ptr<DeviceDb>,  device_db_);
 	public:
-		bool init(const SipServerInfo & info);
+		bool init(const SipServerConfig& info);
 		bool Start();
 
 
@@ -129,7 +118,7 @@ namespace gbsip_server
 	 	webrtc::ScopedTaskSafety task_safety_;
 		rtc::scoped_refptr<libp2p_peerconnection::ConnectionContext>	context_;
 		std::atomic<bool>  stoped_;
-		SipServerInfo    sip_server_info_;
+		SipServerConfig    sip_server_info_;
 		struct eXosip_t *sip_context_;
 
 		

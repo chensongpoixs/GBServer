@@ -86,6 +86,11 @@ LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 #endif // 
 
+
+
+static bool stoped = false;
+
+
 int main(int argc, char *argv[])
 {
 #ifdef WIN32
@@ -97,123 +102,26 @@ int main(int argc, char *argv[])
 	}
 #endif // WIN32
 
-
-
-	uint8_t     audio[19] = {0xff, 0xf1, 0x60, 0x40, 0x21, 0x7f, 0xfc, 0x01, 0x1e, 0x15};
-
-
-	libmedia_codec::AdtsHeader adts_header;
-
-	adts_header.parse(&audio[0], 12);
-
-	//printf("chensong\n");
-
-
-#if 0
-
-
-	std::unique_ptr< libmedia_transfer_protocol::librtc::RtcServer> rtc_server_;
-	std::unique_ptr<rtc::Thread>   network_thread_ = rtc::Thread::CreateWithSocketServer();
-	network_thread_->SetName("network_thread", nullptr);
-
-	network_thread_->Start();
-	std::unique_ptr<rtc::BasicNetworkManager> default_network_manager_;
-	std::unique_ptr< libice::BasicPacketSocketFactory>  default_socket_factory_;
-	if (network_thread_->IsCurrent())
+	const char* config_file = "gbmedia_server.yaml";
+	if (argc > 2)
 	{
-
-		//rtc::InitRandom(rtc::Time32());
-
-		// If network_monitor_factory_ is non-null, it will be used to create a
-		// network monitor while on the network thread.
-		default_network_manager_ = std::make_unique<rtc::BasicNetworkManager>(
-			nullptr, network_thread_->socketserver());
-
-		// TODO(bugs.webrtc.org/13145): Either require that a PacketSocketFactory
-		// always is injected (with no need to construct this default factory), or get
-		// the appropriate underlying SocketFactory without going through the
-		// rtc::Thread::socketserver() accessor.
-		default_socket_factory_ = std::make_unique<libice::BasicPacketSocketFactory>(
-			network_thread_->socketserver());
+		config_file = argv[1];
 	}
-	else
+	
+	  
+	bool init = gb_media_server::GbMediaService::GetInstance().Init(config_file);
+	if (init)
 	{
+		gb_media_server::GbMediaService::GetInstance().Start();
 
-		network_thread_->PostTask(RTC_FROM_HERE, [&]() {
-			//	RTC_DCHECK_RUN_ON(network_thread_);
-				//rtc::InitRandom(rtc::Time32());
-
-				// If network_monitor_factory_ is non-null, it will be used to create a
-				// network monitor while on the network thread.
-				//rtc::InitRandom(rtc::Time32());
-
-			// If network_monitor_factory_ is non-null, it will be used to create a
-			// network monitor while on the network thread.
-			default_network_manager_ = std::make_unique<rtc::BasicNetworkManager>(
-				nullptr, network_thread_->socketserver());
-
-			// TODO(bugs.webrtc.org/13145): Either require that a PacketSocketFactory
-			// always is injected (with no need to construct this default factory), or get
-			// the appropriate underlying SocketFactory without going through the
-			// rtc::Thread::socketserver() accessor.
-			default_socket_factory_ = std::make_unique<libice::BasicPacketSocketFactory>(
-				network_thread_->socketserver());
-
-		});
+		while (!stoped)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
 	}
-	rtc_server_ = std::make_unique<libmedia_transfer_protocol::librtc::RtcServer>(network_thread_.get());
-
-	rtc_server_->SignalStunPacket.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnStun);
-	rtc_server_->SignalDtlsPacket.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnDtls);
-	rtc_server_->SignalRtpPacket.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnRtp);
-	rtc_server_->SignalRtcpPacket.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnRtcp);
-
-
-
-	rtc_server_->SignalStunPacketBuffer.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnStun);
-	rtc_server_->SignalDtlsPacketBuffer.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnDtls);
-	rtc_server_->SignalRtpPacketBuffer.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnRtp);
-	rtc_server_->SignalRtcpPacketBuffer.connect(&gb_media_server::RtcService::GetInstance(), &gb_media_server::RtcService::OnRtcp);
-	rtc_server_->Start("192.168.1.2", 20001);
-
-	//libmedia_transfer_protocol::libsip::SipServer sip_server_;
-	//sip_server_.Start();
-
-	//gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", 20001);
-	while (true)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		//	gb_media_server::GbMediaService::GetInstance().network_thread()->Run();
-			//gb_media_server::GbMediaService::GetInstance().worker_thread()->Run();
-	}
-
-#endif // 
-	gb_media_server::WebService  web_server_;
-	gb_media_server::GbMediaService::GetInstance().Init();
-	web_server_.StartWebServer("0.0.0.0", 8001);
-	{
-		
-	}
-	//gb_media_server::RtcService::GetInstance().StartWebServer("192.168.1.2", 8001);
-	gb_media_server::GbMediaService::GetInstance().Start(
-		"0.0.0.0",
-		//gb_media_server::GbMediaService::GetInstance().RtpWanIp().c_str(),
-		gb_media_server::GbMediaService::GetInstance().RtpPort());
-	while (true)
-	{
-		std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-	//oatpp::Environment::init();
-	//
-	//run();
-	//
-	///* Print how many objects were created during app running, and what have left-probably leaked */
-	///* Disable object counting for release builds using '-D OATPP_DISABLE_ENV_OBJECT_COUNTERS' flag for better performance */
-	//std::cout << "\nEnvironment:\n";
-	//std::cout << "objectsCount = " << oatpp::Environment::getObjectsCount() << "\n";
-	//std::cout << "objectsCreated = " << oatpp::Environment::getObjectsCreated() << "\n\n";
-	//
-	//oatpp::Environment::destroy();
+	gb_media_server::GbMediaService::GetInstance().Destroy();
+	 
+	 
 
 	return EXIT_SUCCESS;
 }

@@ -161,8 +161,10 @@ namespace gb_media_server {
 			fwrite(frame.data(), 1, frame.size(), out_file_ptr);
 			fflush(out_file_ptr);
 		}
-#endif // 0
+		//国标暂时不处理音频
 		GetStream()->AddAudioFrame(std::move(frame), pts);
+#endif // 0
+		
 	}
 	 
 }

@@ -1,0 +1,38 @@
+#E
+
+#[可选] http 监听的HTTP端口, 网页和接口调用都是这个端口
+server:
+  port: 8003
+  # [可选] HTTPS配置， 默认不开启
+  ssl:
+    # [可选] 是否开启HTTPS访问
+    enabled: false
+    # [可选] 证书文件路径，放置在resource/目录下即可，修改xxx为文件名
+    key-store: classpath:test.monitor.89iot.cn.jks
+    # [可选] 证书密码
+    key-store-password: gpf64qmw
+    # [可选] 证书类型， 默认为jks，根据实际修改
+    key-store-type: JKS
+# 作为28181服务器的配置
+sip:
+  ip: 192.168.9.174
+  # [可选] 28181服务监听的端口
+  port: 15060
+  # 根据国标6.1.2中规定，domain宜采用ID统一编码的前十位编码。国标附录D中定义前8位为中心编码（由省级、市级、区级、基层编号组成，参照GB/T 2260-2007）
+  # 后两位为行业编码，定义参照附录D.3
+  # 3701020049标识山东济南历下区 信息行业接入
+  # [可选]
+  domain: 4101050000
+  # [可选]
+  id: 41010500002000000001
+  # [可选] 默认设备认证密码，后续扩展使用设备单独密码, 移除密码将不进行校验
+  password: 12345678
+  # 是否存储alarm信息
+  alarm: false
+
+#gbmedia 默认服务器配置
+media: 
+  # [必须修改] 服务器的内网IP
+  ip: 127.0.0.1
+  # [必须修改]  服务器的http.port
+  http-port: 8001

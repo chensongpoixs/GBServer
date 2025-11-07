@@ -24,7 +24,7 @@
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
 #include "libmedia_transfer_protocol/libnetwork/tcp_server.h"
 #include "rtc_base/logging.h"
-
+#include "server/web_service.h"
 namespace  gb_media_server
 {
 
@@ -64,13 +64,12 @@ namespace  gb_media_server
 		void OnSent(libmedia_transfer_protocol::libnetwork::Connection* conn);
 
 	
-		bool Init();
-		void Start(const char * ip, uint16_t port);
+		bool Init(const char * config_file);
+		void Start(/*const char * ip, uint16_t port*/);
 		void Stop();
 		void Destroy();
 
-		uint16_t   RtpPort() const { return rtc_port_; }
-		const std::string & RtpWanIp() const{ return rtc_wan_ip_; }
+		 
 #if 1
 
 		rtc::Thread* signaling_thread() { return context_->signaling_thread(); }
@@ -107,8 +106,10 @@ namespace  gb_media_server
 	//	std::unique_ptr<rtc::Thread>								network_thread_;
 	//	std::unique_ptr<rtc::Thread>                               worker_thread_;
 		//std::shared_ptr<WebrtcServer>  webrtc_server_;
-		std::string										rtc_wan_ip_ = "192.168.9.70";
-		uint16_t										rtc_port_ = 10009;
+		 
+
+
+		std::unique_ptr< WebService>										web_service_;
 	};
 }
 

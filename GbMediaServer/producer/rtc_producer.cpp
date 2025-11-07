@@ -282,12 +282,15 @@ namespace gb_media_server {
 				else
 				{
 					 GBMEDIASERVER_LOG(LS_INFO) << "payload_type:" << rtp_packet_received.PayloadType()
-				 	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType()  ;
+				 	<< ", ssrc:" << rtp_packet_received.Ssrc() << ", video payload type:" << sdp_.GetVideoPayloadType() 
+						 ;
 
 				}
 				return;
 			}
-			RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber();
+			RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() 
+				<< ", seq:" << rtp_packet_received.SequenceNumber()
+				<< ", masker:" << rtp_packet_received.Marker();
 
 			//GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
 			//	<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();

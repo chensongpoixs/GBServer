@@ -34,15 +34,15 @@ add_definitions(
 		-DTEST_RTC_PLAY=1
 
         ## define path to swagger-ui static resources folder
-        -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
-
-        ## SQLite database file
-        -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
-        ## SQLite database test file
-        -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
-
-        ## Path to database migration scripts
-        -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
+       # -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
+	   #
+       # ## SQLite database file
+       # -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
+       # ## SQLite database test file
+       # -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
+	   #
+       # ## Path to database migration scripts
+       # -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
 )
 
 
@@ -374,7 +374,7 @@ libcross_platform_collection_render
 		libvpx.lib
 		libvpx_asm.lib
 
-
+		yaml-cpp
 		 
 
 			)

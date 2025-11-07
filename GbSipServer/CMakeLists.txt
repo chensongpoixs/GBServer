@@ -100,7 +100,7 @@ file(GLOB GbSipServer_source
 	*.cpp 
 	
 	sql/*.sql 
-	
+	*.hpp
         )
 		
 
@@ -193,7 +193,8 @@ ws2_32.lib
 			p2p 
 			pc 
 			rtc_base
-			   
+			yaml-cpp.lib
+
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
