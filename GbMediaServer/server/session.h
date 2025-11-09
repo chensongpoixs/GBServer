@@ -62,6 +62,10 @@ namespace  gb_media_server
 		 
 
 		void  AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t pts);
+
+		// ÇëÇó¹Ø¼üÖ¡
+		void ConsumerRequestKeyFrame();
+
 	public:
 
 		std::shared_ptr<Stream> GetStream();

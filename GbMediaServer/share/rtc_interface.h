@@ -59,7 +59,10 @@ namespace gb_media_server {
 	   virtual void MayRunDtls() = 0;
 	public:
 
+		bool SendSrtpRtp(uint8_t* data, size_t  size);
+		bool SendSrtpRtcp(uint8_t* data, size_t size);
 
+		// 
 
 		virtual void OnDtlsRecv(const uint8_t* buf, size_t size) = 0;
 		virtual void OnSrtpRtp(  uint8_t* data, size_t size) = 0;

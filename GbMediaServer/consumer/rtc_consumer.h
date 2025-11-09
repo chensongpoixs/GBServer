@@ -53,6 +53,10 @@ namespace gb_media_server {
 		explicit RtcConsumer(   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
 		virtual ~RtcConsumer();
 
+
+		
+
+		void RequestKeyFrame();
 	
 	public:
 		virtual  bool ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string &sdp);

@@ -239,6 +239,15 @@ namespace  gb_media_server
 		 
 	}
 
+	void Session::ConsumerRequestKeyFrame()
+	{
+		if (producer_)
+		{
+			producer_->RequestKeyFrame();
+		}
+		
+	}
+
 	std::shared_ptr<Stream> Session::GetStream()
 	{
 		return stream_;

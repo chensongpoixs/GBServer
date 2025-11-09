@@ -42,7 +42,7 @@
 #include "libmedia_transfer_protocol/libmpeg/mpeg_decoder.h"
 #include "producer/producer.h"
 #include "share/rtc_interface.h"
-
+#include "libmedia_transfer_protocol/librtcp/rtcp_context_recv.h"
 
 #include "libmedia_codec/video_codecs/nal_parse_factory.h"
 
@@ -57,6 +57,11 @@ namespace gb_media_server {
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer)  ;
 
 
+
+
+		virtual void RequestKeyFrame();
+
+		void OnTimer();
 	public:
 		virtual ShareResourceType ShareResouceType() const { return kProducerTypeRtc; }
 	public:
@@ -135,13 +140,19 @@ namespace gb_media_server {
 
 		//std::unique_ptr< libmedia_transfer_protocol::libmpeg::MpegDecoder>    mpeg_decoder_;
 
-
+		webrtc::ScopedTaskSafety task_safety_;
 		//rtc::Buffer recv_buffer_;
 		   uint8_t  * recv_buffer_;
 		int32_t recv_buffer_size_;
 
 
 		std::unique_ptr<libmedia_codec::NalParseInterface>  nal_parse_;
+
+		std::unique_ptr<libmedia_transfer_protocol::librtcp::RtcpContextRecv>   rtcp_context_recv_;
+		int32_t   num_skipped_packets_ = 0;
+
+
+		int64_t    rtcp_rr_timestamp_;
 	};
 }
 

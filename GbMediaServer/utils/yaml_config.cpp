@@ -67,10 +67,10 @@ namespace  gb_media_server
 			}
 			if (node["rtp"])
 			{
-				rtp_port_config_.udp_min_port = node["rtp"]["udp"]["min"].as<uint16_t>();
-				rtp_port_config_.udp_max_port = node["rtp"]["udp"]["max"].as<uint16_t>();
-				rtp_port_config_.tcp_min_port = node["rtp"]["tcp"]["min"].as<uint16_t>();
-				rtp_port_config_.tcp_max_port = node["rtp"]["tcp"]["max"].as<uint16_t>();
+				rtp_port_config_.udp_min_port = node["rtp"]["udp"]["min_port"].as<uint16_t>();
+				rtp_port_config_.udp_max_port = node["rtp"]["udp"]["max_port"].as<uint16_t>();
+				rtp_port_config_.tcp_min_port = node["rtp"]["tcp"]["min_port"].as<uint16_t>();
+				rtp_port_config_.tcp_max_port = node["rtp"]["tcp"]["max_port"].as<uint16_t>();
 				GBMEDIASERVER_LOG(LS_INFO) << "rtp config info £º\n" << "udp --> [min_port:" << rtp_port_config_.udp_min_port
 					<< "][max_port:" << rtp_port_config_.udp_max_port << "]\n"
 					<< "tcp [min_port:" << rtp_port_config_.tcp_min_port << "][max_port:" << rtp_port_config_.tcp_max_port <<"]";

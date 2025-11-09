@@ -89,6 +89,23 @@ namespace gb_media_server
 		 // 完成验证后进行发送
 
 		//StartCapture();
+
+		if (dtls_done_)
+		{
+			gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(ToQueuedTask(task_safety_,
+				[this]() {
+					if (!dtls_done_)
+					{ 
+						return;
+					}
+					rtcp_rr_timestamp_ = rtc::SystemTimeMillis();
+					rtc::Buffer buffer = rtcp_context_recv_->createRtcpRR(sdp_.VideoSsrc(), sdp_.VideoSsrc());
+
+					SendSrtpRtcp(buffer.data(), buffer.size());
+
+					OnTimer();
+				}) );
+		}
 	}
 	void RtcProducer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{

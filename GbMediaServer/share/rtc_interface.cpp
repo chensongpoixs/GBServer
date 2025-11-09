@@ -186,4 +186,35 @@ namespace gb_media_server
 	{
 		rtc_remote_address_ = addr;
 	}
+
+
+	bool RtcInterface::SendSrtpRtp(uint8_t* data, size_t  size)
+	{
+
+		//const uint8_t* data = single_packet->data();
+		//size_t   len = single_packet->size();
+		if (!srtp_send_session_->EncryptRtp((const uint8_t **)&data, &size))
+		{
+			return false;
+		}
+
+
+		GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+			rtc_remote_address_, rtc::PacketOptions());
+
+
+		return true;
+	}
+	bool RtcInterface::SendSrtpRtcp(uint8_t* data, size_t size)
+	{
+		if (!srtp_send_session_->EncryptRtcp((const uint8_t **)&data, &size))
+		{
+			return false;
+		}
+
+
+		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+			rtc_remote_address_, rtc::PacketOptions());
+		return true;
+	}
 }

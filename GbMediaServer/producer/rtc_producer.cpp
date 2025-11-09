@@ -30,6 +30,16 @@
 #include "server/rtc_service.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/video_rtp_depacketizer_h264.h"
 #include "utils/yaml_config.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/receiver_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/psfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sender_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sdes.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/extended_reports.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/bye.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rtpfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
 
 namespace gb_media_server {
 
@@ -43,6 +53,7 @@ namespace gb_media_server {
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0) 
 		 ,nal_parse_(nullptr)
+		, rtcp_context_recv_(new libmedia_transfer_protocol::librtcp::RtcpContextRecv())
 	{
 		//local_ufrag_ = GetUFrag(8);
 		//local_passwd_ = GetUFrag(32);
@@ -201,6 +212,35 @@ namespace gb_media_server {
 
 
 
+	void RtcProducer::OnTimer()
+	{
+		/*
+		 network_thread_->PostDelayedTask(
+        ToQueuedTask(task_safety_,
+                     [this, recheck = *result.recheck_event]() {
+                       SortConnectionsAndUpdateState(recheck);
+                     }),
+        result.recheck_event->recheck_delay_ms);
+		*/
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
+			[this]() {
+				if (!dtls_done_)
+				{
+
+					return ;
+				}
+				if (rtc::SystemTimeMillis() - rtcp_rr_timestamp_ > 4000)
+				{
+					rtc::Buffer buffer = rtcp_context_recv_->createRtcpRR(sdp_.VideoSsrc(), sdp_.VideoSsrc());
+
+					SendSrtpRtcp(buffer.data(), buffer.size());
+					rtcp_rr_timestamp_ = rtc::SystemTimeMillis();
+				}
+ 
+			OnTimer();
+		}), 5000);
+	}
+
 	bool RtcProducer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) {
 		sdp_.SetSdpType(rtc_sdp_type);
 		return sdp_.Decode(sdp);
@@ -293,7 +333,12 @@ namespace gb_media_server {
 			RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() 
 				<< ", seq:" << rtp_packet_received.SequenceNumber()
 				<< ", masker:" << rtp_packet_received.Marker();
-
+			if (rtcp_context_recv_ && rtp_packet_received.Ssrc() == sdp_.VideoSsrc())
+			{
+				// ntp_stamp : getStamp() * uint64_t(1000) / sample_rate
+				rtcp_context_recv_->onRtp(rtp_packet_received.SequenceNumber(), rtp_packet_received.Timestamp(),
+					rtp_packet_received.Timestamp()/ 90000, 90000,rtp_packet_received.payload_size());
+			}
 			//GBMEDIASERVER_LOG(LS_INFO) << " ssrc:" << rtp_packet_received.Ssrc() << ", payload_type:" << rtp_packet_received.PayloadType() << ", seq:" << rtp_packet_received.SequenceNumber()
 			//	<< ", marker:" << rtp_packet_received.Marker() << ", payload_size:" << rtp_packet_received.payload_size();
 			//memcpy(recv_buffer_ + recv_buffer_size_, rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
@@ -349,6 +394,7 @@ namespace gb_media_server {
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtcp failed !!!";
 			return;
 		}
+#if 0
 		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;  //rtcp_packet;
 		bool ret = rtcp_block.Parse(data, size);
 		if (!ret)
@@ -357,6 +403,136 @@ namespace gb_media_server {
 		}
 		else {
 			GBMEDIASERVER_LOG(LS_INFO) << "rtcp info:" << rtcp_block.ToString();
+		}
+#endif //
+		rtc::ArrayView<const uint8_t>  packet(data, size);
+		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;
+		// If a sender report is received but no DLRR, we need to reset the
+  // roundTripTime stat according to the standard, see
+  // https://www.w3.org/TR/webrtc-stats/#dom-rtcremoteoutboundrtpstreamstats-roundtriptime
+		struct RtcpReceivedBlock {
+			bool sender_report = false;
+			bool dlrr = false;
+		};
+		// For each remote SSRC we store if we've received a sender report or a DLRR
+		// block.
+		webrtc::flat_map<uint32_t, RtcpReceivedBlock> received_blocks;
+		for (const uint8_t* next_block = packet.begin(); next_block != packet.end();
+			next_block = rtcp_block.NextPacket()) {
+			ptrdiff_t remaining_blocks_size = packet.end() - next_block;
+			RTC_DCHECK_GT(remaining_blocks_size, 0);
+			if (!rtcp_block.Parse(next_block, remaining_blocks_size)) {
+				if (next_block == packet.begin()) {
+					// Failed to parse 1st header, nothing was extracted from this packet.
+					RTC_LOG(LS_WARNING) << "Incoming invalid RTCP packet";
+					return ;
+				}
+				 ++num_skipped_packets_;
+				break;
+			}
+
+			//if (packet_type_counter_.first_packet_time_ms == -1)
+			//	packet_type_counter_.first_packet_time_ms = clock_->TimeInMilliseconds();
+			//RTC_LOG_F(LS_INFO) << "recvice RTCP TYPE = " << rtcp_block.type();
+			switch (rtcp_block.type()) {
+			case libmedia_transfer_protocol::rtcp::SenderReport::kPacketType:
+			{
+				RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type();
+				//HandleSenderReport(rtcp_block, packet_information);
+				// 
+				//received_blocks[packet_information->remote_ssrc].sender_report = true;
+				libmedia_transfer_protocol::rtcp::SenderReport sender_report;
+				if (!sender_report.Parse(rtcp_block)) {
+					++num_skipped_packets_;
+					return;
+				}
+
+				RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type() 
+					<< ", ssrc:" << sender_report.sender_ssrc();
+				if (rtcp_context_recv_ && sender_report.sender_ssrc() == sdp_.VideoSsrc())
+				{
+					rtcp_context_recv_->onRtcp(&sender_report);
+				}
+				break;
+			}
+			case libmedia_transfer_protocol::rtcp::ReceiverReport::kPacketType:
+				   RTC_LOG_F(LS_INFO) << "recvice RR RTCP TYPE = " << rtcp_block.type();
+				//HandleReceiverReport(rtcp_block, packet_information);
+				break;
+			case libmedia_transfer_protocol::rtcp::Sdes::kPacketType:
+				RTC_LOG(LS_INFO) << "recvice SDES RTCP TYPE = " << rtcp_block.type();
+				//HandleSdes(rtcp_block, packet_information);
+				break;
+			case libmedia_transfer_protocol::rtcp::ExtendedReports::kPacketType: {
+				RTC_LOG(LS_INFO) << "recvice ExtenderR RTCP TYPE = " << rtcp_block.type();
+				//bool contains_dlrr = false;
+				//uint32_t ssrc = 0;
+				//HandleXr(rtcp_block, packet_information, contains_dlrr, ssrc);
+				//if (contains_dlrr) {
+				//	received_blocks[ssrc].dlrr = true;
+				//}
+				break;
+			}
+			case libmedia_transfer_protocol::rtcp::Bye::kPacketType:
+				RTC_LOG(LS_INFO) << "recvice Bye RTCP TYPE = " << rtcp_block.type();
+				//HandleBye(rtcp_block);
+				break;
+			case libmedia_transfer_protocol::rtcp::App::kPacketType:
+				RTC_LOG(LS_INFO) << "recvice App RTCP TYPE = " << rtcp_block.type();
+				//HandleApp(rtcp_block, packet_information);
+				break;
+			case libmedia_transfer_protocol::rtcp::Rtpfb::kPacketType:
+				RTC_LOG_F(LS_INFO) << "recvice rtpfb ";
+				//switch (rtcp_block.fmt()) {
+				//case rtcp::Nack::kFeedbackMessageType:
+				//	//  RTC_LOG_F(LS_INFO) << "recvice rtpfb  nack RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				//	HandleNack(rtcp_block, packet_information);
+				//	break;
+				//case rtcp::Tmmbr::kFeedbackMessageType:
+				//	RTC_LOG(LS_INFO) << "recvice rtpfb  tmmbr RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				//	HandleTmmbr(rtcp_block, packet_information);
+				//	break;
+				//case rtcp::Tmmbn::kFeedbackMessageType:
+				//	RTC_LOG(LS_INFO) << "recvice rtpfb tmmbn RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				//	HandleTmmbn(rtcp_block, packet_information);
+				//	break;
+				//case rtcp::RapidResyncRequest::kFeedbackMessageType:
+				//	RTC_LOG(LS_INFO) << "recvice rtpfb rapidresy ync  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				//	HandleSrReq(rtcp_block, packet_information);
+				//	break;
+				//case rtcp::TransportFeedback::kFeedbackMessageType:
+				//	//  RTC_LOG_F(LS_INFO) << "recvice rtpfb transport feedback  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				//	HandleTransportFeedback(rtcp_block, packet_information);
+				//	break;
+				//default:
+				//	++num_skipped_packets_;
+				//	break;
+				//}
+				break;
+			case libmedia_transfer_protocol::rtcp::Psfb::kPacketType:
+				RTC_LOG(LS_INFO) << "recvice psfb  pli";
+				/*switch (rtcp_block.fmt()) {
+				case rtcp::Pli::kFeedbackMessageType:
+					RTC_LOG(LS_INFO) << "recvice psfb  pli  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+					HandlePli(rtcp_block, packet_information);
+					break;
+				case rtcp::Fir::kFeedbackMessageType:
+					RTC_LOG(LS_INFO) << "recvice psfb  fir  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+					HandleFir(rtcp_block, packet_information);
+					break;
+				case rtcp::Psfb::kAfbMessageType:
+					RTC_LOG(LS_INFO) << "recvice psfb  psfb  af  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+					HandlePsfbApp(rtcp_block, packet_information);
+					break;
+				default:
+					++num_skipped_packets_;
+					break;
+				}*/
+				break;
+			default:
+				 ++num_skipped_packets_;
+				break;
+			}
 		}
 		//OnRecv(data, size);
 	}
@@ -385,5 +561,63 @@ namespace gb_media_server {
 		return rand(mt);
 	}
 #endif // 
+
+	void RtcProducer::RequestKeyFrame()
+	{
+
+		///////////////////////////////////////////////////////////////////////////
+	////                         IDR Request
+
+	//     关键帧也叫做即时刷新帧，简称IDR帧。对视频来说，IDR帧的解码无需参考之前的帧，因此在丢包严重时可以通过发送关键帧请求进行画面的恢复。
+	// 关键帧的请求方式分为三种：RTCP FIR反馈（Full intra frame request）、RTCP PLI 反馈（Picture Loss Indictor）或SIP Info消息，
+	//							具体使用哪种可通过协商确定.
+
+	///////////////////////////////////////////////////////////////////////////
+		//if (this->params.usePli)
+		{
+
+			std::unique_ptr< libmedia_transfer_protocol::rtcp::Pli> pli = std::make_unique< libmedia_transfer_protocol::rtcp::Pli>();
+			pli->SetSenderSsrc(sdp_.VideoSsrc());
+			pli->SetMediaSsrc(sdp_.VideoSsrc());
+
+			libmedia_transfer_protocol::rtcp::CompoundPacket compound;               // Builds a compound RTCP packet with
+		    compound.Append(std::move(pli));                  // a receiver report, report block
+		   // compound.Append(&fir);                 // and fir message.
+		    rtc::Buffer packet = compound.Build();
+			SendSrtpRtcp(packet.data(), packet.size());
+			//SendImmediateFeedback(pli);
+			//libmedia_transfer_protocol::rtcp::TransportFeedback  
+			//MS_DEBUG_2TAGS(rtcp, rtx, "sending PLI [ssrc:%" PRIu32 "]", GetSsrc());
+
+			// Sender SSRC should be 0 since there is no media sender involved, but
+			// some implementations like gstreamer will fail to process it otherwise.
+			//RTC::RTCP::FeedbackPsPliPacket packet(GetSsrc(), GetSsrc());
+
+			//packet.Serialize(RTC::RTCP::Buffer);
+
+			//this->pliCount++;
+
+			// Notify the listener.
+			//static_cast<RTC::RtpStreamRecv::Listener*>(this->listener)->OnRtpStreamSendRtcpPacket(this, &packet);
+		}
+		//else if (this->params.useFir)
+		{
+			//MS_DEBUG_2TAGS(rtcp, rtx, "sending FIR [ssrc:%" PRIu32 "]", GetSsrc());
+
+			// Sender SSRC should be 0 since there is no media sender involved, but
+			// some implementations like gstreamer will fail to process it otherwise.
+			//RTC::RTCP::FeedbackPsFirPacket packet(GetSsrc(), GetSsrc());
+			//auto* item = new RTC::RTCP::FeedbackPsFirItem(GetSsrc(), ++this->firSeqNumber);
+			//
+			//packet.AddItem(item);
+			//packet.Serialize(RTC::RTCP::Buffer);
+			//
+			//this->firCount++;
+
+			// Notify the listener.
+			//static_cast<RTC::RtpStreamRecv::Listener*>(this->listener)->OnRtpStreamSendRtcpPacket(this, &packet);
+		}
+	}
+
 	 
 }

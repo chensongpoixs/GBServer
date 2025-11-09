@@ -33,6 +33,7 @@ purpose:		GOPMGR
 #include "server/session.h" 
 #include "producer/producer.h"
 #include "server/stream.h"
+
 namespace gb_media_server
 { 
 		Producer::Producer(  const std::shared_ptr<Stream> & stream, 
@@ -42,6 +43,7 @@ namespace gb_media_server
 
 			 
 		}
-		 
+
+		
 	   
 }
