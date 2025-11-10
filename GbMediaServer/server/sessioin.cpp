@@ -175,18 +175,18 @@ namespace  gb_media_server
 	{ 
 				
 				
-				{
-				std::lock_guard<std::mutex> lk(lock_);
-			// 类型错误导致释放对象错误了 修复bug 
-					GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
-						<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
-						//<< ",elapsed:" << consumer->ElapsedTime()
-						//<< ",ReadyTime:" << ReadyTime()
-						//<< ",stream time:" << SinceStart() 
-						<< ", use_count: " << consumer.use_count();
-					consumers_.erase(consumer);
-					player_live_time_ = rtc::TimeMillis();
-				}
+		{
+			std::lock_guard<std::mutex> lk(lock_);
+	// 类型错误导致释放对象错误了 修复bug 
+			GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
+				<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
+				//<< ",elapsed:" << consumer->ElapsedTime()
+				//<< ",ReadyTime:" << ReadyTime()
+				//<< ",stream time:" << SinceStart() 
+				<< ", use_count: " << consumer.use_count();
+			consumers_.erase(consumer);
+			player_live_time_ = rtc::TimeMillis();
+		}
 		  
 		 
 	}

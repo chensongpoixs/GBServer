@@ -35,6 +35,9 @@
 #include "server/rtc_service.h"
 #include "common_video/h264/h264_common.h"
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
+#include "gb_media_server_log.h"
+
+
 namespace gb_media_server
 {
 
@@ -190,7 +193,17 @@ namespace gb_media_server
 
 	bool RtcInterface::SendSrtpRtp(uint8_t* data, size_t  size)
 	{
+		if (!dtls_done_)
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "dtls done failed !!!";
+			return false;
 
+		}
+		if (!srtp_send_session_)
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "srtp_send_session_ == null failed !!!";
+			return false;
+		}
 		//const uint8_t* data = single_packet->data();
 		//size_t   len = single_packet->size();
 		if (!srtp_send_session_->EncryptRtp((const uint8_t **)&data, &size))
@@ -207,6 +220,18 @@ namespace gb_media_server
 	}
 	bool RtcInterface::SendSrtpRtcp(uint8_t* data, size_t size)
 	{
+
+		if (!dtls_done_)
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "dtls done failed !!!";
+			return false;
+
+		}
+		if (!srtp_send_session_)
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "srtp_send_session_ == null failed !!!";
+			return false;
+		}
 		if (!srtp_send_session_->EncryptRtcp((const uint8_t **)&data, &size))
 		{
 			return false;

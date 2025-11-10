@@ -54,6 +54,7 @@ namespace gb_media_server {
 	, recv_buffer_size_(0) 
 		 ,nal_parse_(nullptr)
 		, rtcp_context_recv_(new libmedia_transfer_protocol::librtcp::RtcpContextRecv())
+		,rtp_header_()
 	{
 		//local_ufrag_ = GetUFrag(8);
 		//local_passwd_ = GetUFrag(32);
@@ -95,6 +96,8 @@ namespace gb_media_server {
 		nal_parse_ = libmedia_codec::NalParseFactory::Create( 
 			libmedia_codec::ENalParseType::ENalH264Prase );;
 		
+		rtp_header_.extension.hasAbsoluteSendTime = true;
+		rtp_header_.extension.hasTransportSequenceNumber = true;
 	}
 	RtcProducer::~RtcProducer()
 	{
@@ -307,11 +310,10 @@ namespace gb_media_server {
 		}
 		else
 		{
-		//	if ()
-			//if (rtp_packet_received.PayloadType() == 96)
-			//{
-			//	//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
-			//}
+			
+			rtp_packet_received.GetHeader(&rtp_header_);
+			GBMEDIASERVER_LOG(LS_INFO) << rtp_header_.ToString() << "\n";
+		
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{
 				
@@ -330,9 +332,9 @@ namespace gb_media_server {
 				}
 				return;
 			}
-			RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() 
+			/*RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.PayloadType() 
 				<< ", seq:" << rtp_packet_received.SequenceNumber()
-				<< ", masker:" << rtp_packet_received.Marker();
+				<< ", masker:" << rtp_packet_received.Marker();*/
 			if (rtcp_context_recv_ && rtp_packet_received.Ssrc() == sdp_.VideoSsrc())
 			{
 				// ntp_stamp : getStamp() * uint64_t(1000) / sample_rate
@@ -346,15 +348,7 @@ namespace gb_media_server {
 			nal_parse_->parse_packet(rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
 			if (rtp_packet_received.Marker())
 			{
-				 // libmedia_transfer_protocol::VideoRtpDepacketizerH264   video_rtp_depacket_h264;
-				//absl::optional<libmedia_transfer_protocol::VideoRtpDepacketizer::ParsedRtpPayload>   video_parse =  video_rtp_depacket_h264.Parse(rtc::CopyOnWriteBuffer(recv_buffer_, recv_buffer_size_));
-				
-				//if (!video_parse)
-				//{
-				//	return;
-				//}
-				//recv_buffer_size_ = 0;
-				
+				 
 				libmedia_codec::EncodedImage encode_image;
 				encode_image.SetTimestamp(rtp_packet_received.Timestamp()/90);
 				encode_image.SetEncodedData(

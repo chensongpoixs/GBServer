@@ -95,7 +95,7 @@ namespace  gb_media_server
 
 			rtc::Buffer packet = stun.Encode();
 			  
-				socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
+			 socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
 			 
 		}
 		else

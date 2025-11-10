@@ -59,15 +59,16 @@ namespace gb_media_server
 			return;
 		}
 
-		auto type = root["type"].asString();
+		//auto type = root["type"].asString();
 		auto streamurl = root["streamurl"].asString();
-		auto clientip = root["clientid"].asString();
+		//auto clientip = root["clientid"].asString();
 		auto sdp = root["sdp"].asString();
 		//auto capture_value = root["caputretype"];
 
 
 		std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);
-		GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name;
+		GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name
+			<< ", sdp:" << sdp;
 
 
 		auto s = GbMediaService::GetInstance().CreateSession(session_name);
@@ -82,8 +83,7 @@ namespace gb_media_server
 
 			return;
 		}
-		//auto producer = s->CreateProducer(session_name, "", ShareResourceType::kProducerTypeGB28181);
-
+		 
 		std::shared_ptr<RtcProducer> producer = std::dynamic_pointer_cast<RtcProducer>(s->CreateProducer(
 			session_name, "", ShareResourceType::kProducerTypeRtc));
 
@@ -99,7 +99,7 @@ namespace gb_media_server
 				});
 			return;
 		}
-		producer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		//producer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		
 		s->SetProducer(producer);
@@ -173,15 +173,15 @@ namespace gb_media_server
 			return;
 		}
 
-		auto type = root["type"].asString();
+		//auto type = root["type"].asString();
 		auto streamurl = root["streamurl"].asString();
-		auto clientip = root["clientid"].asString();
+		//auto clientip = root["clientid"].asString();
 		auto sdp = root["sdp"].asString();
 		//auto capture_value = root["caputretype"];
 
 
 		std::string session_name = string_utils::GetSessionNameFromUrl(streamurl);
-		GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name;
+		GBMEDIASERVER_LOG(LS_INFO) << "get session name:" << session_name << ", sdp:" << sdp;
 
 
 		auto s = GbMediaService::GetInstance().CreateSession(session_name);
@@ -211,9 +211,9 @@ namespace gb_media_server
 				});
 			return;
 		}
-		consumer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
+		//consumer->SetRtcRemoteAddress(conn->GetSocket()->GetRemoteAddress());
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-		s->AddConsumer((consumer));
+		s->AddConsumer(consumer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 		//PlayRtcUserPtr rtc_user = std::dynamic_pointer_cast<PlayRtcUser>(user);
 		if (!consumer->ProcessOfferSdp(libmedia_transfer_protocol::librtc::kRtcSdpPlay, sdp))
