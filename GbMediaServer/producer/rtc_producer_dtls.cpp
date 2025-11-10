@@ -21,7 +21,7 @@
 #include "consumer/rtc_consumer.h"
 #include "server/session.h"
 #include "server/stream.h"
-#include "rtc_base/logging.h"
+ 
 #include "rtc_base/buffer.h"
 #include "server/gb_media_service.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_format_h264.h"
@@ -34,7 +34,7 @@
 #include "common_video/h264/h264_common.h"
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
 #include "producer/rtc_producer.h"
-
+#include "gb_media_server_log.h"
 namespace gb_media_server
 {
  

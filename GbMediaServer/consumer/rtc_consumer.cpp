@@ -21,7 +21,7 @@
 #include "consumer/rtc_consumer.h"
 #include "server/session.h"
 
-#include "rtc_base/logging.h"
+#include "gb_media_server_log.h"
 #include "rtc_base/buffer.h"
 #include "server/gb_media_service.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_format_h264.h"

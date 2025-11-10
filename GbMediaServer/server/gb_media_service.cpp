@@ -17,7 +17,7 @@
 
  ******************************************************************************/
 #include "server/gb_media_service.h"
-#include "rtc_base/logging.h"
+ 
 #include "rtc_base/time_utils.h"
 #include "server/rtc_service.h"
 #include "api/array_view.h" 
@@ -32,7 +32,7 @@
 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "utils/yaml_config.h"
-
+#include "gb_media_server_log.h"
 namespace  gb_media_server
 {
 	namespace

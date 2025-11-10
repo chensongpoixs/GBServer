@@ -18,7 +18,7 @@
  ******************************************************************************/
  
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
-#include "rtc_base/logging.h"
+ 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_util.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_received.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
@@ -26,6 +26,9 @@
 #include "server/stream.h"
 #include "producer/gb28181_producer.h"
 #include "server/session.h"
+
+#include "gb_media_server_log.h"
+
 namespace gb_media_server {
 
 

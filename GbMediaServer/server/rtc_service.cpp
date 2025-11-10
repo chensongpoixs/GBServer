@@ -18,7 +18,7 @@
  ******************************************************************************/
 
 #include "server/rtc_service.h"
-#include "rtc_base/logging.h" 
+  
 #include "server/gb_media_service.h"
  
 #include "rtc_base/string_encode.h"
@@ -30,6 +30,9 @@
 #include "libmedia_transfer_protocol/librtc/srtp_session.h"
 #include "libmedia_transfer_protocol/librtc/dtls_certs.h"
 #include "json/json.h"
+
+#include "gb_media_server_log.h"
+
 namespace  gb_media_server
 {
 	RtcService::RtcService()

@@ -17,7 +17,7 @@
 
  ******************************************************************************/
 #include "share/capture.h"
-
+#include "gb_media_server_log.h"
 
 namespace gb_media_server
 {

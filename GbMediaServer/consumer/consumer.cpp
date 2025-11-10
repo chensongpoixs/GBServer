@@ -34,6 +34,8 @@ purpose:		GOPMGR
 #include "consumer/consumer.h"
 #include "server/stream.h"
 #include "common_video/h264/h264_common.h"
+#include "gb_media_server_log.h"
+
 
 #define   SHOW_NAL_TYPE  (0)
 

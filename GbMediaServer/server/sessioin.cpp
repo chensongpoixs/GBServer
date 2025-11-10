@@ -17,8 +17,7 @@
 
  ******************************************************************************/
 
-#include "server/session.h"
-#include "rtc_base/logging.h" 
+#include "server/session.h" 
 #include "rtc_base/time_utils.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/logging.h"
@@ -37,6 +36,9 @@
 #include "consumer/flv_consumer.h"
 #include "server/gb_media_service.h"
 #include "producer/rtc_producer.h"
+#include "gb_media_server_log.h"
+
+
 
 namespace  gb_media_server
 {

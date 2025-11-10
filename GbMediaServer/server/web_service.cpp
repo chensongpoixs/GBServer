@@ -28,6 +28,9 @@
 #include "producer/gb28181_producer.h"
 #include "libmedia_transfer_protocol/libflv/cflv_context.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "gb_media_server_log.h"
+
+
 namespace  gb_media_server
 {
 	WebService::WebService()

@@ -18,7 +18,7 @@
  ******************************************************************************/
  
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
-#include "rtc_base/logging.h"
+#include "gb_media_server_log.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_util.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_received.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"

@@ -18,9 +18,8 @@
  ******************************************************************************/
 
 #include "utils/yaml_config.h"
-#include "yaml-cpp/yaml.h"
-#include "rtc_base/logging.h"
-
+#include "yaml-cpp/yaml.h" 
+#include "gb_media_server_log.h"
 namespace  gb_media_server
 {
 	YamlConfig::YamlConfig()

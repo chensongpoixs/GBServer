@@ -34,6 +34,7 @@
 #include "consumer/flv_consumer.h"
 #include "libmedia_transfer_protocol/libflv/cflv_context.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "gb_media_server_log.h"
 namespace gb_media_server
 {
 	FlvConsumer::FlvConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
