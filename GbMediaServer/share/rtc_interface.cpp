@@ -36,8 +36,20 @@
 #include "common_video/h264/h264_common.h"
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
 #include "gb_media_server_log.h"
-
-
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/receiver_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/psfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sender_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sdes.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/extended_reports.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/bye.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rtpfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/librtcp/twcc_context.h"
+#include "libmedia_transfer_protocol/librtcp/rtcp.h"
+#include "libmedia_transfer_protocol/librtcp/rtcp_feedback.h"
+#include "libmedia_transfer_protocol/librtcp/rtcp_context.h"
 namespace gb_media_server
 {
 
@@ -152,14 +164,20 @@ namespace gb_media_server
 
 	RtcInterface::RtcInterface()
 		: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
-		, rtp_header_extension_map_() 
+		//, rtp_header_extension_map_() 
 		, srtp_send_session_(nullptr)
 		, srtp_recv_session_(nullptr)
+		, rtp_header_()
+		, extension_manager_()
+		, twcc_context_()
 	{
 		local_ufrag_ = GetUFrag(8);
 		local_passwd_ = GetUFrag(32);
 		sdp_.SetLocalUFrag(local_ufrag_);
 		sdp_.SetLocalPasswd(local_passwd_);
+		extension_manager_.Register<libmedia_transfer_protocol::AbsoluteSendTime>(libmedia_transfer_protocol::kRtpExtensionAbsoluteSendTime);
+		extension_manager_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
+		twcc_context_.setOnSendTwccCB([this](uint32_t ssrc, std::string fci) { onSendTwcc(ssrc, fci); });
 	}
 	RtcInterface::~RtcInterface() {}
 
@@ -241,5 +259,27 @@ namespace gb_media_server
 		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
 			rtc_remote_address_, rtc::PacketOptions());
 		return true;
+	}
+
+	void RtcInterface::onSendTwcc(uint32_t ssrc, const std::string& twcc_fci)
+	{
+		auto rtcp = libmedia_transfer_protocol::librtcp:: RtcpFB::create(libmedia_transfer_protocol::librtcp::RTPFBType::RTCP_RTPFB_TWCC , twcc_fci.data(), twcc_fci.size());
+		rtcp->ssrc = htonl(0);
+		rtcp->ssrc_media = htonl(ssrc);
+		GBMEDIASERVER_LOG(LS_INFO) << "send twcc -- packet size:" << rtcp->getSize();
+		SendSrtpRtcp((uint8_t*)rtcp.get(), rtcp->getSize());
+
+
+		//SendSrtpRtcp();
+
+		//std::unique_ptr< libmedia_transfer_protocol::rtcp::Pli> pli = std::make_unique< libmedia_transfer_protocol::rtcp::Pli>();
+		//pli->SetSenderSsrc(sdp_.VideoSsrc());
+		//pli->SetMediaSsrc(sdp_.VideoSsrc());
+
+		//libmedia_transfer_protocol::rtcp::CompoundPacket compound;               // Builds a compound RTCP packet with
+		//compound.Append(std::move(pli));                  // a receiver report, report block
+	   // compound.Append(&fir);                 // and fir message.
+		//rtc::Buffer packet = compound.Build();
+		//SendSrtpRtcp(packet.data(), packet.size());
 	}
 }

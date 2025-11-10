@@ -155,7 +155,9 @@ namespace gb_media_server {
 		int64_t    rtcp_rr_timestamp_;
 
 
-		libmedia_transfer_protocol::RTPHeader  rtp_header_;
+
+		int64_t    request_key_frame_;
+		
 	};
 }
 

@@ -262,7 +262,7 @@ namespace gb_media_server
 			  switch (rtcp_block.type()) {
 			  case libmedia_transfer_protocol::rtcp::SenderReport::kPacketType:
 			  {
-				  RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type();
+				 // RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type();
 				  //HandleSenderReport(rtcp_block, packet_information);
 				  // 
 				  //received_blocks[packet_information->remote_ssrc].sender_report = true;
@@ -408,7 +408,7 @@ namespace gb_media_server
 			  {
 
 				  auto  single_packet =
-					  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
+					  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
 
 				  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
 				  single_packet->SetTimestamp(rtp_timestamp);
@@ -450,7 +450,7 @@ namespace gb_media_server
 #endif //
 
 		  auto  single_packet =
-			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&rtp_header_extension_map_);
+			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
 		  //GBMEDIASERVER_LOG(LS_INFO) << "audio size:" << frame.size() << ", pts: " << pts;
 		  single_packet->SetPayloadType(sdp_.GetAudioPayloadType());
 		  single_packet->SetTimestamp(pts);

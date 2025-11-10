@@ -54,7 +54,8 @@ namespace gb_media_server {
 	, recv_buffer_size_(0) 
 		 ,nal_parse_(nullptr)
 		, rtcp_context_recv_(new libmedia_transfer_protocol::librtcp::RtcpContextRecv())
-		,rtp_header_()
+		///,rtp_header_()
+		//, extension_manager_()
 	{
 		//local_ufrag_ = GetUFrag(8);
 		//local_passwd_ = GetUFrag(32);
@@ -98,6 +99,10 @@ namespace gb_media_server {
 		
 		rtp_header_.extension.hasAbsoluteSendTime = true;
 		rtp_header_.extension.hasTransportSequenceNumber = true;
+
+
+		
+	
 	}
 	RtcProducer::~RtcProducer()
 	{
@@ -235,7 +240,7 @@ namespace gb_media_server {
 				if (rtc::SystemTimeMillis() - rtcp_rr_timestamp_ > 4000)
 				{
 					rtc::Buffer buffer = rtcp_context_recv_->createRtcpRR(sdp_.VideoSsrc(), sdp_.VideoSsrc());
-
+					GBMEDIASERVER_LOG(LS_INFO) << "Send RR";
 					SendSrtpRtcp(buffer.data(), buffer.size());
 					rtcp_rr_timestamp_ = rtc::SystemTimeMillis();
 				}
@@ -302,7 +307,7 @@ namespace gb_media_server {
 		}
 
 
-		libmedia_transfer_protocol::RtpPacketReceived  rtp_packet_received;
+		libmedia_transfer_protocol::RtpPacketReceived  rtp_packet_received(&extension_manager_);
 		bool ret = rtp_packet_received.Parse(data , size);
 		if (!ret)
 		{
@@ -312,8 +317,13 @@ namespace gb_media_server {
 		{
 			
 			rtp_packet_received.GetHeader(&rtp_header_);
-			GBMEDIASERVER_LOG(LS_INFO) << rtp_header_.ToString() << "\n";
+			//GBMEDIASERVER_LOG(LS_INFO) << rtp_header_.ToString() ;
 		
+
+			if (rtp_header_.extension.hasTransportSequenceNumber)
+			{
+				twcc_context_.onRtp(rtp_header_.ssrc, rtp_header_.extension.transportSequenceNumber, rtp_header_.timestamp/90000);
+			}
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{
 				
@@ -388,17 +398,7 @@ namespace gb_media_server {
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtcp failed !!!";
 			return;
 		}
-#if 0
-		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;  //rtcp_packet;
-		bool ret = rtcp_block.Parse(data, size);
-		if (!ret)
-		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed !!!";
-		}
-		else {
-			GBMEDIASERVER_LOG(LS_INFO) << "rtcp info:" << rtcp_block.ToString();
-		}
-#endif //
+
 		rtc::ArrayView<const uint8_t>  packet(data, size);
 		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;
 		// If a sender report is received but no DLRR, we need to reset the
@@ -431,7 +431,7 @@ namespace gb_media_server {
 			switch (rtcp_block.type()) {
 			case libmedia_transfer_protocol::rtcp::SenderReport::kPacketType:
 			{
-				RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type();
+				//RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type();
 				//HandleSenderReport(rtcp_block, packet_information);
 				// 
 				//received_blocks[packet_information->remote_ssrc].sender_report = true;
@@ -454,9 +454,22 @@ namespace gb_media_server {
 				//HandleReceiverReport(rtcp_block, packet_information);
 				break;
 			case libmedia_transfer_protocol::rtcp::Sdes::kPacketType:
-				RTC_LOG(LS_INFO) << "recvice SDES RTCP TYPE = " << rtcp_block.type();
+			{
+				//RTC_LOG(LS_INFO) << "recvice SDES RTCP TYPE = " << rtcp_block.type();
 				//HandleSdes(rtcp_block, packet_information);
-				break;
+				libmedia_transfer_protocol::rtcp::Sdes sdes;
+				if (!sdes.Parse(rtcp_block)) {
+					++num_skipped_packets_;
+
+				}
+				else
+				{
+					for (const libmedia_transfer_protocol::rtcp::Sdes::Chunk& chunk : sdes.chunks()) {
+						RTC_LOG(LS_INFO) << "recvice SDES RTCP  ssrc: " << chunk.ssrc << ", cname:" << chunk.cname;
+					}
+				}
+				break; 
+			}
 			case libmedia_transfer_protocol::rtcp::ExtendedReports::kPacketType: {
 				RTC_LOG(LS_INFO) << "recvice ExtenderR RTCP TYPE = " << rtcp_block.type();
 				//bool contains_dlrr = false;
@@ -558,7 +571,11 @@ namespace gb_media_server {
 
 	void RtcProducer::RequestKeyFrame()
 	{
-
+		if (request_key_frame_ < (rtc::SystemTimeMillis() +200))
+		{
+			return;
+		}
+		request_key_frame_ = rtc::SystemTimeMillis() + 200;
 		///////////////////////////////////////////////////////////////////////////
 	////                         IDR Request
 

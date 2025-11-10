@@ -91,6 +91,11 @@ LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 static bool stoped = false;
 
 
+static void RtcLogCallback(const char* message)
+{
+	fprintf(stdout, "%s", message);
+}
+
 int main(int argc, char *argv[])
 {
 #ifdef WIN32
@@ -101,6 +106,9 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 #endif // WIN32
+
+	rtc::SetRtcLogOutCallback(&RtcLogCallback);
+
 
 	const char* config_file = "gbmedia_server.yaml";
 	if (argc > 2)

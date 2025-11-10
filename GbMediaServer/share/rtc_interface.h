@@ -40,6 +40,9 @@
 #include "libmedia_transfer_protocol/muxer/muxer.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "share/share_resource.h"
+#include "libmedia_transfer_protocol/librtcp/twcc_context.h"
+
+
 namespace gb_media_server {
  
 	class RtcInterface  
@@ -83,6 +86,8 @@ namespace gb_media_server {
 		virtual void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
 		virtual void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
 		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
+	public:
+		void onSendTwcc(uint32_t ssrc, const std::string& twcc_fci);
 
 	public:
 		// rtc 特别增加的接口
@@ -118,8 +123,10 @@ namespace gb_media_server {
 
 		uint32_t      audio_seq_ = 100;
 		uint32_t      video_seq_ = 100;
-		libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
-
+		//libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
+		libmedia_transfer_protocol::RTPHeader  rtp_header_;
+		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;
+		libmedia_transfer_protocol::librtcp::TwccContext     twcc_context_;
 	};
  
 }
