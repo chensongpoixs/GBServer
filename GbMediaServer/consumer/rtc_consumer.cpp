@@ -70,6 +70,7 @@ namespace gb_media_server
 		
 		sdp_.SetAudioSsrc(audio_ssrc);
 		sdp_.SetVideoSsrc(video_ssrc);
+		sdp_.SetVideoRtxSsrc(video_ssrc + 1);
 		//dtls_certs_.Init();
 		//dtls_.Init();
 		//dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);

@@ -394,7 +394,7 @@ namespace gb_media_server {
 	}
 	void RtcProducer::OnSrtpRtcp(  uint8_t* data, size_t size)
 	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		//GBMEDIASERVER_LOG_T_F(LS_INFO);
 		if (!srtp_recv_session_->DecryptSrtcp((uint8_t*)data, (size_t*)&size))
 		{
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "decrypt srtcp failed !!!";
@@ -573,7 +573,7 @@ namespace gb_media_server {
 
 	void RtcProducer::RequestKeyFrame()
 	{
-		if (request_key_frame_ < (rtc::SystemTimeMillis() +200))
+		if (request_key_frame_ > (rtc::SystemTimeMillis()  ))
 		{
 			return;
 		}

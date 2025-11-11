@@ -258,7 +258,7 @@ namespace gb_media_server
 		{
 			return false;
 		}
-		GBMEDIASERVER_LOG(LS_INFO) << "hex:" << rtc::hex_encode((const char*)data, size);
+		//GBMEDIASERVER_LOG(LS_INFO) << "hex:" << rtc::hex_encode((const char*)data, size);
 
 		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
 			rtc_remote_address_, rtc::PacketOptions());
