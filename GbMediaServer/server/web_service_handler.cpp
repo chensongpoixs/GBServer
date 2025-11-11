@@ -59,6 +59,35 @@ namespace gb_media_server
 			return;
 		}
 
+		if (!root.isMember("streamurl") ||
+			!root.isMember("sdp"))
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << " json error.";
+			Json::Value result;
+			result["code"] = 300; 
+			 
+			result["message"] = "json not find sdp  or  streamurl ";
+			 
+			auto content = result.toStyledString();
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				res->SetStatusCode(200);
+				res->AddHeader("server", "WebServer");
+				res->AddHeader("content-length", std::to_string(content.size()));
+				res->AddHeader("content-type", "application/json");
+				res->AddHeader("Access-Control-Allow-Origin", "*");
+				res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+				res->AddHeader("Allow", "POST, GET, OPTIONS");
+				res->AddHeader("Access-Control-Allow-Headers", "content-type");
+				res->AddHeader("Connection", "close");
+				res->SetBody(content);
+				http_ctx->PostRequest(res);
+
+				http_ctx->WriteComplete(conn);
+				});
+			return;
+		}
+
 		//auto type = root["type"].asString();
 		auto streamurl = root["streamurl"].asString();
 		//auto clientip = root["clientid"].asString();
@@ -172,7 +201,34 @@ namespace gb_media_server
 			http_ctx->WriteComplete(conn);
 			return;
 		}
+		if (!root.isMember("streamurl") ||
+			!root.isMember("sdp"))
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << " json error.";
+			Json::Value result;
+			result["code"] = 300;
 
+			result["message"] = "json not find sdp  or  streamurl ";
+
+			auto content = result.toStyledString();
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				res->SetStatusCode(200);
+				res->AddHeader("server", "WebServer");
+				res->AddHeader("content-length", std::to_string(content.size()));
+				res->AddHeader("content-type", "application/json");
+				res->AddHeader("Access-Control-Allow-Origin", "*");
+				res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+				res->AddHeader("Allow", "POST, GET, OPTIONS");
+				res->AddHeader("Access-Control-Allow-Headers", "content-type");
+				res->AddHeader("Connection", "close");
+				res->SetBody(content);
+				http_ctx->PostRequest(res);
+
+				http_ctx->WriteComplete(conn);
+				});
+			return;
+		}
 		//auto type = root["type"].asString();
 		auto streamurl = root["streamurl"].asString();
 		//auto clientip = root["clientid"].asString();

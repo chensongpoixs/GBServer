@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	}
 #endif // WIN32
 
-	rtc::SetRtcLogOutCallback(&RtcLogCallback);
+	//rtc::SetRtcLogOutCallback(&RtcLogCallback);
 
 
 	const char* config_file = "gbmedia_server.yaml";
