@@ -322,7 +322,9 @@ namespace gb_media_server {
 
 			if (rtp_header_.extension.hasTransportSequenceNumber)
 			{
-				twcc_context_.onRtp(rtp_header_.ssrc, rtp_header_.extension.transportSequenceNumber, rtp_header_.timestamp/90000);
+				twcc_context_.onRtp(rtp_header_.ssrc, 
+					rtp_header_.extension.transportSequenceNumber, 
+					rtc::SystemTimeMillis());
 			}
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{

@@ -50,6 +50,10 @@
 #include "libmedia_transfer_protocol/librtcp/rtcp.h"
 #include "libmedia_transfer_protocol/librtcp/rtcp_feedback.h"
 #include "libmedia_transfer_protocol/librtcp/rtcp_context.h"
+#include "rtc_base/string_utils.h"
+#include "rtc_base/string_encode.h"
+
+
 namespace gb_media_server
 {
 
@@ -254,7 +258,7 @@ namespace gb_media_server
 		{
 			return false;
 		}
-
+		GBMEDIASERVER_LOG(LS_INFO) << "hex:" << rtc::hex_encode((const char*)data, size);
 
 		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
 			rtc_remote_address_, rtc::PacketOptions());
