@@ -85,7 +85,7 @@ namespace gb_media_server
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送
-
+		CreateDataChannel();
 		//StartCapture();
 	}
 	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
@@ -133,6 +133,10 @@ namespace gb_media_server
 	{
 		// Pass it to the parent transport.
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
+		if (sctp_)
+		{
+			sctp_->ProcessSctpData(data, len);
+		}
 	}
 
 

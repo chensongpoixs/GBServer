@@ -4,7 +4,14 @@ var localVideo = document.getElementById("localVideo");
 var pushBtn = document.getElementById("startPushBtn");
 var stopPushBtn = document.getElementById("stopPushBtn");
 
+
+var pushSendDataBtn = document.getElementById("PushSendDataBtn");
+
+
 pushBtn.addEventListener("click", startPush);
+pushSendDataBtn.addEventListener("click", PushSendDataChannel);
+
+
 stopPushBtn.addEventListener("click", stopPush);
 
 if (adapter.browserDetails.browser === 'chrome' &&
@@ -21,8 +28,7 @@ if (adapter.browserDetails.browser === 'chrome' &&
 
 
 
-
-var clientId = $("#clientId").val();
+ 
 var pushStreamUrl = $("#PushStreamUrl").val();
 var audio = $("#audio").val();
 var video = $("#video").val();
@@ -42,7 +48,15 @@ function startPush() {
     
 }
 
-
+function PushSendDataChannel()
+{
+	var sendData = $("#pushDataChannel").val();
+	console.log('send data channel readyState = ', dcClient.readyState);
+	  if( dcClient &&  dcClient.readyState == 'open'){
+            //console.log('Sending data on dataconnection', self.dcClient)
+             dcClient.send(sendData);
+        }
+}
 
 
 /**
@@ -252,7 +266,7 @@ function setupDataChannelCallbacks(datachannel)
             datachannel.binaryType = "arraybuffer";
 
             datachannel.addEventListener('open', e => {
-                console.log(`Data channel connected: ${datachannel.label}(${datachannel.id}) OK !!!`);
+                console.log(`Push Data channel connected: ${datachannel.label}(${datachannel.id}) OK !!!`);
                // if(self.onDataChannelConnected){
                  //   self.onDataChannelConnected();
                 //}
@@ -261,23 +275,23 @@ function setupDataChannelCallbacks(datachannel)
             });
 
             datachannel.addEventListener('close', e => {
-                console.log(`Data channel disconnected: ${datachannel.label}(${datachannel.id}`, e);
+                console.log(`push Data channel disconnected: ${datachannel.label}(${datachannel.id}`, e);
             });
 
             datachannel.addEventListener('message', e => {
-				console.log('onDataChannelMessage: ', e.data);
+				console.log('push onDataChannelMessage: ', e.data);
                // if (self.onDataChannelMessage){
                 //    self.onDataChannelMessage(e.data);
                 //}
             });
 
             datachannel.addEventListener('error', e => {
-                console.error(`Data channel error: ${datachannel.label}(${datachannel.id}`, e);
+                console.error(`push Data channel error: ${datachannel.label}(${datachannel.id}`, e);
             });
 
             return datachannel;
         } catch (e) { 
-            console.warn('Datachannel setup caused an exception: ', e);
+            console.warn('psuh Datachannel setup caused an exception: ', e);
             return null;
         }
 }
@@ -374,8 +388,8 @@ function sendPushOffer(offerSdp) {
     var data = {
         type: 'offer',
         sdp: offerSdp,
-        streamurl: StreamUrl, 
-        clientid: clientId
+        streamurl: StreamUrl 
+      
     };
     console.log('JSON.stringify(data) :' + JSON.stringify(data));
     // 发送请求并将数据转换为JSON字符串

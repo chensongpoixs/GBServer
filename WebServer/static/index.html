@@ -54,15 +54,17 @@
                 推流选项：
                 <input type="radio" name="select" id="pushScreenRadio" checked="checked" /> 推流屏幕
                 <input type="radio" name="select" id="pushCameraRadio" /> 推流摄像头
+                <input type="checkbox" id="audioCheckbox" checked="checked">音频</input>
             </form>
 			
-			clientID:
-            <input id="clientId" value="chensong">
-			<input type="checkbox" id="audioCheckbox" checked="checked">音频</input>
-			</br>
+			
+			
 			webrtc:
             <input id="PushStreamUrl" value="webrtc://127.0.0.1:8001/live/41010500002000000003"   style='width:300px'>
-           
+            </br>
+           Send Data:
+            <input id="pushDataChannel" value="">      <button id="PushSendDataBtn">发送数据</button>
+			
             
 			
             <div style="margin-top:5px">
@@ -83,12 +85,14 @@
             <h3>拉流http地址：<input id="PullhttpUrl" value="https://192.168.9.174:2443"   style='width:300px'></h3>
 			<input type="checkbox" id="pullCaptureBtn" checked="checked">播放桌面</input>
             <br/>
-			 clientID:
-            <input id="clientId" value="chensong">
-              </br>
+			
             webrtc:
             <input id="PullStreamUrl" value="webrtc://127.0.0.1/live/41010500002000000003"  style='width:300px'>
-            
+            </br>
+            Send Data:
+            <input id="pullDataChannel" value=""> <button id="PullSendDataBtn">发送数据</button>
+			
+              
            
             <div style="margin-top:5px">
                 <video id="remoteVideo" autoplay controls></video>
@@ -107,8 +111,8 @@
     
    <script src="/static/js/adapter.js"></script>
     <script src="/static/js/jquery-2.1.1.min.js"></script>
-    <script src="js/pull.js?version=23"></script>
-    <script src="js/push.js?version=9"></script>
+    <script src="js/pull.js?version=25"></script>
+    <script src="js/push.js?version=11"></script>
      
 </body>
 
