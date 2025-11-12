@@ -32,6 +32,10 @@ var push_pc;
 var localStream;
 var lastConnectionState = "";
 
+
+
+var dcClient;
+
 function startPush() {
     console.log("=========open_device=============");
     open_device();
@@ -238,6 +242,46 @@ function bindTracks()
 
 
 
+
+
+function setupDataChannelCallbacks(datachannel)
+{
+
+	 try {
+            // Inform browser we would like binary data as an ArrayBuffer (FF chooses Blob by default!)
+            datachannel.binaryType = "arraybuffer";
+
+            datachannel.addEventListener('open', e => {
+                console.log(`Data channel connected: ${datachannel.label}(${datachannel.id}) OK !!!`);
+               // if(self.onDataChannelConnected){
+                 //   self.onDataChannelConnected();
+                //}
+
+				//console.log('')
+            });
+
+            datachannel.addEventListener('close', e => {
+                console.log(`Data channel disconnected: ${datachannel.label}(${datachannel.id}`, e);
+            });
+
+            datachannel.addEventListener('message', e => {
+				console.log('onDataChannelMessage: ', e.data);
+               // if (self.onDataChannelMessage){
+                //    self.onDataChannelMessage(e.data);
+                //}
+            });
+
+            datachannel.addEventListener('error', e => {
+                console.error(`Data channel error: ${datachannel.label}(${datachannel.id}`, e);
+            });
+
+            return datachannel;
+        } catch (e) { 
+            console.warn('Datachannel setup caused an exception: ', e);
+            return null;
+        }
+}
+
 /**
  功能： 开启 "呼叫"
 */
@@ -250,7 +294,13 @@ function call()
 			offerToReceiveAudio: 1,
 			offerToReceiveVideo: 1
 		};
-		
+
+
+		// create data channel 
+		let datachannel = push_pc.createDataChannel('chat', {ordered: true});
+		console.log('Created datachannel chat data channel OK !!! ');
+		dcClient = setupDataChannelCallbacks(datachannel);
+
 		/**
 		 创建Offer
 		 如果成功: 则返回getOffer()方法
