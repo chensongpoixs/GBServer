@@ -63,6 +63,9 @@ namespace  gb_media_server
 
 		void  AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t pts);
 
+
+
+		void AddDataChannel(const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, uint32_t ppid, const uint8_t* msg, size_t len);
 		// ÇëÇó¹Ø¼üÖ¡
 		void ConsumerRequestKeyFrame();
 

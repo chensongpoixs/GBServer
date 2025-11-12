@@ -31,6 +31,7 @@
 
 #include "libmedia_codec/encoded_image.h"
 #include "rtc_base/socket_address.h"
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
 namespace  gb_media_server
 {
 
@@ -68,6 +69,8 @@ namespace  gb_media_server
 		//接受不同协议上层处理 实现
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
+
+		virtual void OnDataChannel(const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, uint32_t ppid, const uint8_t* msg, size_t len) {}
 
 		virtual ShareResourceType ShareResouceType() const { return kShareResourceTypeUnknowed; }
 		 

@@ -104,7 +104,16 @@ namespace gb_media_server {
 
 	public:
 
+		virtual  void OnDataChannel(
+			const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params,
+			uint32_t ppid, const uint8_t* msg, size_t len);
 
+		virtual void OnSctpAssociationMessageReceived(
+			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
+			uint16_t streamId,
+			uint32_t ppid,
+			const uint8_t* msg,
+			size_t len) override;
 	public:
 		//virtual ShareResourceType ShareResouceType() const { return kConsumerTypeRTC; }
 

@@ -54,6 +54,7 @@ purpose:		GOPMGR
 #include "libcross_platform_collection_render/track_capture/ctrack_capture.h"
 #endif // 
 #include "libmedia_transfer_protocol/muxer/muxer.h"
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
 namespace gb_media_server
 {
 	 
@@ -86,9 +87,12 @@ namespace gb_media_server
 			*/
 			void     AddVideoFrame(const libmedia_codec::EncodedImage &frame);
 			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
+			
 			//²¥·Å¶Ë¼Ì³Ð
 			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
 			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts) {}
+
+			
 		public:
 			//ÍøÂç²ã½Ó¿Ú
 			//void Close();

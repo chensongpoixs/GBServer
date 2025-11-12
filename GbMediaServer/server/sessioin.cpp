@@ -241,6 +241,25 @@ namespace  gb_media_server
 		 
 	}
 
+	void Session::AddDataChannel(
+		const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, 
+		uint32_t ppid, const uint8_t* msg, size_t len)
+	{
+		rtc::Buffer dataChannel(msg, len);
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, 
+			[this, params, ppid, dataChannel_ = std::move(dataChannel)]() {
+			for (auto consumer : consumers_)
+			{
+				consumer->OnDataChannel(params, ppid, 
+					dataChannel_.data(), dataChannel_.size());
+			}
+			if (producer_)
+			{
+				producer_->OnDataChannel(params, ppid, dataChannel_.data(), dataChannel_.size());
+			}
+		});
+	}
+
 	void Session::ConsumerRequestKeyFrame()
 	{
 		if (producer_)

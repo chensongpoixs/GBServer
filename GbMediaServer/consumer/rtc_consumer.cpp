@@ -486,4 +486,27 @@ namespace gb_media_server
 #endif //
 	  }
 
+	  void RtcConsumer::OnDataChannel(
+		  const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, 
+		  uint32_t ppid, const uint8_t* msg, size_t len)
+	  {
+		  if (sctp_)
+		  {
+			  sctp_->SendSctpMessage(params, ppid, msg, len);
+		  }
+	  }
+	  void RtcConsumer::OnSctpAssociationMessageReceived(
+		  libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
+		  uint16_t streamId,
+		  uint32_t ppid,
+		  const uint8_t* msg,
+		  size_t len)
+	  {
+		  GBMEDIASERVER_LOG_T_F(LS_INFO) << " " << streamId << " " << ppid << " " << len << " "
+			  << std::string((char*)msg, len);
+		  libmedia_transfer_protocol::librtc::SctpStreamParameters params;
+		  params.streamId = streamId;
+		  GetSession()->AddDataChannel(params, ppid, msg, len);
+	  }
+
 }

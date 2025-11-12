@@ -95,7 +95,7 @@ namespace gb_media_server
 		libmedia_transfer_protocol::librtc::SctpStreamParameters params;
 		params.streamId = streamId;
 
-#if 1 // test echo hello 
+#if 0 // test echo hello 
 		if (sctp_) {
 			// »ØÏÔÊý¾Ý  [AUTO-TRANSLATED:7868d3a4]
 			// Echo data
