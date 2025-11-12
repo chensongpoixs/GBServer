@@ -35,6 +35,9 @@
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
 #include "producer/rtc_producer.h"
 #include "gb_media_server_log.h"
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+
+
 namespace gb_media_server
 {
  
@@ -87,7 +90,7 @@ namespace gb_media_server
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送
-
+		
 		//StartCapture();
 
 		if (dtls_done_)
@@ -106,6 +109,9 @@ namespace gb_media_server
 					OnTimer();
 				}) );
 		}
+
+
+		CreateDataChannel();
 	}
 	void RtcProducer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{

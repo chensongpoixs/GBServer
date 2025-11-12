@@ -81,7 +81,7 @@ namespace gb_media_server
 	const uint8_t* data, size_t len)  
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
-		dtls_.OnRecv (data, len);
+		dtls_.SendApplicationData(data, len);
 	}
 	void RtcInterface::OnSctpAssociationMessageReceived(
 		libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,

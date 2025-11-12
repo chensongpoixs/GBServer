@@ -376,6 +376,7 @@ libcross_platform_collection_render
 
 		yaml_cpp
 		 
+		usrsctp
 
 			)
  

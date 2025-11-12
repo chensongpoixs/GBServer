@@ -93,6 +93,9 @@ namespace gb_media_server {
 
 
 
+
+		void CreateDataChannel();
+
 	public:
 
 		// sctp inferface
@@ -149,8 +152,8 @@ namespace gb_media_server {
 		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;
 		libmedia_transfer_protocol::librtcp::TwccContext     twcc_context_;
 
-		libmedia_transfer_protocol::librtc::SctpAssociationImp::Ptr   sctp_;
-		
+		//libmedia_transfer_protocol::librtc::SctpAssociationImp::Ptr   sctp_;
+		std::shared_ptr< libmedia_transfer_protocol::librtc::SctpAssociationImp> sctp_;
 	};
  
 }

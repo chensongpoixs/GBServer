@@ -112,6 +112,13 @@ namespace gb_media_server
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送
+		// sctp 
+		// sctp 
+
+		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
+		sctp_->TransportConnected();
+
+
 
 		StartCapture();
 	}
@@ -178,7 +185,7 @@ namespace gb_media_server
 		, rtp_header_()
 		, extension_manager_()
 		, twcc_context_()
-		, sctp_(nullptr)
+		//, sctp_(nullptr)
 	{
 		local_ufrag_ = GetUFrag(8);
 		local_passwd_ = GetUFrag(32);
@@ -191,10 +198,7 @@ namespace gb_media_server
 
 
 
-		// sctp 
-
-		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
-		sctp_->TransportConnected();
+		
 
 	}
 	RtcInterface::~RtcInterface() {}
@@ -310,5 +314,10 @@ namespace gb_media_server
 	   // compound.Append(&fir);                 // and fir message.
 		//rtc::Buffer packet = compound.Build();
 		//SendSrtpRtcp(packet.data(), packet.size());
+	}
+	void RtcInterface::CreateDataChannel()
+	{
+		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
+		sctp_->TransportConnected();
 	}
 }
