@@ -310,52 +310,52 @@ namespace gb_media_server
 			  case libmedia_transfer_protocol::rtcp::Rtpfb::kPacketType:
 				  //RTC_LOG_F(LS_INFO) << "recvice rtpfb ";
 				  switch (rtcp_block.fmt()) {
-				  case libmedia_transfer_protocol::rtcp::Nack::kFeedbackMessageType:
-				  	  RTC_LOG_F(LS_INFO) << "recvice rtpfb  nack RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  	//HandleNack(rtcp_block, packet_information);
-				  	break;
-				  case libmedia_transfer_protocol::rtcp::Tmmbr::kFeedbackMessageType:
-				  	RTC_LOG(LS_INFO) << "recvice rtpfb  tmmbr RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  	//HandleTmmbr(rtcp_block, packet_information);
-				  	break;
-				  case libmedia_transfer_protocol::rtcp::Tmmbn::kFeedbackMessageType:
-				  	RTC_LOG(LS_INFO) << "recvice rtpfb tmmbn RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  	//HandleTmmbn(rtcp_block, packet_information);
-				  	break;
-				  case libmedia_transfer_protocol::rtcp::RapidResyncRequest::kFeedbackMessageType:
-				  	RTC_LOG(LS_INFO) << "recvice rtpfb rapidresy ync  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  	//HandleSrReq(rtcp_block, packet_information);
-				  	break;
-				  case libmedia_transfer_protocol::rtcp::TransportFeedback::kFeedbackMessageType:
-				  	  RTC_LOG_F(LS_INFO) << "recvice rtpfb transport feedback  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  	//HandleTransportFeedback(rtcp_block, packet_information);
-				  	break;
-				  default:
-				  	//++num_skipped_packets_;
-				  	break;
+					  case libmedia_transfer_protocol::rtcp::Nack::kFeedbackMessageType:
+				  		  RTC_LOG_F(LS_INFO) << "recvice rtpfb  nack RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		//HandleNack(rtcp_block, packet_information);
+				  		break;
+					  case libmedia_transfer_protocol::rtcp::Tmmbr::kFeedbackMessageType:
+				  		RTC_LOG(LS_INFO) << "recvice rtpfb  tmmbr RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		//HandleTmmbr(rtcp_block, packet_information);
+				  		break;
+					  case libmedia_transfer_protocol::rtcp::Tmmbn::kFeedbackMessageType:
+				  		RTC_LOG(LS_INFO) << "recvice rtpfb tmmbn RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		//HandleTmmbn(rtcp_block, packet_information);
+				  		break;
+					  case libmedia_transfer_protocol::rtcp::RapidResyncRequest::kFeedbackMessageType:
+				  		RTC_LOG(LS_INFO) << "recvice rtpfb rapidresy ync  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		//HandleSrReq(rtcp_block, packet_information);
+				  		break;
+					  case libmedia_transfer_protocol::rtcp::TransportFeedback::kFeedbackMessageType:
+				  		  RTC_LOG_F(LS_INFO) << "recvice rtpfb transport feedback  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		//HandleTransportFeedback(rtcp_block, packet_information);
+				  		break;
+					  default:
+				  		//++num_skipped_packets_;
+				  		break;
 				  }
 				  break;
 			  case libmedia_transfer_protocol::rtcp::Psfb::kPacketType:
 				 // RTC_LOG(LS_INFO) << "recvice psfb  pli";
 				   switch (rtcp_block.fmt()) {
-				  case libmedia_transfer_protocol::rtcp::Pli::kFeedbackMessageType:
-					  RTC_LOG(LS_INFO) << "recvice psfb  pli  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-					 // HandlePli(rtcp_block, packet_information);
-					  RequestKeyFrame();
-					  break;
-				  case libmedia_transfer_protocol::rtcp::Fir::kFeedbackMessageType:
-					  RTC_LOG(LS_INFO) << "recvice psfb  fir  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-					  //HandleFir(rtcp_block, packet_information);
-					  RequestKeyFrame();
-					  break;
-				  case libmedia_transfer_protocol::rtcp::Psfb::kAfbMessageType:
-					  RTC_LOG(LS_INFO) << "recvice psfb  psfb  af  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-					  //HandlePsfbApp(rtcp_block, packet_information);
-					  break;
-				  default:
-					 // ++num_skipped_packets_;
-					  break;
-				  } 
+					  case libmedia_transfer_protocol::rtcp::Pli::kFeedbackMessageType:
+						  RTC_LOG(LS_INFO) << "recvice psfb  pli  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+						 // HandlePli(rtcp_block, packet_information);
+						  RequestKeyFrame();
+						  break;
+					  case libmedia_transfer_protocol::rtcp::Fir::kFeedbackMessageType:
+						  RTC_LOG(LS_INFO) << "recvice psfb  fir  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+						  //HandleFir(rtcp_block, packet_information);
+						  RequestKeyFrame();
+						  break;
+					  case libmedia_transfer_protocol::rtcp::Psfb::kAfbMessageType:
+						  RTC_LOG(LS_INFO) << "recvice psfb  psfb  af  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+						  //HandlePsfbApp(rtcp_block, packet_information);
+						  break;
+					  default:
+						 // ++num_skipped_packets_;
+						  break;
+				   } 
 				  break;
 			  default:
 				 // ++num_skipped_packets_;

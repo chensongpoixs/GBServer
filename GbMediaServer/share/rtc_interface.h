@@ -41,11 +41,11 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "share/share_resource.h"
 #include "libmedia_transfer_protocol/librtcp/twcc_context.h"
-
-
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
 namespace gb_media_server {
  
-	class RtcInterface  
+	class RtcInterface  : public libmedia_transfer_protocol::librtc::SctpAssociation::Listener
 	{
 	public:
 		explicit RtcInterface();
@@ -65,6 +65,8 @@ namespace gb_media_server {
 		bool SendSrtpRtp(uint8_t* data, size_t  size);
 		bool SendSrtpRtcp(uint8_t* data, size_t size);
 
+
+		void SendDatachannel(uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
 		// 
 
 		virtual void OnDtlsRecv(const uint8_t* buf, size_t size) = 0;
@@ -88,6 +90,25 @@ namespace gb_media_server {
 		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
 	public:
 		void onSendTwcc(uint32_t ssrc, const std::string& twcc_fci);
+
+
+
+	public:
+
+		// sctp inferface
+		virtual void OnSctpAssociationConnecting(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		virtual void OnSctpAssociationConnected(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		virtual void OnSctpAssociationFailed(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		virtual void OnSctpAssociationClosed(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		virtual void OnSctpAssociationSendData(
+			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation, 
+			const uint8_t* data, size_t len)  override;
+		virtual void OnSctpAssociationMessageReceived(
+			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
+			uint16_t streamId,
+			uint32_t ppid,
+			const uint8_t* msg,
+			size_t len) override;
 
 	public:
 		// rtc 特别增加的接口
@@ -127,6 +148,9 @@ namespace gb_media_server {
 		libmedia_transfer_protocol::RTPHeader  rtp_header_;
 		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;
 		libmedia_transfer_protocol::librtcp::TwccContext     twcc_context_;
+
+		libmedia_transfer_protocol::librtc::SctpAssociationImp::Ptr   sctp_;
+		
 	};
  
 }

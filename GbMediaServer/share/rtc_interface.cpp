@@ -52,7 +52,7 @@
 #include "libmedia_transfer_protocol/librtcp/rtcp_context.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/string_encode.h"
-
+#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
 
 namespace gb_media_server
 {
@@ -160,6 +160,10 @@ namespace gb_media_server
 	{
 		// Pass it to the parent transport.
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
+		if (sctp_)
+		{
+			//sctp_
+		}
 	}
   
 #endif // 0
@@ -174,6 +178,7 @@ namespace gb_media_server
 		, rtp_header_()
 		, extension_manager_()
 		, twcc_context_()
+		, sctp_(nullptr)
 	{
 		local_ufrag_ = GetUFrag(8);
 		local_passwd_ = GetUFrag(32);
@@ -181,7 +186,16 @@ namespace gb_media_server
 		sdp_.SetLocalPasswd(local_passwd_);
 		extension_manager_.Register<libmedia_transfer_protocol::AbsoluteSendTime>(libmedia_transfer_protocol::kRtpExtensionAbsoluteSendTime);
 		extension_manager_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
+		// feedback  
 		twcc_context_.setOnSendTwccCB([this](uint32_t ssrc, std::string fci) { onSendTwcc(ssrc, fci); });
+
+
+
+		// sctp 
+
+		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
+		sctp_->TransportConnected();
+
 	}
 	RtcInterface::~RtcInterface() {}
 
@@ -263,6 +277,17 @@ namespace gb_media_server
 		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
 			rtc_remote_address_, rtc::PacketOptions());
 		return true;
+	}
+
+	void RtcInterface::SendDatachannel(uint16_t streamId, uint32_t ppid, const char* msg, size_t len)
+	{
+		GBMEDIASERVER_LOG_T_F(LS_INFO);
+
+		if (sctp_) {
+			libmedia_transfer_protocol::librtc::SctpStreamParameters params;
+			params.streamId = streamId;
+			sctp_->SendSctpMessage(params, ppid, (uint8_t*)msg, len);
+		}
 	}
 
 	void RtcInterface::onSendTwcc(uint32_t ssrc, const std::string& twcc_fci)
