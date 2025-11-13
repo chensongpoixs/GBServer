@@ -20,7 +20,7 @@
 #include "utils/yaml_config.h"
 #include "yaml-cpp/yaml.h"
 #include "rtc_base/logging.h"
-
+#include "gbsip_server_log.h"
 namespace   gbsip_server
 {
 	bool YamlConfig::LoadFile(const char* config_file)
@@ -32,7 +32,7 @@ namespace   gbsip_server
 			if (node["server"]) {
 				http_server_config_.port = node["server"]["port"].as<uint16_t>();
 
-				GBMEDIASERVER_LOG(LS_INFO) << "http server config \n port:" << http_server_config_.port;
+				SIPSERVER_LOG(LS_INFO) << "http server config \n port:" << http_server_config_.port;
 			}
 
 			if (node["sip"]) {
@@ -44,20 +44,20 @@ namespace   gbsip_server
 
 				 
 
-				GBMEDIASERVER_LOG(LS_INFO) << " sip server config : \n " << sip_server_config_.ToString();
+				SIPSERVER_LOG(LS_INFO) << " sip server config : \n " << sip_server_config_.ToString();
 			}
 			if (node["media"])
 			{
 				media_config_.ip = node["media"]["ip"].as<std::string>();
 				media_config_.port = node["media"]["port"].as<uint16_t>();
 				 
-				GBMEDIASERVER_LOG(LS_INFO) << "media config info £º\n" << "ip : " << media_config_.ip
+				SIPSERVER_LOG(LS_INFO) << "media config info £º\n" << "ip : " << media_config_.ip
 					<< ", port: " << media_config_.port;
 			}
 		}
 		catch (const YAML::Exception& e) {
 		//	std::cerr << "YAML Error: " << e.what() << "\n";
-			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "config_file: "<< config_file 
+			SIPSERVER_LOG_T_F(LS_WARNING) << "config_file: "<< config_file
 				<<" yaml parse failed !!!   error: " << e.what();
 			return false;
 			//return 1;

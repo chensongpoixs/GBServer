@@ -24,7 +24,7 @@
 #include "json.hpp"
 //static const char *  http_media_api = "http://192.168.9.174:8001";
 //static const uint16_t media_port = 8001;
-
+#include "gbsip_server_log.h"
 oatpp::Object<StreamDto> StreamService::startStream(const oatpp::Object<StreamDto>& dto)
 {
 

@@ -40,6 +40,11 @@
 #include <iostream>
 #include "rtc_base/logging.h"
 #include "utils/yaml_config.h"
+
+#include "gbsip_server_log.h"
+
+
+
 //std::shared_ptr<gbsip_server::SipServer> sip_server;
 void run() {
 
