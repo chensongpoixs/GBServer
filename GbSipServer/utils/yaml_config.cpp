@@ -49,10 +49,10 @@ namespace   gbsip_server
 			if (node["media"])
 			{
 				media_config_.ip = node["media"]["ip"].as<std::string>();
-				media_config_.port = node["media"]["port"].as<uint16_t>();
+				media_config_.port = node["media"]["http-port"].as<uint16_t>();
 				 
 				SIPSERVER_LOG(LS_INFO) << "media config info £º\n" << "ip : " << media_config_.ip
-					<< ", port: " << media_config_.port;
+					<< ", http-port: " << media_config_.port;
 			}
 		}
 		catch (const YAML::Exception& e) {
