@@ -17,8 +17,7 @@
 
  ******************************************************************************/
 
-#include "server/session.h"
-#include "rtc_base/logging.h" 
+#include "server/session.h" 
 #include "rtc_base/time_utils.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/logging.h"
@@ -36,6 +35,10 @@
 #include "producer/gb28181_producer.h"
 #include "consumer/flv_consumer.h"
 #include "server/gb_media_service.h"
+#include "producer/rtc_producer.h"
+#include "gb_media_server_log.h"
+
+
 
 namespace  gb_media_server
 {
@@ -79,6 +82,11 @@ namespace  gb_media_server
 			case ShareResourceType::kProducerTypeGB28181:
 			{
 				producer = std::make_shared<Gb28181Producer>( stream_, shared_from_this());
+				break;
+			}
+			case ShareResourceType::kProducerTypeRtc:
+			{
+				producer = std::make_shared<RtcProducer>(stream_, shared_from_this());
 				break;
 			}
 			 
@@ -167,34 +175,40 @@ namespace  gb_media_server
 	{ 
 				
 				
-				{
-				std::lock_guard<std::mutex> lk(lock_);
-			// 类型错误导致释放对象错误了 修复bug 
-					GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
-						<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
-						//<< ",elapsed:" << consumer->ElapsedTime()
-						//<< ",ReadyTime:" << ReadyTime()
-						//<< ",stream time:" << SinceStart() 
-						<< ", use_count: " << consumer.use_count();
-					consumers_.erase(consumer);
-					player_live_time_ = rtc::TimeMillis();
-				}
+		{
+			std::lock_guard<std::mutex> lk(lock_);
+	// 类型错误导致释放对象错误了 修复bug 
+			GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
+				<< ",remoteaddr:" << consumer->RemoteAddress().ToString()
+				//<< ",elapsed:" << consumer->ElapsedTime()
+				//<< ",ReadyTime:" << ReadyTime()
+				//<< ",stream time:" << SinceStart() 
+				<< ", use_count: " << consumer.use_count();
+			consumers_.erase(consumer);
+			player_live_time_ = rtc::TimeMillis();
+		}
 		  
 		 
 	}
-	void Session::SetProducer(std::shared_ptr<Producer> &producer)
+	void Session::SetProducer(std::shared_ptr<Producer>  producer)
 	{
 		std::lock_guard<std::mutex> lk(lock_);
 		if (producer_ == producer)
 		{
-			return;
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "SetProducer  producer_ == producer   !!!";
+			//return;
 		}
 		if (producer_  )
 		{ 
 			//producer_->Close();
 			producer_.reset();
+			
 		}
-		producer_ = (producer);
+		if (producer)
+		{
+			producer_ = (producer);
+		}
+		
 	}
 
 	void Session::AddVideoFrame(  libmedia_codec::EncodedImage &&frame)
@@ -216,15 +230,52 @@ namespace  gb_media_server
 		});
 		
 	}
-	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame)
+	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t pts)
 	{
-		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame)]() {
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame), pts]() {
 			for (auto consumer : consumers_)
 			{
-				consumer->AddAudioFrame(new_frame);
+				consumer->AddAudioFrame(new_frame, pts);
 			}
 		});
 		 
+	}
+
+	void Session::AddDataChannel(
+		const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, 
+		uint32_t ppid, const uint8_t* msg, size_t len)
+	{
+		rtc::Buffer dataChannel(msg, len);
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, 
+			[this, params, ppid, dataChannel_ = std::move(dataChannel)]() {
+			for (auto consumer : consumers_)
+			{
+				consumer->OnDataChannel(params, ppid, 
+					dataChannel_.data(), dataChannel_.size());
+			}
+			if (producer_)
+			{
+				producer_->OnDataChannel(params, ppid, dataChannel_.data(), dataChannel_.size());
+			}
+		});
+	}
+
+	void Session::ConsumerRequestKeyFrame()
+	{
+
+		if (!producer_)
+		{
+			return;
+		}
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,
+			[this]() {
+				if (producer_)
+				{
+					producer_->RequestKeyFrame();
+				}
+		});
+		
+		
 	}
 
 	std::shared_ptr<Stream> Session::GetStream()

@@ -17,7 +17,7 @@
 
  ******************************************************************************/
 #include "server/gb_media_service.h"
-#include "rtc_base/logging.h"
+ 
 #include "rtc_base/time_utils.h"
 #include "server/rtc_service.h"
 #include "api/array_view.h" 
@@ -31,8 +31,8 @@
 #include "utils/string_utils.h" 
 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
- 
-
+#include "utils/yaml_config.h"
+#include "gb_media_server_log.h"
 namespace  gb_media_server
 {
 	namespace
@@ -42,11 +42,20 @@ namespace  gb_media_server
 	GbMediaService::GbMediaService()
 		: context_  ( libp2p_peerconnection::ConnectionContext::Create())
 		, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
+		, web_service_(new WebService)
 	{
 		rtc_server_->SignalStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
 		rtc_server_->SignalDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
 		rtc_server_->SignalRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
 		rtc_server_->SignalRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
+
+		/// <summary>
+		/// 
+		/// </summary>
+		rtc_server_->SignalSyncStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
+		rtc_server_->SignalSyncDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
+		rtc_server_->SignalSyncRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
+		rtc_server_->SignalSyncRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
 	}
 	GbMediaService::~GbMediaService()
 	{
@@ -148,11 +157,19 @@ namespace  gb_media_server
 	}
 	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
-		GBMEDIASERVER_LOG(LS_INFO);
+		GBMEDIASERVER_LOG_T_F(LS_INFO);
 	}
 	void GbMediaService::OnDestory(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
-		GBMEDIASERVER_LOG(LS_INFO);
+		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		//worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
+		//	conn->ClearContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext);
+		//	//std::shared_ptr<gb_media_server::ShareResource> user = conn->GetContext<gb_media_server::ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext);
+		//	//if (user)
+		//	//{
+		//	//	//user->OnRecv(data);
+		//	//}
+		//	});
 	}
 	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::Connection * conn, const rtc::CopyOnWriteBuffer & data)
 	{
@@ -168,39 +185,44 @@ namespace  gb_media_server
 	}
 	void GbMediaService::OnSent(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
-		GBMEDIASERVER_LOG(LS_INFO);
+		GBMEDIASERVER_LOG_T_F(LS_INFO);
 	}
-	bool GbMediaService::Init()
+	bool GbMediaService::Init(const char* config_file)
 	{
-		
-		return true;
+		bool init = YamlConfig::GetInstance().LoadFile(config_file);
+		if (!init)
+		{
+			return init;
+		}
+		GBMEDIASERVER_LOG(LS_INFO) << "YamlConfig OK !!!";
+		// init rtc
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(
+			YamlConfig::GetInstance().GetRtcServerConfig().cert_public_key.c_str(),
+			YamlConfig::GetInstance().GetRtcServerConfig().cert_private_key.c_str()
+			//	"fullchain.pem",
+		//	"privkey.pem"
+		);
+		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
+		return init;
+		 
 	}
-	void GbMediaService::Start(const char * ip, uint16_t port)
+	void GbMediaService::Start(/*const char * ip, uint16_t port*/)
 	{
-		//libmedia_transfer_protocol::librtc::SrtpSession::InitSrtpLibrary();
-		
-		//network_thread_ = rtc::Thread::CreateWithSocketServer();
-		//worker_thread_ = rtc::Thread::Create();
-		//network_thread_->Start();
-		//worker_thread_->Start();
-		std::string local_ip = ip;
-		rtc_server_->network_thread()->Invoke<void>(RTC_FROM_HERE, [this, local_ip, port]() {
-		//worker_thread_->Invoke<void>(RTC_FROM_HERE, [this, local_ip, port]() {
-			//rtc_server_ = std::make_unique<libmedia_transfer_protocol::librtc::RtcServer>(context_->network_thread());
-
-#if 1
+		// start rtc server 
+		rtc_server_->network_thread()->Invoke<void>(RTC_FROM_HERE, [this]() {
+			 
 			
-#else 
-
-
-			rtc_server_->SignalStunPacketBuffer.connect(&RtcService::GetInstance(), &RtcService::OnStun);
-			rtc_server_->SignalDtlsPacketBuffer.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
-			rtc_server_->SignalRtpPacketBuffer.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
-			rtc_server_->SignalRtcpPacketBuffer.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
-#endif // 
-			rtc_server_->Start(local_ip.c_str(), port);
-		//	GBMEDIASERVER_LOG(LS_INFO) << "gb media start  "<< local_ip << ":"<<port<<"  OK !!!";
+			rtc_server_->Start("0.0.0.0", 
+				YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+			//	GBMEDIASERVER_LOG(LS_INFO) << "gb media start  "<< local_ip << ":"<<port<<"  OK !!!";
 		});
+		 
+
+		web_service_->StartWebServer("0.0.0.0", 
+			YamlConfig::GetInstance().GetHttpServerConfig().port);
+
+		 
+		
 		
 	}
 
@@ -210,7 +232,8 @@ namespace  gb_media_server
 	}
 	void GbMediaService::Destroy()
 	{
-		
+		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Destroy();
+		libmedia_transfer_protocol::libsrtp::SrtpSession::DestroySrtpLibrary();
 	}
 	//void OnTimer(const TaskPtr &t);
 

@@ -126,7 +126,7 @@ namespace gb_media_server
 
 
 			void AddVideoFrame(  libmedia_codec::EncodedImage &&frame);
-			void AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame);
+			void AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t  pts);
 	 
 		public:
 

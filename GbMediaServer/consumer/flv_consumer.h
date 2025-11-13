@@ -48,7 +48,7 @@ namespace gb_media_server
 
 	public:
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
-		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
 	public:
 		virtual ShareResourceType ShareResouceType() const { return kConsumerTypeFlv; }
 

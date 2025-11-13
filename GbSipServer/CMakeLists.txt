@@ -27,6 +27,7 @@ add_definitions(
 #-D_CRT_NONSTDC_NO_WARNINGS
 #-DWIN32
 #-D_DEBUG
+#-D_DEBUG
 #-D_CONSOLE
 
 
@@ -99,7 +100,7 @@ file(GLOB GbSipServer_source
 	*.cpp 
 	
 	sql/*.sql 
-	
+	*.hpp
         )
 		
 
@@ -117,6 +118,9 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
  add_dependencies(${PROJECT_NAME} libsip)
 
 set(ALL_LIB 
+
+	yaml_cpp
+
 
  crypt32.lib
 			iphlpapi.lib
@@ -136,7 +140,7 @@ ws2_32.lib
  sqlite
 
  # absl 
- abseil_dll
+ #abseil_dll
 		absl_cordz_functions
 		absl_cordz_handle
 		absl_cordz_info
@@ -192,7 +196,8 @@ ws2_32.lib
 			p2p 
 			pc 
 			rtc_base
-			   
+			 
+
 			)
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )

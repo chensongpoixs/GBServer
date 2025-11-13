@@ -34,15 +34,15 @@ add_definitions(
 		-DTEST_RTC_PLAY=1
 
         ## define path to swagger-ui static resources folder
-        -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
-
-        ## SQLite database file
-        -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
-        ## SQLite database test file
-        -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
-
-        ## Path to database migration scripts
-        -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
+       # -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
+	   #
+       # ## SQLite database file
+       # -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
+       # ## SQLite database test file
+       # -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
+	   #
+       # ## Path to database migration scripts
+       # -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
 )
 
 
@@ -161,7 +161,7 @@ set(ALL_LIB
 			iphlpapi.lib
 			secur32.lib
 			 # absl 
-			 abseil_dll
+			# abseil_dll
 			# Meida_LIB
 		#absl_cordz_functions
 		#absl_cordz_handle
@@ -277,7 +277,7 @@ libcross_platform_collection_render
         strmiids.lib
         user32.lib
 		 
-		abseil_dll
+		#abseil_dll
 		absl_cordz_functions
 		absl_cordz_handle
 		absl_cordz_info
@@ -317,7 +317,7 @@ libcross_platform_collection_render
 			winmm.lib
 
 
-			libyuv
+			yuv
 		libcrypto.lib 
 		libssl.lib 
 		#
@@ -374,8 +374,9 @@ libcross_platform_collection_render
 		libvpx.lib
 		libvpx_asm.lib
 
-
+		yaml_cpp
 		 
+		usrsctp
 
 			)
  

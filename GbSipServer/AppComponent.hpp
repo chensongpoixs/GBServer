@@ -16,7 +16,7 @@
 #include "oatpp/json/ObjectMapper.hpp"
 
 #include "oatpp/macro/component.hpp"
-
+#include "utils/yaml_config.h"
 /**
  *  Class which creates and holds Application components and registers components in oatpp::base::Environment
  *  Order of components initialization is from top to bottom
@@ -53,7 +53,7 @@ public:
    *  Create ConnectionProvider component which listens on the port
    */
   OATPP_CREATE_COMPONENT(std::shared_ptr<oatpp::network::ServerConnectionProvider>, serverConnectionProvider)([] {
-    return oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", 8000, oatpp::network::Address::IP_4});
+    return oatpp::network::tcp::server::ConnectionProvider::createShared({"0.0.0.0", gbsip_server::YamlConfig::GetInstance().GetHttpServerConfig().port, oatpp::network::Address::IP_4});
   }());
   
   /**

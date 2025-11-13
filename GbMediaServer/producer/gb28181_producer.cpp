@@ -18,7 +18,7 @@
  ******************************************************************************/
  
 #include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
-#include "rtc_base/logging.h"
+ 
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_util.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_received.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
@@ -26,6 +26,9 @@
 #include "server/stream.h"
 #include "producer/gb28181_producer.h"
 #include "server/session.h"
+
+#include "gb_media_server_log.h"
+
 namespace gb_media_server {
 
 
@@ -151,7 +154,7 @@ namespace gb_media_server {
 		GetStream()->AddVideoFrame(std::move(frame));
 
 	}
-	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame)
+	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame, int64_t  pts)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
 #if 0
@@ -161,8 +164,10 @@ namespace gb_media_server {
 			fwrite(frame.data(), 1, frame.size(), out_file_ptr);
 			fflush(out_file_ptr);
 		}
+		//国标暂时不处理音频
+		GetStream()->AddAudioFrame(std::move(frame), pts);
 #endif // 0
-		GetStream()->AddAudioFrame(std::move(frame));
+		
 	}
 	 
 }

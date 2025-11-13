@@ -34,6 +34,7 @@
 #include "consumer/flv_consumer.h"
 #include "libmedia_transfer_protocol/libflv/cflv_context.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "gb_media_server_log.h"
 namespace gb_media_server
 {
 	FlvConsumer::FlvConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
@@ -68,13 +69,13 @@ namespace gb_media_server
 			context->SendFlvHeader(true, true);
 		}
 		//GBMEDIASERVER_LOG(LS_INFO) << "ts:" << rtc::TimeMillis() << ", f:" << frame.Timestamp();
-		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp()  /10000 /*frame.Timestamp()*/ );
+		context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp() /1000 /*frame.Timestamp()*/ );
 
 
 	}
-	void FlvConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	void FlvConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
-		return;
+		//return;
 		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (!context)
 		{
@@ -87,7 +88,8 @@ namespace gb_media_server
 			context->SendFlvHeader(true, true);
 		}
 		rtc::CopyOnWriteBuffer  new_frame = frame;
-		context->SendFlvAudioFrame(new_frame, 0);
+		// flv 的 pts精确到毫秒级别
+		context->SendFlvAudioFrame(new_frame, pts / 1000);
 
 	}
 }

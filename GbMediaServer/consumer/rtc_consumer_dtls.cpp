@@ -20,8 +20,7 @@
 #include <random>
 #include "consumer/rtc_consumer.h"
 #include "server/session.h"
-#include "server/stream.h"
-#include "rtc_base/logging.h"
+#include "server/stream.h" 
 #include "rtc_base/buffer.h"
 #include "server/gb_media_service.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_format_h264.h"
@@ -33,10 +32,10 @@
 #include "server/rtc_service.h"
 #include "common_video/h264/h264_common.h"
 #include "libmedia_transfer_protocol/librtc/rtc_errors.h"
-
+#include "gb_media_server_log.h"
 namespace gb_media_server
 {
-	 
+ 
 	 void RtcConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
@@ -86,15 +85,19 @@ namespace gb_media_server
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送
-
-		StartCapture();
+		if (sdp_.GetDataChannelParams().application)
+		{
+			CreateDataChannel();
+		}
+		
+		//StartCapture();
 	}
 	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{
 		GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << len;
 		 
 		rtc::Buffer buffer(data, len);
-		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), remote_address_, rtc::PacketOptions());
+		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 	}
 	//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
 	void RtcConsumer::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
@@ -102,7 +105,7 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS remotely closed";
 		dtls_done_ = false;
 
-		StopCapture();
+		//StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
@@ -118,7 +121,7 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
 		dtls_done_ = false;
 
-		StopCapture();
+		//StopCapture();
 
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
@@ -134,10 +137,14 @@ namespace gb_media_server
 	{
 		// Pass it to the parent transport.
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
+		if (sctp_)
+		{
+			sctp_->ProcessSctpData(data, len);
+		}
 	}
 
 
-	
+  
 
 
 }

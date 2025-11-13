@@ -34,6 +34,8 @@ purpose:		GOPMGR
 #include "consumer/consumer.h"
 #include "server/stream.h"
 #include "common_video/h264/h264_common.h"
+#include "gb_media_server_log.h"
+
 
 #define   SHOW_NAL_TYPE  (0)
 
@@ -46,14 +48,13 @@ namespace gb_media_server
 			, pps_()
 			, send_sps_pps_(false)
 
-		, video_buffer_frame_(1024 * 1024 * 8)
-		, capture_type_(false)
+		, video_buffer_frame_(1024 * 1024 * 8) 
 		, muxer_(nullptr)
 		{
-		GBMEDIASERVER_LOG_T_F(LS_INFO);
-		muxer_ = new libmedia_transfer_protocol::Muxer();
-		muxer_->SignalAudioEncoderInfoFrame.connect(this, &Consumer::SendAudioEncode);
-		muxer_->SignalVideoEncodedImage.connect(this, &Consumer::SendVideoEncode);
+			GBMEDIASERVER_LOG_T_F(LS_INFO);
+			muxer_ = new libmedia_transfer_protocol::Muxer();
+			muxer_->SignalAudioEncoderInfoFrame.connect(this, &Consumer::SendAudioEncode);
+			muxer_->SignalVideoEncodedImage.connect(this, &Consumer::SendVideoEncode);
 		}
 
 	Consumer::~Consumer()
@@ -66,30 +67,7 @@ namespace gb_media_server
 			delete muxer_;
 			muxer_ = nullptr;
 		}
-		if (x264_encoder_)
-		{
-			x264_encoder_->SignalVideoEncodedImage.disconnect_all();
-		}
-#if TEST_RTC_PLAY
-		{
-			if (capture_type_)
-				if (video_encoder_thread_)
-				{
-					video_encoder_thread_->Stop();
-				}
-			if (x264_encoder_)
-			{
-				//	x264_encoder_->SetSendFrame(nullptr);
-				x264_encoder_->Stop();
-			}
-			if (capturer_track_source_)
-			{
-				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-				capturer_track_source_->Stop();
-			}
-		}
-
-#endif // 	
+ 
 	}
 
 	void Consumer::AddVideoFrame(const libmedia_codec::EncodedImage & frame)
@@ -142,8 +120,8 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				GBMEDIASERVER_LOG_T_F(LS_INFO) << "======" << nal_index << "============>kSlice, size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize( frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize( frame.size());
 				break;
 			}
 												 // Slices below don't contain SPS or PPS ids.
@@ -156,8 +134,8 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "=======" << nal_index << "===========>kAud, size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4)video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 			case webrtc::H264::NaluType::kStapA:
@@ -166,16 +144,16 @@ namespace gb_media_server
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "========" << nal_index << "==========>kFuA---kStapA  , size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 			default: {
 #if SHOW_NAL_TYPE
 				 GBMEDIASERVER_LOG_T_F(LS_INFO) << "=====" << nal_index << "=============>default  packet  , size:" << nalus[nal_index].payload_size;
 #endif //#if SHOW_NAL_TYPE
-				video_buffer_frame_.AppendData(frame);
-				video_buffer_frame_.SetSize(  frame.size());
+				video_buffer_frame_.AppendData(rtc::CopyOnWriteBuffer(frame.data() + nalus[nal_index].start_offset, nalus[nal_index].payload_size + 4));
+				//video_buffer_frame_.SetSize(  frame.size());
 				break;
 			}
 
@@ -196,59 +174,11 @@ namespace gb_media_server
 		OnVideoFrame(std::move(enocded_image));
 	}
 
-	void Consumer::AddAudioFrame(const rtc::CopyOnWriteBuffer & frame)
+	void Consumer::AddAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
-		OnAudioFrame(frame);
+		OnAudioFrame(frame, pts);
 	}
-		 
-#if TEST_RTC_PLAY
-
-	void Consumer::SetCapture(bool value)
-	{
-		capture_type_ = value;
-	}
-	void Consumer::StartCapture()
-	{
-#if TEST_RTC_PLAY
-		if (capture_type_)
-		{
-			x264_encoder_ = std::make_unique<libmedia_codec::X264Encoder>();
-			x264_encoder_->SignalVideoEncodedImage.connect(this, &Consumer::SendVideoEncode);
-			x264_encoder_->Start();
-			video_encoder_thread_ = rtc::Thread::Create();
-			video_encoder_thread_->SetName("video_encoder_thread", NULL);
-			video_encoder_thread_->Start();
-
-			capturer_track_source_ = libcross_platform_collection_render::CapturerTrackSource::Create(false);
-			capturer_track_source_->set_catprue_callback(x264_encoder_.get(), video_encoder_thread_.get());
-			capturer_track_source_->StartCapture();
-		}
-
-#endif // 1
-	}
-	void Consumer::StopCapture()
-	{
-#if TEST_RTC_PLAY
-		if (capture_type_)
-		{
-			if (video_encoder_thread_)
-			{
-				video_encoder_thread_->Stop();
-			}
-			if (x264_encoder_)
-			{
-				//	x264_encoder_->SetSendFrame(nullptr);
-				x264_encoder_->Stop();
-			}
-			if (capturer_track_source_)
-			{
-				//	capturer_track_source_->set_catprue_callback(nullptr, nullptr);
-				capturer_track_source_->Stop();
-			}
-		}
-		// GetSession()->CloseUser()
-#endif //
-	}
+ 
 	void Consumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	{
 		// rtc::CopyOnWriteBuffer  buffer;
@@ -312,8 +242,7 @@ namespace gb_media_server
 			GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, len), remote_address_, rtc::PacketOptions());
 		});
 #endif // 
-	}
-#endif //
+	} 
 
 		 
 	 

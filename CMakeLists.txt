@@ -8,10 +8,12 @@ MESSAGE(STATUS  "####################################")
 set(DIR_NAME_GBServer  ${PROJECT_NAME})
 
 include_directories(
+
 	 ../libwebrtc
 	 ../
 	#../../deps/libyuv/include
 	 ../deps/abseil-cpp/
+	../deps/yaml-cpp/include 
 	#.
 	#../../deps/libsip
 	#../../deps/libsip/c-ares 

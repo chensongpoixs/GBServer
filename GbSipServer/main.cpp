@@ -39,30 +39,18 @@
 
 #include <iostream>
 #include "rtc_base/logging.h"
+#include "utils/yaml_config.h"
+
+#include "gbsip_server_log.h"
+
+
+
 //std::shared_ptr<gbsip_server::SipServer> sip_server;
 void run() {
 
 	
 	AppComponent components; // Create scope Environment components
-	//std::thread([=]() {
-	//	OATPP_COMPONENT(std::shared_ptr<UserDb>, m_database);
-	//	while (true)
-	//	{
-	//		if (!m_database)
-	//		{
-	//			printf("--> not deviceDb !!!\n");
-	//		}
-	//		else
-	//		{
-	//			oatpp::UInt32  param1;
-	//			oatpp::UInt32 param2 = 19;
-	//			auto data=	m_database->getAllUsers(param1, 90);
-	//			printf("---> devie OK !!!\n");
-	//		}
-	//
-	//		std::this_thread::sleep_for(std::chrono::seconds(30));
-	//	}
-	//}).detach();
+	 
 	/* Get router component */
 	OATPP_COMPONENT(std::shared_ptr<oatpp::web::server::HttpRouter>, router);
 
@@ -94,26 +82,15 @@ void run() {
 	/* create server */
 	oatpp::network::Server server(connectionProvider,
 		connectionHandler);
-	gbsip_server::SipServerInfo  SipServerInfo;
-	SipServerInfo.ua = "GbSipServer";
-	SipServerInfo.ip = "192.168.1.2";
-	SipServerInfo.port = 15060;
-	SipServerInfo.nonce = "4101050000";
-	SipServerInfo.sipServerId = "41010500002000000001";
-	SipServerInfo.SipServerRealm = "4101050000";
-	SipServerInfo.SipSeverPass = "12345678";
-	SipServerInfo.SipTimeout = 1800;
-	SipServerInfo.SipExpiry = 3600;
-	gbsip_server::SipServer::GetInstance().init(SipServerInfo);
+	 
+	gbsip_server::SipServer::GetInstance().init(
+		gbsip_server::YamlConfig::GetInstance().GetSipServerConfig());
 	gbsip_server::SipServer::GetInstance().Start();
-	//sip_server = std::make_shared<gbsip_server::SipServer >();
+	//connectionProvider->
 	
-	//sip_server->init(SipServerInfo);
-	//std::thread([&]() {
-	//	sip_server->Start();
-	//}).detach();
 	///OATPP_LOGd("Server", "Running on port {}...", connectionProvider->getProperty("port").toString())
-	SIPSERVER_LOG(LS_INFO) << "Web Server  run port:" << connectionProvider->getProperty("port").std_str() ;
+	SIPSERVER_LOG(LS_INFO) << "Web Server  run port:" 
+		<< connectionProvider->getProperty("port").std_str() ;
 		server.run();
 
 	/* stop db connection pool */
@@ -133,6 +110,16 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 #endif // WIN32
+
+	const char* config_file = "gbsip_server.yaml";
+
+
+	bool init = gbsip_server::YamlConfig::GetInstance().LoadFile(config_file);
+	if (!init)
+	{
+		return -1;
+	}
+
 	oatpp::Environment::init();
 	
 	run();
@@ -145,28 +132,7 @@ int main(int argc, char *argv[])
 
 	oatpp::Environment::destroy();
 	
-	//WSADATA wsaData;
-	//SOCKET ConnectSocket = INVALID_SOCKET;
-	//WSAEVENT EventArray[1];
-	//DWORD EventTotal = 0, Index;
-	////LPSOCKET_INFORMATION SocketInfo;
-
-	//// 初始化Winsock
-	//if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-	//	printf("WSAStartup failed: %d\n", WSAGetLastError());
-	//	return 1;
-	//}
-	//libmedia_transfer_protocol::libsip::SipServer  sip_server;
-
-
-	//sip_server.network_thread()->PostTask(RTC_FROM_HERE, [&]() {
-	//	sip_server.Start();
-	//});
-
-	//while (true)
-	//{
-	//	std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	//}
+	
 
 	return 0;
 }

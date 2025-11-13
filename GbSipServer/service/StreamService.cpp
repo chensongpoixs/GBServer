@@ -22,9 +22,9 @@
 //#include "json.hpp"
 //#include "json.hpp"
 #include "json.hpp"
-static const char *  http_media_api = "http://192.168.1.2:8001";
+//static const char *  http_media_api = "http://192.168.9.174:8001";
 //static const uint16_t media_port = 8001;
-
+#include "gbsip_server_log.h"
 oatpp::Object<StreamDto> StreamService::startStream(const oatpp::Object<StreamDto>& dto)
 {
 
@@ -51,7 +51,9 @@ oatpp::Object<StreamDto> StreamService::startStream(const oatpp::Object<StreamDt
 		streamdto->deviceID = dto->deviceID;
 		nlohmann::json response;
 		std::string result;
-		bool ret = httplib::PostReuest(http_media_api, "/api/openRtpServer", request.dump().c_str(), result);
+		static std::string http_media_api = "http://" + gbsip_server::YamlConfig::GetInstance().GetMediaConfig().ip
+			+ ":" + std::to_string(gbsip_server::YamlConfig::GetInstance().GetMediaConfig().port);
+		bool ret = httplib::PostReuest(http_media_api.c_str(), "/api/openRtpServer", request.dump().c_str(), result);
 		//
 		if (!ret)
 		{
@@ -119,7 +121,9 @@ oatpp::Object<StreamDto> StreamService::stopStream(const oatpp::Object<StreamDto
 
 		nlohmann::json response;
 		std::string result;
-		bool ret = httplib::PostReuest(http_media_api, "/api/closeRtpServer", request.dump().c_str(), result);
+		static std::string http_media_api = "http://" + gbsip_server::YamlConfig::GetInstance().GetMediaConfig().ip
+			+ ":" + std::to_string(gbsip_server::YamlConfig::GetInstance().GetMediaConfig().port);
+		bool ret = httplib::PostReuest(http_media_api.c_str(), "/api/closeRtpServer", request.dump().c_str(), result);
 		// 
 		if (!ret)
 		{

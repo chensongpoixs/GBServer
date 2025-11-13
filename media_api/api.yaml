@@ -1,0 +1,183 @@
+openapi: 3.0.4
+info:
+  title: Rtc API 1.0
+  description: |-
+    Rtc推流拉流系统
+  termsOfService: https://swagger.io/terms/
+  contact:
+    email: apiteam@swagger.io
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: https://swagger.io
+servers:
+  - url: https://192.168.9.70:2443
+tags:
+  - name: Rtc
+    description: Rtc推流拉流 接口
+    externalDocs:
+      description: Find out more
+      url: https://swagger.io
+paths:
+  /api/rtc/push: 
+    post:
+      tags:
+        - Rtc
+      summary: "推流接口"
+      description: "推流接口"
+      operationId: "增加一路视频流"
+      requestBody:
+        description: "创建一路视频流"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RtcPush'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRtcPush'
+        '400':
+          description: Invalid input
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultError"
+                
+
+  /api/rtc/play: 
+    post:
+      tags:
+        - Rtc
+      summary: "拉流接口"
+      description: "拉流接口"
+      operationId: "增加一路播放视频流"
+      requestBody:
+        description: "创建一路视频流"
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RtcPlay'
+        required: true
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResultRtcPlay'
+        '400':
+          description: Invalid input
+        '422':
+          description: Validation exception
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResultError"
+
+components:
+  schemas:
+    RtcPush:
+      type: object
+      properties:
+        type:
+          type: string
+          format: string
+          example: 'offer'
+        streamurl:
+          type: string 
+          format: string
+          example: "webrtc://127.0.0.1/live/chensong"
+        sdp:
+          type: string 
+          format: string 
+          example: "v=0...."
+        clientid:
+          type: string 
+          format: string 
+          example: "chensong"
+    ResultRtcPush:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: integer
+          example: 0
+        type:
+          type: string
+          format: string
+          example: 'answer'
+        sessionid:
+          type: string 
+          format: string
+          example: "kdkjslfjkdls"
+        sdp:
+          type: string 
+          format: string 
+          example: "v=0...."
+          
+          
+    RtcPlay:
+      type: object
+      properties:
+        type:
+          type: string
+          format: string
+          example: 'offer'
+        streamurl:
+          type: string 
+          format: string
+          example: "webrtc://127.0.0.1/live/chensong"
+        sdp:
+          type: string 
+          format: string 
+          example: "v=0...."
+        clientid:
+          type: string 
+          format: string 
+          example: "chensong"
+    ResultRtcPlay:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: integer
+          example: 0
+        type:
+          type: string
+          format: string
+          example: 'answer'
+        sessionid:
+          type: string 
+          format: string
+          example: "kdkjslfjkdls"
+        sdp:
+          type: string 
+          format: string 
+          example: "v=0...."
+          
+    ResultError:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+      required:
+        - code
+        - message
+        
+
+ 

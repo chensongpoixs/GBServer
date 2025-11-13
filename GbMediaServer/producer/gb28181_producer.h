@@ -57,7 +57,7 @@ namespace gb_media_server {
 
 	public:
 		void OnProcessVideoFrame(libmedia_codec::EncodedImage  frame);
-		void OnProcessAudioFrame( rtc::CopyOnWriteBuffer   frame);
+		void OnProcessAudioFrame( rtc::CopyOnWriteBuffer   frame, int64_t  pts);
 	private:
 
 

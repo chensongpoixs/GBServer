@@ -31,6 +31,7 @@
 
 #include "libmedia_codec/encoded_image.h"
 #include "rtc_base/socket_address.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace  gb_media_server
 {
 
@@ -38,6 +39,7 @@ namespace  gb_media_server
 	{
 	 
 		kProducerTypeGB28181 = 0,
+		kProducerTypeRtc=1,
 		//  
 		kConsumerTypeRTC,
 		kConsumerTypeFlv,
@@ -68,13 +70,15 @@ namespace  gb_media_server
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
 
+		virtual void OnDataChannel(const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, uint32_t ppid, const uint8_t* msg, size_t len) {}
+
 		virtual ShareResourceType ShareResouceType() const { return kShareResourceTypeUnknowed; }
 		 
-		const rtc::SocketAddress &RemoteAddress() const
+		virtual const rtc::SocketAddress &RemoteAddress() const
 		{
 			return remote_address_;
 		}
-		void  SetRemoteAddress(const rtc::SocketAddress & addr);
+		virtual void  SetRemoteAddress(const rtc::SocketAddress & addr);
 
 		std::shared_ptr<Session> GetSession() const
 		{

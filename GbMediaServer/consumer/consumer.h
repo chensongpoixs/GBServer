@@ -54,6 +54,7 @@ purpose:		GOPMGR
 #include "libcross_platform_collection_render/track_capture/ctrack_capture.h"
 #endif // 
 #include "libmedia_transfer_protocol/muxer/muxer.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace gb_media_server
 {
 	 
@@ -68,16 +69,9 @@ namespace gb_media_server
 		public:
 			Consumer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
 			virtual ~Consumer() ;
+		//public:
 		public:
-
-
-		 
-		public:
-			void SetCapture(bool value);
-
-
-			void StartCapture();
-			void StopCapture();
+			 
 
 			// 本地采集的数据进行编码后进行发送的接口
 			void   SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f);
@@ -92,10 +86,13 @@ namespace gb_media_server
 			   audio: 不处理直接转发
 			*/
 			void     AddVideoFrame(const libmedia_codec::EncodedImage &frame);
-			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame);
+			void     AddAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
+			
 			//播放端继承
 			virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame) {}
-			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame) {}
+			virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts) {}
+
+			
 		public:
 			//网络层接口
 			//void Close();
@@ -107,14 +104,7 @@ namespace gb_media_server
 			bool                                         send_sps_pps_;
 			rtc::Buffer                                video_buffer_frame_;
 
-#if TEST_RTC_PLAY
 
-			bool										capture_type_;//采集桌面画面播放
-			std::unique_ptr< rtc::Thread>        video_encoder_thread_;
-			std::unique_ptr< libmedia_codec::X264Encoder>                          x264_encoder_;
-			rtc::scoped_refptr<libcross_platform_collection_render::CapturerTrackSource>     capturer_track_source_;
-			
-#endif //
 			libmedia_transfer_protocol::Muxer    *      muxer_;
 		};
  
