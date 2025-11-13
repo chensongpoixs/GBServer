@@ -91,8 +91,25 @@ LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
 static bool stoped = false;
 
 
+
+static FILE* out_log_file_ptr = NULL;
+
+
+static std::mutex g_log_lock;
+
+
 static void RtcLogCallback(const char* message)
 {
+	std::lock_guard<std::mutex> lock(g_log_lock);
+	if (!out_log_file_ptr)
+	{
+		std::string  log_file_name = "gbmedia_server" + std::to_string(::time(NULL)) + ".log";
+		out_log_file_ptr = fopen(log_file_name.c_str(), "wb+");
+	}
+	if (out_log_file_ptr)
+	{
+		fprintf(out_log_file_ptr, "%s", message);
+	}
 	fprintf(stdout, "%s", message);
 }
 
@@ -107,7 +124,7 @@ int main(int argc, char *argv[])
 	}
 #endif // WIN32
 
-	//rtc::SetRtcLogOutCallback(&RtcLogCallback);
+	 rtc::SetRtcLogOutCallback(&RtcLogCallback);
 
 
 	const char* config_file = "gbmedia_server.yaml";

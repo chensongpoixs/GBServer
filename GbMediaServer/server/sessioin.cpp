@@ -262,10 +262,19 @@ namespace  gb_media_server
 
 	void Session::ConsumerRequestKeyFrame()
 	{
-		if (producer_)
+
+		if (!producer_)
 		{
-			producer_->RequestKeyFrame();
+			return;
 		}
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,
+			[this]() {
+				if (producer_)
+				{
+					producer_->RequestKeyFrame();
+				}
+		});
+		
 		
 	}
 

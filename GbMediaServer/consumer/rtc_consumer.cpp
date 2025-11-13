@@ -327,7 +327,7 @@ namespace gb_media_server
 				  		//HandleSrReq(rtcp_block, packet_information);
 				  		break;
 					  case libmedia_transfer_protocol::rtcp::TransportFeedback::kFeedbackMessageType:
-				  		  RTC_LOG_F(LS_INFO) << "recvice rtpfb transport feedback  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+				  		 // RTC_LOG_F(LS_INFO) << "recvice rtpfb transport feedback  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
 				  		//HandleTransportFeedback(rtcp_block, packet_information);
 				  		break;
 					  default:

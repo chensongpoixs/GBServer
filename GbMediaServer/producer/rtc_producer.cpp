@@ -577,7 +577,7 @@ namespace gb_media_server {
 		{
 			return;
 		}
-		request_key_frame_ = rtc::SystemTimeMillis() + 200;
+		request_key_frame_ = rtc::SystemTimeMillis() + 100;
 		///////////////////////////////////////////////////////////////////////////
 	////                         IDR Request
 
@@ -592,7 +592,7 @@ namespace gb_media_server {
 			std::unique_ptr< libmedia_transfer_protocol::rtcp::Pli> pli = std::make_unique< libmedia_transfer_protocol::rtcp::Pli>();
 			pli->SetSenderSsrc(sdp_.VideoSsrc());
 			pli->SetMediaSsrc(sdp_.VideoSsrc());
-
+			GBMEDIASERVER_LOG(LS_INFO) << "send rquest pli ";
 			libmedia_transfer_protocol::rtcp::CompoundPacket compound;               // Builds a compound RTCP packet with
 		    compound.Append(std::move(pli));                  // a receiver report, report block
 		   // compound.Append(&fir);                 // and fir message.
