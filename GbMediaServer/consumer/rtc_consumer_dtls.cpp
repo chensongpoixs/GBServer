@@ -85,7 +85,11 @@ namespace gb_media_server
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送
-		CreateDataChannel();
+		if (sdp_.GetDataChannelParams().application)
+		{
+			CreateDataChannel();
+		}
+		
 		//StartCapture();
 	}
 	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)

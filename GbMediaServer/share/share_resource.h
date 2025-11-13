@@ -31,7 +31,7 @@
 
 #include "libmedia_codec/encoded_image.h"
 #include "rtc_base/socket_address.h"
-#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace  gb_media_server
 {
 

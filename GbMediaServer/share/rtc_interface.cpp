@@ -52,7 +52,7 @@
 #include "libmedia_transfer_protocol/librtcp/rtcp_context.h"
 #include "rtc_base/string_utils.h"
 #include "rtc_base/string_encode.h"
-#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 
 namespace gb_media_server
 {

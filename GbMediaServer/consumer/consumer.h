@@ -54,7 +54,7 @@ purpose:		GOPMGR
 #include "libcross_platform_collection_render/track_capture/ctrack_capture.h"
 #endif // 
 #include "libmedia_transfer_protocol/muxer/muxer.h"
-#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace gb_media_server
 {
 	 

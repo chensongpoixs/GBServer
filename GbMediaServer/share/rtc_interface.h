@@ -41,8 +41,8 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "share/share_resource.h"
 #include "libmedia_transfer_protocol/librtcp/twcc_context.h"
-#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
-#include "libmedia_transfer_protocol/librtc/SctpAssociation.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
+#include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace gb_media_server {
  
 	class RtcInterface  : public libmedia_transfer_protocol::librtc::SctpAssociation::Listener
