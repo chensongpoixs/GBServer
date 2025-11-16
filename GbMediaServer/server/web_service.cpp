@@ -42,10 +42,19 @@ namespace  gb_media_server
 		http_event_callback_map_["/rtc/push"] = &WebService::HandlerRtcProducer;
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
 		
+		// flv 
+		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
 
+		// m3u8
+		http_event_callback_map_["m3u8"] = &WebService::HandlerM3u8Consumer;
+
+		// ts
+		http_event_callback_map_["ts"] = &WebService::HandlerTsConsumer;
+
+		//// rtp 
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
-		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
+		
 	
 	}
 	WebService::~WebService()

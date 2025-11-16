@@ -104,16 +104,20 @@ namespace gb_media_server
 	 
 
 		Stream::Stream( Session &s, const std::string & session_name)
-			:session_(s), session_name_(session_name) 
+			:session_(s), session_name_(session_name) , hls_muxer_(session_name)
 		{
 			 
 		}
 		void Stream::AddVideoFrame(  libmedia_codec::EncodedImage&& frame)
 		{ 
+			// TODO@chensong 2025-11-17 实现 HLS的协议
+			//hls_muxer_.OnPacket(packet);
 			session_.AddVideoFrame(std::move(frame));
 		}
 		void Stream::AddAudioFrame(  rtc::CopyOnWriteBuffer&&frame, int64_t  pts)
 		{
+			// TODO@chensong 2025-11-17 实现 HLS的协议
+			//hls_muxer_.OnPacket(packet);
 			session_.AddAudioFrame(std::move(frame), pts);
 		}
 		 
