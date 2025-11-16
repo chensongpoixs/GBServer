@@ -26,7 +26,7 @@
 #include "utils/string_utils.h"
 #include "consumer/rtc_consumer.h"
 #include "producer/gb28181_producer.h"
-#include "libmedia_transfer_protocol/libflv/cflv_context.h"
+#include "libmedia_transfer_protocol/libflv/cflv_encoder.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "gb_media_server_log.h"
 
@@ -152,7 +152,7 @@ namespace  gb_media_server
 			
 			 
 		}
-		auto flv = conn->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
+		auto flv = conn->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (flv)
 		{ 
 			gb_media_server::GbMediaService::GetInstance().worker_thread()->Invoke<void>(RTC_FROM_HERE, [& ]() {

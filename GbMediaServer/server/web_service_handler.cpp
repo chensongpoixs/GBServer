@@ -26,7 +26,7 @@
 #include "utils/string_utils.h"
 #include "consumer/rtc_consumer.h"
 #include "producer/gb28181_producer.h"
-#include "libmedia_transfer_protocol/libflv/cflv_context.h"
+#include "libmedia_transfer_protocol/libflv/cflv_encoder.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 
 #include "producer/rtc_producer.h"
@@ -373,7 +373,7 @@ namespace gb_media_server
 
 
 		conn->SetContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext, consumer);
-		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn
+		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvEncoder>(conn
 #if 0
 			, "gb28181_test.flv"
 #endif // test 

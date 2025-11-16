@@ -32,7 +32,7 @@
  安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
  ************************************************************************************************/
 #include "consumer/flv_consumer.h"
-#include "libmedia_transfer_protocol/libflv/cflv_context.h"
+#include "libmedia_transfer_protocol/libflv/cflv_encoder.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "gb_media_server_log.h"
 namespace gb_media_server
@@ -57,7 +57,7 @@ namespace gb_media_server
 		{
 			return;
 		}
-		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
+		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (!context)
 		{
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "flv consumer get flv context == null !!!";
@@ -76,7 +76,7 @@ namespace gb_media_server
 	void FlvConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
 		//return;
-		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
+		auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (!context)
 		{
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "flv consumer get flv context == null !!!";
