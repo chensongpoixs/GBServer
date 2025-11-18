@@ -58,6 +58,9 @@ namespace gb_media_server
 {
 
 
+	namespace {
+		static const uint32_t    kMaxVideoPacketSize = 1000;
+	}
  
 
 #if 0
@@ -319,5 +322,38 @@ namespace gb_media_server
 	{
 		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
 		sctp_->TransportConnected();
+	}
+	void RtcInterface::AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet)
+	{
+		rtp_video_packets_[rtp_packet->SequenceNumber()] = rtp_packet;
+		auto it = rtp_video_packets_.lower_bound(rtp_packet->SequenceNumber() - kMaxVideoPacketSize);
+		rtp_video_packets_.erase(rtp_video_packets_.begin(), it);
+	}
+	void RtcInterface::RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack)
+	{
+		GBMEDIASERVER_LOG_T_F(LS_INFO) << "media_ssrc:" << nack.media_ssrc();
+		if (nack.media_ssrc() != sdp_.VideoSsrc())
+		{
+			GBMEDIASERVER_LOG_T_F(LS_INFO) << "[media_ssrc:" << nack.media_ssrc() << ", != " << sdp_.VideoSsrc() << " ]";
+			return;
+		}
+
+		for (const auto& packetid : nack.packet_ids())
+		{
+			auto iter =  rtp_video_packets_.find(packetid);
+			if (iter != rtp_video_packets_.end())
+			{
+				if (iter->second)
+				{
+					GBMEDIASERVER_LOG(LS_INFO) << "rtx packet seq : " << packetid << ", rtx packet_id : " << video_rtx_seq_;
+					auto rtx_packet = iter->second;
+					rtx_packet->SetPayloadType(sdp_.VideoRtxSsrc());
+					rtx_packet->SetSequenceNumber(video_rtx_seq_++);
+					SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
+					
+				}
+			}
+		}
+
 	}
 }

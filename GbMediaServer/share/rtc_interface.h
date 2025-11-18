@@ -43,6 +43,9 @@
 #include "libmedia_transfer_protocol/librtcp/twcc_context.h"
 #include "libmedia_transfer_protocol/librtc/sctp_association.h"
 #include "libmedia_transfer_protocol/librtc/sctp_association.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_to_send.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/nack.h"
+#include <memory>
 namespace gb_media_server {
  
 	class RtcInterface  : public libmedia_transfer_protocol::librtc::SctpAssociation::Listener
@@ -96,6 +99,11 @@ namespace gb_media_server {
 
 		void CreateDataChannel();
 
+
+		void AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet);
+
+
+		void RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack);
 	public:
 
 		// sctp inferface
@@ -122,6 +130,7 @@ namespace gb_media_server {
 		virtual void  SetRtcRemoteAddress(const rtc::SocketAddress& addr);
 
 	
+
 	public:
 		static std::string GetUFrag(int size);
 		static uint32_t GetSsrc(int size);
@@ -147,6 +156,7 @@ namespace gb_media_server {
 
 		uint32_t      audio_seq_ = 100;
 		uint32_t      video_seq_ = 100;
+		uint32_t      video_rtx_seq_ = 100;
 		//libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 		libmedia_transfer_protocol::RTPHeader  rtp_header_;
 		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;
@@ -154,6 +164,9 @@ namespace gb_media_server {
 
 		//libmedia_transfer_protocol::librtc::SctpAssociationImp::Ptr   sctp_;
 		std::shared_ptr< libmedia_transfer_protocol::librtc::SctpAssociationImp> sctp_;
+
+
+		std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;
 	};
  
 }
