@@ -40,8 +40,8 @@ namespace  gb_media_server
 		http_server_->SignalOnRequest.connect(this, &WebService::OnRequest);
 		http_server_->SignalOnDestory.connect(this, &WebService::OnDestroy);
 		http_event_callback_map_["/rtc/push"] = &WebService::HandlerRtcProducer;
+		http_event_callback_map_["/rtc/pull"] = &WebService::HandlerRtcConsumer;
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
-		
 		// flv 
 		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
 
