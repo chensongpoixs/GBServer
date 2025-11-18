@@ -26,7 +26,7 @@
 #include "utils/string_utils.h"
 #include "consumer/rtc_consumer.h"
 #include "producer/gb28181_producer.h"
-#include "libmedia_transfer_protocol/libflv/cflv_context.h"
+#include "libmedia_transfer_protocol/libflv/cflv_encoder.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "gb_media_server_log.h"
 
@@ -40,12 +40,21 @@ namespace  gb_media_server
 		http_server_->SignalOnRequest.connect(this, &WebService::OnRequest);
 		http_server_->SignalOnDestory.connect(this, &WebService::OnDestroy);
 		http_event_callback_map_["/rtc/push"] = &WebService::HandlerRtcProducer;
+		http_event_callback_map_["/rtc/pull"] = &WebService::HandlerRtcConsumer;
 		http_event_callback_map_["/rtc/play"] = &WebService::HandlerRtcConsumer;
-		
+		// flv 
+		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
 
+		// m3u8
+		http_event_callback_map_["m3u8"] = &WebService::HandlerM3u8Consumer;
+
+		// ts
+		http_event_callback_map_["ts"] = &WebService::HandlerTsConsumer;
+
+		//// rtp 
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
-		http_event_callback_map_["flv"] = &WebService::HandlerFlvConsumer;
+		
 	
 	}
 	WebService::~WebService()
@@ -152,7 +161,7 @@ namespace  gb_media_server
 			
 			 
 		}
-		auto flv = conn->GetContext<libmedia_transfer_protocol::libflv::FlvContext>(libmedia_transfer_protocol::libnetwork::kFlvContext);
+		auto flv = conn->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
 		if (flv)
 		{ 
 			gb_media_server::GbMediaService::GetInstance().worker_thread()->Invoke<void>(RTC_FROM_HERE, [& ]() {

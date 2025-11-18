@@ -110,6 +110,7 @@ purpose:		GOPMGR
 #include "libmedia_codec/encoded_frame.h"
 #include "libmedia_codec/encoded_image.h"
 //#include "server/session.h"
+#include "libmedia_transfer_protocol/libhls/chls_muxer.h"
 namespace gb_media_server
 {
 	 
@@ -130,7 +131,14 @@ namespace gb_media_server
 	 
 		public:
 
-
+			std::string  GetPlayList()
+			{
+				return hls_muxer_.PlayList();
+			}
+			std::shared_ptr< libmedia_transfer_protocol::libhls::Fragment>  GetFragement(const std::string &name)
+			{
+				return hls_muxer_.GetFragment(name);
+			}
 
 
 		public:
@@ -152,7 +160,7 @@ namespace gb_media_server
 			std::string    session_name_;
 			 
 
-			 
+			libmedia_transfer_protocol::libhls::HLSMuxer      hls_muxer_;
 
 
 

@@ -40,9 +40,13 @@ namespace  gb_media_server
 	 
 		kProducerTypeGB28181 = 0,
 		kProducerTypeRtc=1,
+		kProducerTypeRtmp,
+		kProducerTypeRtsp,
 		//  
 		kConsumerTypeRTC,
 		kConsumerTypeFlv,
+		kConsumerTypeRtmp,
+		kConsumerTypeRtsp,
 		kShareResourceTypeUnknowed = 255,
 
 

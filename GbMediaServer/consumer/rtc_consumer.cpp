@@ -311,9 +311,18 @@ namespace gb_media_server
 				  //RTC_LOG_F(LS_INFO) << "recvice rtpfb ";
 				  switch (rtcp_block.fmt()) {
 					  case libmedia_transfer_protocol::rtcp::Nack::kFeedbackMessageType:
-				  		  RTC_LOG_F(LS_INFO) << "recvice rtpfb  nack RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
-				  		//HandleNack(rtcp_block, packet_information);
-				  		break;
+					  {
+						  RTC_LOG_F(LS_INFO) << "recvice rtpfb  nack RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
+						  //HandleNack(rtcp_block, packet_information);
+						  libmedia_transfer_protocol::rtcp::Nack nack;
+						  if (!nack.Parse(rtcp_block)) 
+						  {
+							  GBMEDIASERVER_LOG_T_F(LS_WARNING) << "parse recvice rtpfb nack failed !!!";
+							 // ++num_skipped_packets_;
+							  continue;
+						  }
+						  break;
+					  }
 					  case libmedia_transfer_protocol::rtcp::Tmmbr::kFeedbackMessageType:
 				  		RTC_LOG(LS_INFO) << "recvice rtpfb  tmmbr RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
 				  		//HandleTmmbr(rtcp_block, packet_information);
@@ -409,7 +418,7 @@ namespace gb_media_server
 			  {
 
 				  auto  single_packet =
-					  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
+					  std::make_shared<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
 
 				  single_packet->SetPayloadType(sdp_.GetVideoPayloadType());
 				  single_packet->SetTimestamp(rtp_timestamp);
@@ -440,6 +449,7 @@ namespace gb_media_server
 				  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
 
 #endif  
+				  AddVideoPacket(single_packet);
 			  }
 		  }
 	  }

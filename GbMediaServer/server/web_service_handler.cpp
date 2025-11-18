@@ -26,15 +26,15 @@
 #include "utils/string_utils.h"
 #include "consumer/rtc_consumer.h"
 #include "producer/gb28181_producer.h"
-#include "libmedia_transfer_protocol/libflv/cflv_context.h"
+#include "libmedia_transfer_protocol/libflv/cflv_encoder.h"
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 
 #include "producer/rtc_producer.h"
 
 #include "gb_media_server_log.h"
 
-
-
+#include "libmedia_transfer_protocol/libhls/chls_muxer.h"
+#include "libmedia_transfer_protocol/libmpeg/packet.h"
 namespace gb_media_server
 {
 
@@ -72,7 +72,7 @@ namespace gb_media_server
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
 				res->SetStatusCode(200);
-				res->AddHeader("server", "WebServer");
+				res->AddHeader("server", "GbMediaServer");
 				res->AddHeader("content-length", std::to_string(content.size()));
 				res->AddHeader("content-type", "application/json");
 				res->AddHeader("Access-Control-Allow-Origin", "*");
@@ -214,7 +214,7 @@ namespace gb_media_server
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
 				res->SetStatusCode(200);
-				res->AddHeader("server", "WebServer");
+				res->AddHeader("server", "GbMediaServer");
 				res->AddHeader("content-length", std::to_string(content.size()));
 				res->AddHeader("content-type", "application/json");
 				res->AddHeader("Access-Control-Allow-Origin", "*");
@@ -289,7 +289,7 @@ namespace gb_media_server
 		consumer->MayRunDtls();
 		Json::Value result;
 		result["code"] = 0;
-		result["server"] = "WebServer";
+		result["server"] = "GbMediaServer";
 		result["type"] = "answer";
 		result["sdp"] = std::move(answer_sdp);
 		result["sessionid"] = consumer->RemoteUFrag() + ":" + consumer->LocalUFrag();
@@ -298,7 +298,7 @@ namespace gb_media_server
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
 			res->SetStatusCode(200);
-			res->AddHeader("server", "WebServer");
+			res->AddHeader("server", "GbMediaServer");
 			res->AddHeader("content-length", std::to_string(content.size()));
 			res->AddHeader("content-type", "application/json");
 			res->AddHeader("Access-Control-Allow-Origin", "*");
@@ -373,7 +373,7 @@ namespace gb_media_server
 
 
 		conn->SetContext(libmedia_transfer_protocol::libnetwork::kShareResourceContext, consumer);
-		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvContext>(conn
+		auto flv = std::make_shared<libmedia_transfer_protocol::libflv::FlvEncoder>(conn
 #if 0
 			, "gb28181_test.flv"
 #endif // test 
@@ -385,6 +385,107 @@ namespace gb_media_server
 
 
 
+	}
+	void WebService::HandlerM3u8Consumer(libmedia_transfer_protocol::libnetwork::Connection * conn, 
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
+		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
+	{
+		GBMEDIASERVER_LOG(LS_INFO) << "request:" << req->Path();
+		std::string streamUrl = req->Path();
+		auto pos = streamUrl.find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			streamUrl = "http://chensong.com" + streamUrl.substr(0, pos);
+		}
+		GBMEDIASERVER_LOG(LS_INFO) << "streamUrl:" << streamUrl;
+		std::string session_name = string_utils::GetSessionNameFromUrl(streamUrl);
+		GBMEDIASERVER_LOG(LS_INFO) << "m3u8  session name:" << session_name;
+		//GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
+
+		auto s = GbMediaService::GetInstance().CreateSession(session_name);
+		if (!s)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+
+			return;
+		}
+
+		std::string paylist  = s->GetStream()->GetPlayList();
+		if (!paylist.empty())
+		{
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				res->AddHeader("server", "GbMediaServer");
+				res->AddHeader("content-length", std::to_string(paylist.size()));
+				res->AddHeader("content-type", "application/vnd.apple.mpegurl");
+
+				res->SetStatusCode(200);
+				res->SetBody(paylist);
+				http_ctx->PostRequest(res);
+			});
+		}
+		else
+		{
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				res->AddHeader("server", "GbMediaServer");
+				http_ctx->PostRequest(res);
+			});
+		}
+	}
+	void WebService::HandlerTsConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn, 
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
+		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
+		std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> http_ctx)
+	{
+		GBMEDIASERVER_LOG(LS_INFO) << "request:" << req->Path();
+		std::string streamUrl = req->Path();
+		auto pos = streamUrl.find_last_of('.');
+		if (pos != std::string::npos)
+		{
+			streamUrl = "http://chensong.com" + streamUrl.substr(0, pos);
+		}
+		GBMEDIASERVER_LOG(LS_INFO) << "streamUrl:" << streamUrl;
+		std::string session_name = string_utils::GetSessionNameFromUrl(streamUrl);
+		GBMEDIASERVER_LOG(LS_INFO) << "ts  session name:" << session_name;
+		//GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
+
+		auto s = GbMediaService::GetInstance().CreateSession(session_name);
+		if (!s)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				http_ctx->PostRequest(res);
+				http_ctx->WriteComplete(conn);
+			});
+
+			return;
+		}
+		std::string  filename;
+		 
+		{
+			libmedia_transfer_protocol::libhls::FragmentPtr frag  = s->GetStream()->GetFragement(filename);
+			
+			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				res->AddHeader("server", "GbMediaServer");
+				// TODO@chensong 2025-11-17
+				res->AddHeader("content-length", std::to_string(frag->Size()));
+				res->AddHeader("content-type", "video/MP2T");
+
+				res->SetStatusCode(200);
+				//res->SetBody(frag->Data());
+				// TODO@chensong 2025-11-17
+				//http_ctx->PostRequest(res->MakeHeaders(), frag->FragmentData());
+			});
+		}
 	}
 	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
@@ -479,7 +580,7 @@ namespace gb_media_server
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
 			res->SetStatusCode(200);
-			res->AddHeader("server", "WebServer");
+			res->AddHeader("server", "GbMediaServer");
 			res->AddHeader("content-length", std::to_string(content.size()));
 			res->AddHeader("content-type", "application/json; charset=UTF-8");
 			res->AddHeader("Access-Control-Allow-Origin", "*");
@@ -548,7 +649,7 @@ namespace gb_media_server
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
 			res->SetStatusCode(200);
-			res->AddHeader("server", "WebServer");
+			res->AddHeader("server", "GbMediaServer");
 			res->AddHeader("content-length", std::to_string(content.size()));
 			res->AddHeader("content-type", "application/json");
 			res->AddHeader("Access-Control-Allow-Origin", "*");
