@@ -471,7 +471,7 @@ namespace gb_media_server
 		std::string  filename;
 		 
 		{
-			libmedia_transfer_protocol::libhls::FragmentPtr frag  = s->GetStream()->GetFragement(filename);
+			std::shared_ptr< libmedia_transfer_protocol::libhls::Fragment> frag  = s->GetStream()->GetFragement(filename);
 			
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
 				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
