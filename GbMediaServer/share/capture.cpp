@@ -1,4 +1,4 @@
-/******************************************************************************
+ï»¿/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -102,7 +102,7 @@ namespace gb_media_server
 #endif //
 	}
 
-	// ±¾µØ²É¼¯µÄÊı¾İ½øĞĞ±àÂëºó½øĞĞ·¢ËÍµÄ½Ó¿Ú
+	// æœ¬åœ°é‡‡é›†çš„æ•°æ®è¿›è¡Œç¼–ç åè¿›è¡Œå‘é€çš„æ¥å£
 	void   Capture::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f){}
 	void   Capture::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f){}
 }

@@ -1,4 +1,4 @@
-/******************************************************************************
+ï»¿/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -97,7 +97,7 @@ namespace gb_media_server
 
 #if 0 // test echo hello 
 		if (sctp_) {
-			// »ØÏÔÊı¾İ  [AUTO-TRANSLATED:7868d3a4]
+			// å›æ˜¾æ•°æ®  [AUTO-TRANSLATED:7868d3a4]
 			// Echo data
 			sctp_->SendSctpMessage(params, ppid, msg, len);
 		}

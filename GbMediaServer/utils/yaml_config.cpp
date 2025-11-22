@@ -1,4 +1,4 @@
-/*
+ï»¿/*
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -34,7 +34,7 @@ namespace  gb_media_server
 	bool YamlConfig::LoadFile(const char* file)
 	{
 		try {
-			// ´ÓÎÄ¼þ¼ÓÔØYAML
+			// ä»Žæ–‡ä»¶åŠ è½½YAML
 			YAML::Node node = YAML::LoadFile(file);
 
 			if (node["http"]) {
@@ -70,7 +70,7 @@ namespace  gb_media_server
 				rtp_port_config_.udp_max_port = node["rtp"]["udp"]["max_port"].as<uint16_t>();
 				rtp_port_config_.tcp_min_port = node["rtp"]["tcp"]["min_port"].as<uint16_t>();
 				rtp_port_config_.tcp_max_port = node["rtp"]["tcp"]["max_port"].as<uint16_t>();
-				GBMEDIASERVER_LOG(LS_INFO) << "rtp config info £º\n" << "udp --> [min_port:" << rtp_port_config_.udp_min_port
+				GBMEDIASERVER_LOG(LS_INFO) << "rtp config info ï¼š\n" << "udp --> [min_port:" << rtp_port_config_.udp_min_port
 					<< "][max_port:" << rtp_port_config_.udp_max_port << "]\n"
 					<< "tcp [min_port:" << rtp_port_config_.tcp_min_port << "][max_port:" << rtp_port_config_.tcp_max_port <<"]";
 

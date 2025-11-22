@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -44,7 +44,7 @@ namespace  gb_media_server
 		std::vector<std::string> ips{ "127.0.0.1" };
 		uint16_t        udp_port{10001};
 		uint16_t        tcp_port{10001};
-		// ֤��
+		// 证书
 		std::string     cert_public_key{""};
 		std::string     cert_private_key{ "" };
 	};

@@ -1,4 +1,4 @@
-/******************************************************************************
+ï»¿/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -61,7 +61,7 @@ namespace gb_media_server {
 	   virtual const std::string& RemoteUFrag() const = 0;
 	   virtual std::string BuildAnswerSdp() = 0;
 
-		//¿ªÊ¼DTLSÑ¡Ôñ¿Í»§¶Ë»¹ÊÇ·şÎñ¶Ë»ÓÊÖ½»»» 
+		//å¼€å§‹DTLSé€‰æ‹©å®¢æˆ·ç«¯è¿˜æ˜¯æœåŠ¡ç«¯æŒ¥æ‰‹äº¤æ¢ 
 	   virtual void MayRunDtls() = 0;
 	public:
 
@@ -122,7 +122,7 @@ namespace gb_media_server {
 			size_t len) override;
 
 	public:
-		// rtc ÌØ±ğÔö¼ÓµÄ½Ó¿Ú
+		// rtc ç‰¹åˆ«å¢åŠ çš„æ¥å£
 		virtual  const rtc::SocketAddress& RtcRemoteAddress() const
 		{
 			return rtc_remote_address_;
