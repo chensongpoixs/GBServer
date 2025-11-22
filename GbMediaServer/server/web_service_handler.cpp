@@ -194,7 +194,7 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		 
 		//�������Ϊ stun����ʱ��Ҫ��֤�û��������� ������Ҫ�ֵ�ȫ����rtc����������ȥ
-		RtcService::GetInstance().AddConsumer(producer);
+		RtcService::GetInstance().RegisterRtcInterface(producer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 
 	}
@@ -336,7 +336,7 @@ namespace gb_media_server
 		//	consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
 		//}
 		//�������Ϊ stun����ʱ��Ҫ��֤�û��������� ������Ҫ�ֵ�ȫ����rtc����������ȥ
-		RtcService::GetInstance().AddConsumer(consumer);
+		RtcService::GetInstance().RegisterRtcInterface(consumer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 
 	}

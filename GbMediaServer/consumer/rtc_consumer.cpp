@@ -335,6 +335,7 @@ namespace gb_media_server
 							 // ++num_skipped_packets_;
 							  continue;
 						  }
+						  RequestNack(nack);
 						  break;
 					  }
 					  case libmedia_transfer_protocol::rtcp::Tmmbr::kFeedbackMessageType:

@@ -484,7 +484,7 @@ namespace gb_media_server {
 
 		webrtc::ScopedTaskSafety task_safety_;
 		//rtc::Buffer recv_buffer_;
-		   uint8_t  * recv_buffer_;
+		std::unique_ptr<uint8_t[]> recv_buffer_;
 		int32_t recv_buffer_size_;
 
 

@@ -1,4 +1,4 @@
-# GbMediaServer 流媒体服务文档
+﻿# GbMediaServer 流媒体服务文档
 
 
 ## 目录
