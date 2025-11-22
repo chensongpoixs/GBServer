@@ -74,7 +74,7 @@ namespace gb_media_server {
 
 
 		virtual void RequestKeyFrame();
-
+		virtual  void SetStreamStatus(bool status);
 		void OnTimer();
 	public:
 		virtual ShareResourceType ShareResouceType() const { return kProducerTypeRtc; }
@@ -181,6 +181,9 @@ namespace gb_media_server {
 
 		int64_t    request_key_frame_;
 		
+
+
+		bool       stream_status_ = true;
 	};
 }
 

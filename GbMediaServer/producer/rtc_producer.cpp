@@ -40,6 +40,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rtpfb.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/stream.h"
 
 namespace gb_media_server {
 
@@ -237,12 +238,17 @@ namespace gb_media_server {
 
 					return ;
 				}
-				if (rtc::SystemTimeMillis() - rtcp_rr_timestamp_ > 4000)
+				//if (rtc::SystemTimeMillis() - rtcp_rr_timestamp_ > 4000)
 				{
 					rtc::Buffer buffer = rtcp_context_recv_->createRtcpRR(sdp_.VideoSsrc(), sdp_.VideoSsrc());
 					GBMEDIASERVER_LOG(LS_INFO) << "Send RR";
 					SendSrtpRtcp(buffer.data(), buffer.size());
 					rtcp_rr_timestamp_ = rtc::SystemTimeMillis();
+				}
+				{
+				
+					stream_status_ = stream_status_? false:true;
+					SetStreamStatus(stream_status_);
 				}
  
 			OnTimer();
@@ -630,6 +636,20 @@ namespace gb_media_server {
 			// Notify the listener.
 			//static_cast<RTC::RtpStreamRecv::Listener*>(this->listener)->OnRtpStreamSendRtcpPacket(this, &packet);
 		}
+	}
+
+	void RtcProducer::SetStreamStatus(bool status)
+	{
+		std::unique_ptr< libmedia_transfer_protocol::rtcp::Stream> stream = std::make_unique< libmedia_transfer_protocol::rtcp::Stream>();
+		stream->SetSenderSsrc(sdp_.VideoSsrc());
+	//	stream->setm(sdp_.VideoSsrc());
+		stream->SetStatus(status);
+		GBMEDIASERVER_LOG(LS_INFO) << " set  ssrc:"<<sdp_.VideoSsrc() <<", send stream status  :" << status;
+		libmedia_transfer_protocol::rtcp::CompoundPacket compound;               // Builds a compound RTCP packet with
+		compound.Append(std::move(stream));                  // a receiver report, report block
+	   // compound.Append(&fir);                 // and fir message.
+		rtc::Buffer packet = compound.Build();
+		SendSrtpRtcp(packet.data(), packet.size());
 	}
 	void RtcProducer::OnDataChannel(
 		const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params,

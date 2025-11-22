@@ -75,6 +75,14 @@ namespace gb_media_server
 
 			 virtual void RequestKeyFrame() {}
 		
+
+
+			/**
+			*  stream    当没有人观看时停止推流  当有人上来时候自动推流的
+			* @param bool: 是否进行推流 
+			* return 返回值
+			*/
+			 virtual  void SetStreamStatus(bool status) {}
 		public: 
 		protected:
 			 
