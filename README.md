@@ -1,5 +1,6 @@
 # GbMediaServer 流媒体服务文档
 
+![WebRTC播放gb28181视频流效果](img/gb28181_play.gif)
 
 ## 目录
 
@@ -23,7 +24,6 @@
 - [参考资源](#参考资源)
 
 
-![WebRTC播放gb28181视频流效果](img/gb28181_play.gif)
 
 
 ## 项目概述
@@ -876,5 +876,6 @@ Stream (HLS Muxer)
 - [HTTP Live Streaming (HLS) 规范](https://tools.ietf.org/html/rfc8216)
 
 ---
+
 
 **注意**：本文档会持续更新，请关注项目最新版本。
