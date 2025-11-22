@@ -51,24 +51,85 @@
 namespace  gb_media_server
 {
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 共享资源类型枚举（Share Resource Type Enum）
+	*  
+	*  该枚举用于标识不同的生产者（Producer）和消费者（Consumer）类型。
+	*  每种类型对应不同的媒体传输协议。
+	*  
+	*  生产者类型说明：
+	*  - kProducerTypeGB28181: GB28181协议生产者，用于接收GB28181设备的媒体流
+	*  - kProducerTypeRtc: RTC协议生产者，用于接收WebRTC推流的媒体流
+	*  - kProducerTypeRtmp: RTMP协议生产者，用于接收RTMP推流的媒体流
+	*  - kProducerTypeRtsp: RTSP协议生产者，用于接收RTSP推流的媒体流
+	*  
+	*  消费者类型说明：
+	*  - kConsumerTypeRTC: RTC协议消费者，用于WebRTC拉流播放
+	*  - kConsumerTypeFlv: FLV协议消费者，用于HTTP-FLV拉流播放
+	*  - kConsumerTypeRtmp: RTMP协议消费者，用于RTMP拉流播放
+	*  - kConsumerTypeRtsp: RTSP协议消费者，用于RTSP拉流播放
+	*  
+	*  @note kShareResourceTypeUnknowed表示未知类型，用于错误处理
+	*/
 	enum  ShareResourceType
 	{
 	 
-		kProducerTypeGB28181 = 0,
-		kProducerTypeRtc=1,
-		kProducerTypeRtmp,
-		kProducerTypeRtsp,
+		kProducerTypeGB28181 = 0,      ///< GB28181协议生产者
+		kProducerTypeRtc=1,            ///< RTC协议生产者
+		kProducerTypeRtmp,             ///< RTMP协议生产者
+		kProducerTypeRtsp,             ///< RTSP协议生产者
 		//  
-		kConsumerTypeRTC,
-		kConsumerTypeFlv,
-		kConsumerTypeRtmp,
-		kConsumerTypeRtsp,
-		kShareResourceTypeUnknowed = 255,
-
+		kConsumerTypeRTC,              ///< RTC协议消费者
+		kConsumerTypeFlv,              ///< FLV协议消费者
+		kConsumerTypeRtmp,             ///< RTMP协议消费者
+		kConsumerTypeRtsp,             ///< RTSP协议消费者
+		kShareResourceTypeUnknowed = 255,  ///< 未知类型
 
 	};
 	class Stream;
 	class Session;
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 共享资源基类（Share Resource Base Class）
+	*  
+	*  ShareResource是GBMediaServer流媒体服务器中所有生产者和消费者的基类。
+	*  它提供了共同的功能，包括应用名称、流名称、参数管理、远程地址管理等。
+	*  Producer和Consumer类都继承自此类。
+	*  
+	*  ShareResource功能：
+	*  1. 管理应用名称（App Name）和流名称（Stream Name）
+	*  2. 管理附加参数（Param）
+	*  3. 管理远程地址（Remote Address）
+	*  4. 提供流对象（Stream）和会话对象（Session）的访问
+	*  5. 提供数据接收和处理的虚函数接口
+	*  6. 提供资源类型标识
+	*  
+	*  应用和流名称说明：
+	*  - 格式通常为 "app/stream"，如 "live/stream1"
+	*  - app_name_: 应用名称，如 "live"
+	*  - stream_name_: 流名称，如 "stream1"
+	*  - param_: 附加参数，用于传递协议特定的配置信息
+	*  
+	*  @note ShareResource是抽象基类，不能直接实例化
+	*  @note 子类需要实现纯虚函数，如OnRecv、OnDataChannel等
+	*  @note 使用enable_shared_from_this支持智能指针管理
+	*  
+	*  继承层次：
+	*  - Producer: 继承自ShareResource，用于接收媒体流
+	*  - Consumer: 继承自ShareResource，用于发送媒体流
+	*  
+	*  使用示例：
+	*  @code
+	*  // ShareResource不能直接实例化，通过子类使用
+	*  auto producer = std::make_shared<RtcProducer>(stream, session);
+	*  producer->SetAppName("live");
+	*  producer->SetStreamName("stream1");
+	*  @endcode
+	*/
 	class ShareResource : public std::enable_shared_from_this<ShareResource>
 	{
 	public:
