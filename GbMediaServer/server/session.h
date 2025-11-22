@@ -29,6 +29,7 @@
 沿着自己的回忆，一个个的场景忽闪而过，最后发现，我的本心，在我写代码的时候，会回来。
 安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
 
+
  ******************************************************************************/
 #ifndef _C_GB_MEDIA_SERVER_SESSIOIN_H____
 #define _C_GB_MEDIA_SERVER_SESSIOIN_H____
@@ -212,10 +213,11 @@ namespace  gb_media_server
 	private: 
 	private:
 		std::string session_name_;
-		 
+
+		//���Ŷ�
 		std::unordered_set<std::shared_ptr<Consumer>>    consumers_;
 		std::shared_ptr<Stream>							 stream_{ nullptr };
-		 
+		//������
 		 std::shared_ptr<Producer>								 producer_{ nullptr };
 		std::mutex								lock_;
 		std::atomic<int64_t>			     player_live_time_;
