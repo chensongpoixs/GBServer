@@ -14,6 +14,21 @@
 				   date:  2025-10-17
 
 
+输赢不重要，答案对你们有什么意义才重要。
+
+光阴者，百代之过客也，唯有奋力奔跑，方能生风起时，是时代造英雄，英雄存在于时代。或许世人道你轻狂，可你本就年少啊。 看护好，自己的理想和激情。
+
+
+我可能会遇到很多的人，听他们讲好2多的故事，我来写成故事或编成歌，用我学来的各种乐器演奏它。
+然后还可能在一个国家遇到一个心仪我的姑娘，她可能会被我帅气的外表捕获，又会被我深邃的内涵吸引，在某个下雨的夜晚，她会全身淋透然后要在我狭小的住处换身上的湿衣服。
+3小时候后她告诉我她其实是这个国家的公主，她愿意向父皇求婚。我不得已告诉她我是穿越而来的男主角，我始终要回到自己的世界。
+然后我的身影慢慢消失，我看到她眼里的泪水，心里却没有任何痛苦，我才知道，原来我的心被丢掉了，我游历全世界的原因，就是要找回自己的本心。
+于是我开始有意寻找各种各样失去心的人，我变成一块砖头，一颗树，一滴水，一朵白云，去听大家为什么会失去自己的本心。
+我发现，刚出生的宝宝，本心还在，慢慢的，他们的本心就会消失，收到了各种黑暗之光的侵蚀。
+从一次争论，到嫉妒和悲愤，还有委屈和痛苦，我看到一只只无形的手，把他们的本心扯碎，蒙蔽，偷走，再也回不到主人都身边。
+我叫他本心猎手。他可能是和宇宙同在的级别 但是我并不害怕，我仔细回忆自己平淡的一生 寻找本心猎手的痕迹。
+沿着自己的回忆，一个个的场景忽闪而过，最后发现，我的本心，在我写代码的时候，会回来。
+安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
 
  ******************************************************************************/
 #ifndef _C_WEB_SERVICE_H_
@@ -68,6 +83,48 @@ namespace  gb_media_server
 
 		
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-17
+		*  @brief 处理FLV消费者HTTP请求（Handler FLV Consumer）
+		*  
+		*  该方法用于处理客户端通过HTTP请求FLV流的请求。当客户端请求FLV格式的流媒体时，
+		*  该方法会创建FLV消费者和FLV编码器，建立HTTP-FLV推流通道。
+		*  
+		*  HTTP-FLV协议说明：
+		*  - HTTP-FLV是基于HTTP协议的FLV流媒体传输方式
+		*  - 客户端通过HTTP GET请求获取FLV流，URL格式如：http://server/live/stream1.flv
+		*  - 服务器以流式方式返回FLV数据，客户端实时接收并播放
+		*  - 支持实时流媒体播放，延迟较低，适合直播场景
+		*  
+		*  请求处理流程：
+		*  1. 解析HTTP请求路径，提取流URL和会话名称
+		*  2. 根据会话名称创建或查找会话
+		*  3. 在会话中创建FLV消费者实例
+		*  4. 创建FLV编码器，绑定到网络连接
+		*  5. 将消费者添加到会话，开始接收媒体流
+		*  6. 消费者会自动将媒体帧封装为FLV格式并发送
+		*  
+		*  URL解析说明：
+		*  - 请求路径格式：/app/stream.flv
+		*  - 提取会话名称格式：app/stream
+		*  - 如果路径中包含扩展名（.flv），会被移除后再解析
+		*  
+		*  @param conn 网络连接对象指针，用于与客户端通信
+		*  @param req HTTP请求对象，包含请求路径、参数等信息
+		*  @param packet HTTP数据包对象，包含请求的原始数据
+		*  @param ctx HTTP上下文对象，用于发送HTTP响应
+		*  @note 如果会话创建失败或消费者创建失败，会返回HTTP 404响应
+		*  @note 该方法会异步发送HTTP响应，不会阻塞调用线程
+		*  @note FLV编码器会绑定到连接上下文中，用于后续的媒体帧封装
+		*  
+		*  使用示例：
+		*  @code
+		*  // 客户端请求示例
+		*  // GET http://server/live/stream1.flv
+		*  // 服务器会自动调用HandlerFlvConsumer处理该请求
+		*  @endcode
+		*/
 		void HandlerFlvConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
@@ -93,6 +150,16 @@ namespace  gb_media_server
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		// RTSP 相关接口
+	/*	void HandlerRtspProducer(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+		void HandlerRtspConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);*/
 	private:
 
 		std::unique_ptr< libmedia_transfer_protocol::libhttp::HttpServer>  http_server_;

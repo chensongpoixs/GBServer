@@ -33,61 +33,142 @@
  ************************************************************************************************/
 #include "consumer/crtsp_consumer.h" 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_format.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_format_h264.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/byte_io.h"
 #include "gb_media_server_log.h"
+#include "rtc_base/time_utils.h"
+#include "modules/video_coding/codecs/h264/include/h264_globals.h"
+
 namespace gb_media_server
 {
 	RtspConsumer::RtspConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
 		std::shared_ptr<Stream>& stream, std::shared_ptr<Session>& s)
-		: Consumer(stream, s), connection_(connection) 
+		: Consumer(stream, s)
+		, connection_(connection)
+		, rtp_header_extension_map_(std::make_unique<libmedia_transfer_protocol::RtpHeaderExtensionMap>())
+		, video_ssrc_(0x12345678)  // 默认 SSRC
+		, video_sequence_number_(0)
+		, video_rtp_timestamp_(0)
+		, video_payload_type_(96)  // H264 payload type
 	{
-#if 0
-		// 测试使用的
-		capture_type_ = true;
-		StartCapture();
-#endif //
+		// 初始化 RTP header extension map
+		rtp_header_extension_map_->RegisterByType(1, libmedia_transfer_protocol::kRtpExtensionTransmissionTimeOffset);
+		rtp_header_extension_map_->RegisterByType(2, libmedia_transfer_protocol::kRtpExtensionAbsoluteSendTime);
 	}
+
 	RtspConsumer::~RtspConsumer()
 	{ 
 	}
+
 	void RtspConsumer::OnVideoFrame(const libmedia_codec::EncodedImage & frame)
 	{
-		if (frame.size() <= 0)
+		if (frame.size() <= 0 || !connection_)
 		{
 			return;
 		}
-		//auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
-		//if (!context)
-		//{
-		//	GBMEDIASERVER_LOG_T_F(LS_WARNING) << "flv consumer get flv context == null !!!";
-		//	return;
-		//}
-		//if (!send_flv_header_)
-		//{
-		//	send_flv_header_ = true;
-		//	context->SendFlvHeader(true, true);
-		//}
-		////GBMEDIASERVER_LOG(LS_INFO) << "ts:" << rtc::TimeMillis() << ", f:" << frame.Timestamp();
-		//context->SendFlvVideoFrame(rtc::CopyOnWriteBuffer(frame.data(), frame.size()), frame.Timestamp() /1000 /*frame.Timestamp()*/ );
 
-
+		PacketizeH264Frame(frame);
 	}
+
 	void RtspConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
-		//return;
-		//auto context = connection_->GetContext<libmedia_transfer_protocol::libflv::FlvEncoder>(libmedia_transfer_protocol::libnetwork::kFlvContext);
-		//if (!context)
-		//{
-		//	GBMEDIASERVER_LOG_T_F(LS_WARNING) << "flv consumer get flv context == null !!!";
-		//	return;
-		//}
-		//if (!send_flv_header_)
-		//{
-		//	send_flv_header_ = true;
-		//	context->SendFlvHeader(true, true);
-		//}
-		//rtc::CopyOnWriteBuffer  new_frame = frame;
-		//// flv 的 pts精确到毫秒级别
-		//context->SendFlvAudioFrame(new_frame, pts / 1000);
+		// TODO: 实现音频 RTP 封装
+		GBMEDIASERVER_LOG(LS_VERBOSE) << "audio frame received, size:" << frame.size() << ", pts:" << pts;
+	}
 
+	void RtspConsumer::PacketizeH264Frame(const libmedia_codec::EncodedImage& frame)
+	{
+		// 创建 RTP packetizer
+		libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits limits;
+		limits.max_payload_len = 1200;  // 最大 RTP payload 大小
+		limits.first_packet_reduction_len = 0;
+		limits.last_packet_reduction_len = 0;
+		limits.single_packet_reduction_len = 0;
+
+		rtc::ArrayView<const uint8_t> payload(frame.data(), frame.size());
+
+		// 创建 H264 packetizer
+		auto packetizer = std::make_unique<libmedia_transfer_protocol::RtpPacketizerH264>(
+			payload, limits, webrtc::H264PacketizationMode::NonInterleaved);
+
+		// 创建 RTP header
+		libmedia_transfer_protocol::RTPVideoHeader rtp_video_header;
+		rtp_video_header.codec = libmedia_codec::kVideoCodecH264;
+		rtp_video_header.frame_type = frame._frameType;
+		rtp_video_header.width = frame._encodedWidth;
+		rtp_video_header.height = frame._encodedHeight;
+		auto& h264_header = rtp_video_header.video_type_header.emplace<webrtc::RTPVideoHeaderH264>();
+		h264_header.packetization_mode = webrtc::H264PacketizationMode::NonInterleaved;
+
+		// 更新 RTP timestamp (90kHz clock)
+		video_rtp_timestamp_ = static_cast<uint32_t>(frame.Timestamp() * 90);  // 假设 timestamp 是毫秒
+
+		// 封装每个 RTP 包
+		while (packetizer->NumPackets() > 0)
+		{
+			auto rtp_packet = std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(
+				rtp_header_extension_map_.get());
+
+			// 设置 RTP header
+			rtp_packet->SetPayloadType(video_payload_type_);
+			rtp_packet->SetSequenceNumber(video_sequence_number_++);
+			rtp_packet->SetTimestamp(video_rtp_timestamp_);
+			rtp_packet->SetSsrc(video_ssrc_);
+			rtp_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kVideo);
+			rtp_packet->set_capture_time_ms(frame.Timestamp());
+
+			// 生成 RTP payload
+			if (!packetizer->NextPacket(rtp_packet.get()))
+			{
+				GBMEDIASERVER_LOG(LS_WARNING) << "failed to generate RTP packet";
+				break;
+			}
+
+			// 设置 marker bit (最后一个包)
+			if (packetizer->NumPackets() == 0)
+			{
+				rtp_packet->SetMarker(true);
+			}
+
+			// 通过 RTSP interleaved 模式发送
+			SendRtpPacketInterleaved(*rtp_packet, kRtpChannel);
+		}
+	}
+
+	void RtspConsumer::SendRtpPacketInterleaved(const libmedia_transfer_protocol::RtpPacketToSend& rtp_packet, uint8_t channel)
+	{
+		if (!connection_)
+		{
+			return;
+		}
+
+		// RTSP interleaved frame format: $<channel><length><data>
+		// $: 1 byte
+		// channel: 1 byte
+		// length: 2 bytes (big-endian)
+		// data: RTP packet
+
+		size_t rtp_packet_size = rtp_packet.size();
+		size_t interleaved_frame_size = 4 + rtp_packet_size;  // 4 bytes header + RTP packet
+
+		rtc::CopyOnWriteBuffer buffer(interleaved_frame_size);
+		uint8_t* data = buffer.MutableData();
+
+		// 写入 magic byte '$'
+		data[0] = '$';
+
+		// 写入 channel
+		data[1] = channel;
+
+		// 写入 length (big-endian)
+		libmedia_transfer_protocol::ByteWriter<uint16_t>::WriteBigEndian(
+			&data[2], static_cast<uint16_t>(rtp_packet_size));
+
+		// 写入 RTP packet
+		memcpy(&data[4], rtp_packet.data(), rtp_packet_size);
+
+		// 发送数据
+		connection_->Send(buffer);
 	}
 }

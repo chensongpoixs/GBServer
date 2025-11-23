@@ -37,6 +37,12 @@
 #include "consumer/consumer.h"
 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_to_send.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_format.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_header_extension_map.h"
+#include "rtc_base/copy_on_write_buffer.h"
+#include <memory>
+
 namespace gb_media_server
 {
 	class RtspConsumer : public  Consumer
@@ -53,9 +59,20 @@ namespace gb_media_server
 		virtual ShareResourceType ShareResouceType() const { return kConsumerTypeRtsp; }
 
 	private:
-		libmedia_transfer_protocol::libnetwork::Connection*    connection_;
+		// 发送 RTSP interleaved RTP 包
+		void SendRtpPacketInterleaved(const libmedia_transfer_protocol::RtpPacketToSend& rtp_packet, uint8_t channel);
+		// 封装 H264 视频帧为 RTP 包
+		void PacketizeH264Frame(const libmedia_codec::EncodedImage& frame);
 
-		  
+	private:
+		libmedia_transfer_protocol::libnetwork::Connection*    connection_;
+		std::unique_ptr<libmedia_transfer_protocol::RtpHeaderExtensionMap> rtp_header_extension_map_;
+		uint32_t video_ssrc_;
+		uint16_t video_sequence_number_;
+		uint32_t video_rtp_timestamp_;
+		uint8_t video_payload_type_;
+		static constexpr uint8_t kRtpChannel = 0;  // RTP channel for RTSP interleaved
+		static constexpr uint8_t kRtcpChannel = 1; // RTCP channel for RTSP interleaved
 	};
 }
 

@@ -36,25 +36,13 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_util.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_received.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
+#include "libmedia_transfer_protocol/rtp_video_frame_assembler.h"
 
 #include "server/stream.h"
-#include "producer/rtc_producer.h"
 #include "server/session.h"
-#include "server/gb_media_service.h"
-#include "server/rtc_service.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/video_rtp_depacketizer_h264.h"
-#include "utils/yaml_config.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/receiver_report.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/psfb.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sender_report.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sdes.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/extended_reports.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/bye.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rtpfb.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
-#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
 #include "producer/crtsp_producer.h"
+#include "rtc_base/time_utils.h"
+
 namespace gb_media_server {
 
 
@@ -62,8 +50,13 @@ namespace gb_media_server {
 	RtspProducer::RtspProducer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
-		:  Producer(  stream, s) 
-		 
+		:  Producer(  stream, s)
+		, rtp_video_frame_assembler_(std::make_unique<libmedia_transfer_protocol::RtpVideoFrameAssembler>(
+			libmedia_transfer_protocol::RtpVideoFrameAssembler::kH264))
+		, recv_buffer_(new uint8_t[kRecvBufferSize])
+		, recv_buffer_size_(0)
+		, video_ssrc_(0)
+		, audio_ssrc_(0)
 	{
 		//local_ufrag_ = GetUFrag(8);
 		//local_passwd_ = GetUFrag(32);
@@ -90,89 +83,142 @@ namespace gb_media_server {
 	RtspProducer::~RtspProducer()
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
-
-		//dtls_.SignalDtlsSendPakcet.disconnect(this);
-		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
-		//dtls_.SignalDtlsClose.disconnect(this);
-
-		 
+		if (recv_buffer_)
+		{
+			delete[] recv_buffer_;
+			recv_buffer_ = nullptr;
+		}
 	}
+
 	void RtspProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
-#if 0
+		// 将新数据追加到接收缓冲区
+		if (recv_buffer_size_ + buffer1.size() > kRecvBufferSize)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "recv buffer overflow, reset buffer";
+			recv_buffer_size_ = 0;
+		}
+
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
 		recv_buffer_size_ += buffer1.size();
-		//recv_buffer_.SetData(buffer1);
-		int32_t   parse_size = 0;
 
-		 
-		while (recv_buffer_size_ - parse_size > 2)
-		{ 
-			int16_t  payload_size = libmedia_transfer_protocol::ByteReader<int16_t>::ReadBigEndian((&recv_buffer_[parse_size]));
-			 
-			if ((recv_buffer_size_ - parse_size) < (payload_size + 2))
+		int32_t parse_size = 0;
+
+		// 解析 RTSP interleaved frames (TCP mode)
+		while (recv_buffer_size_ - parse_size >= 4)
+		{
+			// 检查是否是 RTSP interleaved frame (magic byte '$')
+			if (recv_buffer_[parse_size] != '$')
 			{
-				// 当不不够一个完整包需要继续等待下一个包的到来
-				//GBMEDIASERVER_LOG(LS_INFO) << "tcp tail small !!!  (read_bytes -parse_size:" << (recv_buffer_size_ - parse_size) << ") payload_size:" << payload_size;
+				// 可能是 RTSP 协议消息，跳过
+				GBMEDIASERVER_LOG(LS_WARNING) << "not RTSP interleaved frame, skip";
+				parse_size = recv_buffer_size_;
 				break;
 			}
-			parse_size += 2;  
-			if (libmedia_transfer_protocol::IsRtpPacket(rtc::ArrayView<uint8_t>(recv_buffer_ + parse_size, payload_size)))
+
+			// 读取 magic header
+			RtspMagic magic;
+			magic.magic_ = recv_buffer_[parse_size];
+			magic.channel_ = recv_buffer_[parse_size + 1];
+			magic.length_ = libmedia_transfer_protocol::ByteReader<uint16_t>::ReadBigEndian(
+				&recv_buffer_[parse_size + 2]);
+
+			// 检查是否有完整的数据包
+			if (recv_buffer_size_ - parse_size < (4 + magic.length_))
 			{
-				libmedia_transfer_protocol::RtpPacketReceived  rtp_packet_received; 
-				bool ret = rtp_packet_received.Parse(recv_buffer_  + parse_size, payload_size);
-				if (!ret)
-				{ 
-					GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" << (recv_buffer_size_ - parse_size); //<< "  , hex :" << rtc::hex_encode((const char *)(buffer.begin() + paser_size), (size_t)(read_bytes - paser_size));
+				// 数据不完整，等待更多数据
+				break;
+			}
+
+			parse_size += 4; // 跳过 magic header
+
+			// 根据 channel 判断是 RTP 还是 RTCP
+			if (magic.channel_ == 0 || magic.channel_ == 1)
+			{
+				// RTP packet (channel 0) or RTCP packet (channel 1)
+				rtc::ArrayView<uint8_t> packet_data(recv_buffer_ + parse_size, magic.length_);
+
+				if (libmedia_transfer_protocol::IsRtpPacket(packet_data))
+				{
+					libmedia_transfer_protocol::RtpPacketReceived rtp_packet;
+					if (rtp_packet.Parse(recv_buffer_ + parse_size, magic.length_))
+					{
+						ProcessRtpPacket(rtp_packet);
+						if (video_ssrc_ == 0)
+						{
+							video_ssrc_ = rtp_packet.Ssrc();
+						}
+					}
+					else
+					{
+						GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed";
+					}
+				}
+				else if (libmedia_transfer_protocol::IsRtcpPacket(packet_data))
+				{
+					ProcessRtcpPacket(packet_data);
 				}
 				else
 				{
-					//RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.ToString();
-					if (rtp_packet_received.PayloadType() == 96)
-					{
-						//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
-					} 
-				}
-			}
-			else if (libmedia_transfer_protocol::IsRtcpPacket(rtc::ArrayView<uint8_t>(recv_buffer_ + parse_size, payload_size/*read_bytes - paser_size*/)))
-			{
-				libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;  //rtcp_packet;
-				bool ret = rtcp_block.Parse(recv_buffer_ + parse_size, payload_size/* read_bytes - paser_size*/);
-				if (!ret)
-				{
-					GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed !!!";
-				}
-				//else
-				{
-					//parse_size += payload_size;
-					//	RTC_LOG(LS_INFO) << "rtcp info :" << rtcp_block.ToString();
+					GBMEDIASERVER_LOG(LS_WARNING) << "unknown packet type, channel:" << (int)magic.channel_;
 				}
 			}
 			else
 			{
-				GBMEDIASERVER_LOG(LS_ERROR) << " not know type --> : payload_size: " << payload_size;
-				//parse_size += payload_size;
+				GBMEDIASERVER_LOG(LS_WARNING) << "unknown RTSP channel:" << (int)magic.channel_;
 			}
-			parse_size += payload_size;
- 
+
+			parse_size += magic.length_;
 		}
-		//GBMEDIASERVER_LOG(LS_INFO) << "read_bytes:" << recv_buffer_size_ << ", parse_size:" << parse_size;
+
+		// 移动未处理的数据到缓冲区开头
 		if (recv_buffer_size_ - parse_size > 0)
 		{
-			//memcpy((char *)recv_buffer_.begin(), buffer.data() + parse_size, (buffer.size() - parse_size));
-			recv_buffer_size_ -= parse_size;;
-			memmove(recv_buffer_, recv_buffer_+ parse_size,recv_buffer_size_);
-			 
+			memmove(recv_buffer_, recv_buffer_ + parse_size, recv_buffer_size_ - parse_size);
+			recv_buffer_size_ -= parse_size;
 		}
 		else
 		{
 			recv_buffer_size_ = 0;
-			parse_size = 0;
-			//memcpy((char *)recv_buffer_.begin(), buffer.begin() + parse_size, (read_bytes - parse_size));
-			//recv_buffer_size_ = read_bytes - parse_size;
 		}
-		
-#endif // recv_buffer_size_
+	}
+
+	void RtspProducer::ProcessRtpPacket(const libmedia_transfer_protocol::RtpPacketReceived& rtp_packet)
+	{
+		// 使用 RtpVideoFrameAssembler 组装视频帧
+		auto frames = rtp_video_frame_assembler_->InsertPacket(rtp_packet);
+
+		for (auto& frame : frames)
+		{
+			if (frame && frame->size() > 0)
+			{
+				// 转换为 EncodedImage
+				libmedia_codec::EncodedImage encoded_image;
+				encoded_image.SetEncodedData(
+					libmedia_codec::EncodedImageBuffer::Create(frame->data(), frame->size()));
+				encoded_image.SetTimestamp(frame->Timestamp());
+				encoded_image._frameType = frame->FrameType();
+				encoded_image._encodedWidth = frame->_encodedWidth;
+				encoded_image._encodedHeight = frame->_encodedHeight;
+
+				// 推送到 Stream
+				GetStream()->AddVideoFrame(std::move(encoded_image));
+			}
+		}
+	}
+
+	void RtspProducer::ProcessRtcpPacket(const rtc::ArrayView<uint8_t>& data)
+	{
+		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_header;
+		if (rtcp_header.Parse(data.data(), data.size()))
+		{
+			// RTCP 包处理（可以用于统计、同步等）
+			GBMEDIASERVER_LOG(LS_VERBOSE) << "received RTCP packet, type:" << (int)rtcp_header.type();
+		}
+		else
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed";
+		}
 	}
 }
 
