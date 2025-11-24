@@ -169,6 +169,6 @@ namespace gb_media_server
 		memcpy(&data[4], rtp_packet.data(), rtp_packet_size);
 
 		// 发送数据
-		connection_->Send(buffer);
+		//connection_->Send(buffer);
 	}
 }

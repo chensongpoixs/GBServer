@@ -262,7 +262,7 @@ namespace gb_media_server {
 				{
 				
 					stream_status_ = stream_status_? false:true;
-					SetStreamStatus(stream_status_);
+				//	SetStreamStatus(stream_status_);
 				}
  
 			OnTimer();
