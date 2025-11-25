@@ -168,7 +168,7 @@ namespace  gb_media_server
 		*  RtcService::GetInstance().AddConsumer(consumer);
 		*  @endcode
 		*/
-		void AddConsumer(std::shared_ptr<RtcInterface>  rtc_interface);
+		void RegisterRtcInterface(std::shared_ptr<RtcInterface>  rtc_interface);
 
 		/**
 		*  @author chensong
@@ -192,7 +192,7 @@ namespace  gb_media_server
 		*  RtcService::GetInstance().RemoveConsumer(rtc_consumer);
 		*  @endcode
 		*/
-		void RemoveConsumer(std::shared_ptr<RtcInterface> rtc_interface);
+		void UnregisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface);
 
 		/**
 		*  @author chensong

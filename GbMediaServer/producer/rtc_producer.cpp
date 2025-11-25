@@ -149,7 +149,7 @@ namespace gb_media_server {
 
 		if (recv_buffer_)
 		{
-			delete[]recv_buffer_;
+			recv_buffer_.reset();
 			recv_buffer_ = nullptr;
 		}
 	}
@@ -262,7 +262,7 @@ namespace gb_media_server {
 				{
 				
 					stream_status_ = stream_status_? false:true;
-					SetStreamStatus(stream_status_);
+				//	SetStreamStatus(stream_status_);
 				}
  
 			OnTimer();

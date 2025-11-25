@@ -147,7 +147,7 @@ namespace gb_media_server
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			RtcService::GetInstance().RemoveConsumer(slef);
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
 			//GbMediaService::GetInstance().CloseSession(session_name);
 			GetSession()->SetProducer(nullptr);
 		});
@@ -163,7 +163,7 @@ namespace gb_media_server
 		std::string session_name = GetSession()->SessionName();
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			RtcService::GetInstance().RemoveConsumer(slef);
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
 			GetSession()->SetProducer(nullptr);
 			
 		});

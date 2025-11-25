@@ -62,13 +62,17 @@ namespace  gb_media_server
  
 
 
-	 void RtcService::AddConsumer(std::shared_ptr<RtcInterface> rtc_interface)
+	 void RtcService::RegisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
+		 // TODO@chensong 2025-11-23 
+		 // 如果多个连接使用相同的 `LocalUFrag`（虽然概率低），会导致冲突
+		 //-后创建的连接会覆盖先创建的连接
+		//	 - STUN 消息可能路由到错误的接口
 		 name_rtc_interface_.emplace(rtc_interface->LocalUFrag(), rtc_interface);
 	 }
 
-	 void RtcService::RemoveConsumer(std::shared_ptr<RtcInterface> rtc_interface)
+	 void RtcService::UnregisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
 		 name_rtc_interface_.erase(rtc_interface->LocalUFrag());

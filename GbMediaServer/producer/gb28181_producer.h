@@ -68,7 +68,8 @@ namespace gb_media_server {
 		virtual ~Gb28181Producer();
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer)  ;
 
-
+	public:
+		virtual ShareResourceType ShareResouceType() const { return kProducerTypeGB28181; }
 	public:
 		void OnProcessVideoFrame(libmedia_codec::EncodedImage  frame);
 		void OnProcessAudioFrame( rtc::CopyOnWriteBuffer   frame, int64_t  pts);
