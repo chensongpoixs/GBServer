@@ -1,4 +1,4 @@
-/*
+﻿/*
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -28,7 +28,6 @@
 我叫他本心猎手。他可能是和宇宙同在的级别 但是我并不害怕，我仔细回忆自己平淡的一生 寻找本心猎手的痕迹。
 沿着自己的回忆，一个个的场景忽闪而过，最后发现，我的本心，在我写代码的时候，会回来。
 安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
-
 
  ******************************************************************************/
 #include "server/web_service.h"
@@ -193,7 +192,7 @@ namespace gb_media_server
 
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		 
-		//�������Ϊ stun����ʱ��Ҫ��֤�û��������� ������Ҫ�ֵ�ȫ����rtc����������ȥ
+		//锟斤拷锟斤拷锟斤拷锟轿?stun锟斤拷锟斤拷时锟斤拷要锟斤拷证锟矫伙拷锟斤拷锟斤拷锟斤拷锟斤拷 锟斤拷锟斤拷锟斤拷要锟街碉拷全锟斤拷锟斤拷rtc锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷去
 		RtcService::GetInstance().RegisterRtcInterface(producer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 
@@ -330,12 +329,11 @@ namespace gb_media_server
 			});
 
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
-		//�ɼ�����Ļ���
-		//if (!capture_value.isNull() && capture_value.isInt())
+		//锟缴硷拷锟斤拷锟斤拷幕锟斤拷锟?		//if (!capture_value.isNull() && capture_value.isInt())
 		//{
 		//	consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
 		//}
-		//�������Ϊ stun����ʱ��Ҫ��֤�û��������� ������Ҫ�ֵ�ȫ����rtc����������ȥ
+		//锟斤拷锟斤拷锟斤拷锟轿?stun锟斤拷锟斤拷时锟斤拷要锟斤拷证锟矫伙拷锟斤拷锟斤拷锟斤拷锟斤拷 锟斤拷锟斤拷锟斤拷要锟街碉拷全锟斤拷锟斤拷rtc锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷去
 		RtcService::GetInstance().RegisterRtcInterface(consumer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 
@@ -688,7 +686,7 @@ namespace gb_media_server
 	//{
 	//	GBMEDIASERVER_LOG(LS_INFO) << "RTSP producer request:" << packet->Data();
 	//	
-	//	// 解析请求参数
+	//	// 瑙ｆ瀽璇锋眰鍙傛暟
 	//	std::string query = req->Query();
 	//	std::string streamurl = req->GetQueryParam("streamurl");
 	//	
@@ -718,7 +716,7 @@ namespace gb_media_server
 	//		return;
 	//	}
 
-	//	// 创建 RTSP Producer
+	//	// 鍒涘缓 RTSP Producer
 	//	std::shared_ptr<RtspProducer> producer = std::dynamic_pointer_cast<RtspProducer>(
 	//		s->CreateProducer(session_name, "", ShareResourceType::kProducerTypeRtsp));
 
@@ -735,10 +733,10 @@ namespace gb_media_server
 
 	//	s->SetProducer(producer);
 	//	
-	//	// 将 producer 关联到连接，用于接收 RTSP 数据
+	//	// 灏?producer 鍏宠仈鍒拌繛鎺ワ紝鐢ㄤ簬鎺ユ敹 RTSP 鏁版嵁
 	//	conn->SetContext<ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext, producer);
 
-	//	// 返回成功响应
+	//	// 杩斿洖鎴愬姛鍝嶅簲
 	//	Json::Value result;
 	//	result["code"] = 0;
 	//	result["message"] = "RTSP producer created";
@@ -767,7 +765,7 @@ namespace gb_media_server
 	//{
 	//	GBMEDIASERVER_LOG(LS_INFO) << "RTSP consumer request:" << packet->Data();
 
-	//	// 解析请求参数
+	//	// 瑙ｆ瀽璇锋眰鍙傛暟
 	//	std::string streamurl = req->GetQueryParam("streamurl");
 	//	
 	//	if (streamurl.empty())
@@ -796,7 +794,7 @@ namespace gb_media_server
 	//		return;
 	//	}
 
-	//	// 创建 RTSP Consumer
+	//	// 鍒涘缓 RTSP Consumer
 	//	std::shared_ptr<RtspConsumer> consumer = std::dynamic_pointer_cast<RtspConsumer>(
 	//		s->CreateConsumer(conn, session_name, "", ShareResourceType::kConsumerTypeRtsp));
 
@@ -813,10 +811,9 @@ namespace gb_media_server
 
 	//	s->AddConsumer(consumer);
 	//	
-	//	// 将 consumer 关联到连接
-	//	conn->SetContext<ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext, consumer);
+	//	// 灏?consumer 鍏宠仈鍒拌繛鎺?	//	conn->SetContext<ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext, consumer);
 
-	//	// 返回成功响应
+	//	// 杩斿洖鎴愬姛鍝嶅簲
 	//	Json::Value result;
 	//	result["code"] = 0;
 	//	result["message"] = "RTSP consumer created";
