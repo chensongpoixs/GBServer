@@ -153,30 +153,308 @@ namespace gb_media_server {
 		virtual ~RtcInterface() ;
 
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 处理SDP Offer（Process Offer SDP）
+		*  
+		*  该方法用于处理客户端发送的SDP Offer。它会解析SDP内容，提取音频/视频编解码器、
+		*  ICE候选、DTLS指纹等信息，并准备生成SDP Answer。
+		*  
+		*  处理流程：
+		*  1. 解析SDP Offer，提取会话信息
+		*  2. 提取音频/视频媒体描述（m=行）
+		*  3. 提取ICE候选（candidate）
+		*  4. 提取DTLS指纹（fingerprint）
+		*  5. 提取用户名片段（ufrag）和密码（pwd）
+		*  6. 根据提取的信息准备生成Answer
+		*  
+		*  @param rtc_sdp_type SDP类型，kRtcSdpPush表示推流，kRtcSdpPlay表示拉流
+		*  @param sdp SDP Offer的字符串内容
+		*  @return 如果处理成功返回true，否则返回false
+		*  @note 该方法会验证SDP格式和内容
+		*  @note 处理成功后，可以通过BuildAnswerSdp()生成Answer
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  
+		*  使用示例：
+		*  @code
+		*  std::string sdp_offer = "..."; // SDP Offer内容
+		*  if (rtc_interface->ProcessOfferSdp(libmedia_transfer_protocol::librtc::kRtcSdpPush, sdp_offer)) {
+		*      std::string answer = rtc_interface->BuildAnswerSdp();
+		*  }
+		*  @endcode
+		*/
 	   virtual 	bool ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) = 0;
+	   
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 获取本地用户名片段（Get Local Username Fragment）
+		*  
+		*  该方法用于获取本地生成的ICE用户名片段（ufrag）。用户名片段用于ICE连接建立。
+		*  
+		*  @return 返回本地用户名片段的常量引用
+		*  @note 用户名片段在构造函数中自动生成
+		*  @note 该方法是纯虚函数，子类必须实现
+		*/
 	   virtual const std::string& LocalUFrag() const = 0;
+	   
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 获取本地密码（Get Local Password）
+		*  
+		*  该方法用于获取本地生成的ICE密码（pwd）。密码用于ICE连接建立。
+		*  
+		*  @return 返回本地密码的常量引用
+		*  @note 密码长度在12-32字节之间
+		*  @note 密码在构造函数中自动生成
+		*  @note 该方法是纯虚函数，子类必须实现
+		*/
 	   virtual const std::string& LocalPasswd() const = 0;
+	   
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 获取远程用户名片段（Get Remote Username Fragment）
+		*  
+		*  该方法用于获取从SDP Offer中提取的远程用户名片段（ufrag）。
+		*  
+		*  @return 返回远程用户名片段的常量引用
+		*  @note 远程用户名片段从SDP Offer中提取
+		*  @note 该方法是纯虚函数，子类必须实现
+		*/
 	   virtual const std::string& RemoteUFrag() const = 0;
+	   
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 构建SDP Answer（Build Answer SDP）
+		*  
+		*  该方法用于根据处理后的SDP Offer生成SDP Answer。Answer包含服务器选择的
+		*  编解码器、ICE候选、DTLS指纹等信息。
+		*  
+		*  Answer生成流程：
+		*  1. 创建SDP会话描述
+		*  2. 添加音频/视频媒体描述，选择支持的编解码器
+		*  3. 添加ICE候选（服务器地址和端口）
+		*  4. 添加DTLS指纹和证书信息
+		*  5. 添加用户名片段和密码
+		*  6. 生成完整的SDP Answer字符串
+		*  
+		*  @return 返回生成的SDP Answer字符串
+		*  @note 必须先调用ProcessOfferSdp()处理Offer
+		*  @note Answer会根据Offer中的编解码器选择支持的格式
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  
+		*  使用示例：
+		*  @code
+		*  std::string answer = rtc_interface->BuildAnswerSdp();
+		*  // 将answer发送给客户端
+		*  @endcode
+		*/
 	   virtual std::string BuildAnswerSdp() = 0;
 
-		//开始DTLS选择客户端还是服务端挥手交换 
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 开始DTLS握手（May Run DTLS）
+		*  
+		*  该方法用于启动DTLS握手过程。根据SDP中的信息，决定作为DTLS客户端还是
+		*  服务器端发起握手。DTLS握手用于交换密钥，建立SRTP加密会话。
+		*  
+		*  DTLS角色选择：
+		*  - 如果SDP中设置了"setup:actpass"，服务器通常作为服务器端
+		*  - 如果SDP中设置了"setup:active"，服务器作为客户端
+		*  - 如果SDP中设置了"setup:passive"，服务器作为服务器端
+		*  
+		*  握手流程：
+		*  1. 确定DTLS角色（客户端或服务器端）
+		*  2. 加载DTLS证书和私钥
+		*  3. 创建DTLS对象并连接信号
+		*  4. 开始握手过程
+		*  
+		*  @note 该方法会在SDP处理完成后调用
+		*  @note DTLS握手成功后，会触发OnDtlsConnected回调
+		*  @note DTLS握手失败后，会触发OnDtlsFailed回调
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  
+		*  使用示例：
+		*  @code
+		*  rtc_interface->MayRunDtls();
+		*  @endcode
+		*/
 	   virtual void MayRunDtls() = 0;
 	public:
-
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 发送SRTP RTP包（Send SRTP RTP）
+		*  
+		*  该方法用于发送SRTP加密的RTP媒体包。它会先对RTP包进行SRTP加密，
+		*  然后通过UDP套接字发送给远程客户端。
+		*  
+		*  发送流程：
+		*  1. 检查SRTP发送会话是否已建立
+		*  2. 使用SRTP会话加密RTP包
+		*  3. 通过UDP套接字发送加密后的包
+		*  4. 更新发送统计信息
+		*  
+		*  @param data RTP包数据指针，包含完整的RTP头和负载
+		*  @param size RTP包大小（字节）
+		*  @return 如果发送成功返回true，否则返回false
+		*  @note SRTP会话必须在DTLS握手成功后才能建立
+		*  @note 如果SRTP会话未建立，发送会失败
+		*  
+		*  使用示例：
+		*  @code
+		*  uint8_t rtp_data[1500];
+		*  size_t rtp_size = 1200;
+		*  rtc_interface->SendSrtpRtp(rtp_data, rtp_size);
+		*  @endcode
+		*/
 		bool SendSrtpRtp(uint8_t* data, size_t  size);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 发送SRTP RTCP包（Send SRTP RTCP）
+		*  
+		*  该方法用于发送SRTP加密的RTCP控制包。RTCP包用于传输统计信息、
+		*  反馈信息等。
+		*  
+		*  发送流程：
+		*  1. 检查SRTP发送会话是否已建立
+		*  2. 使用SRTP会话加密RTCP包
+		*  3. 通过UDP套接字发送加密后的包
+		*  
+		*  @param data RTCP包数据指针
+		*  @param size RTCP包大小（字节）
+		*  @return 如果发送成功返回true，否则返回false
+		*  @note RTCP包类型包括SR、RR、SDES、BYE、APP等
+		*  
+		*  使用示例：
+		*  @code
+		*  uint8_t rtcp_data[200];
+		*  size_t rtcp_size = 100;
+		*  rtc_interface->SendSrtpRtcp(rtcp_data, rtcp_size);
+		*  @endcode
+		*/
 		bool SendSrtpRtcp(uint8_t* data, size_t size);
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 发送数据通道消息（Send Data Channel）
+		*  
+		*  该方法用于通过SCTP数据通道发送非媒体数据。数据通道可用于传输
+		*  文本消息、二进制数据等。
+		*  
+		*  发送流程：
+		*  1. 检查SCTP关联是否已建立
+		*  2. 将消息封装为SCTP数据块
+		*  3. 通过SCTP关联发送数据
+		*  4. SCTP会通过DTLS发送数据
+		*  
+		*  @param streamId 流ID，用于标识数据通道
+		*  @param ppid 负载协议标识符（PPID）
+		*  @param msg 消息数据指针
+		*  @param len 消息长度（字节）
+		*  @note SCTP关联必须在DTLS握手成功后才能建立
+		*  @note PPID常用值：51=WebRTC String, 53=WebRTC Binary
+		*  
+		*  使用示例：
+		*  @code
+		*  const char* message = "Hello, World!";
+		*  rtc_interface->SendDatachannel(0, 51, message, strlen(message));
+		*  @endcode
+		*/
 		void SendDatachannel(uint16_t streamId, uint32_t ppid, const char* msg, size_t len);
-		// 
 
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 接收DTLS数据（On DTLS Receive）
+		*  
+		*  该方法在接收到DTLS握手数据时被调用。DTLS数据包括握手消息、
+		*  应用数据等。
+		*  
+		*  @param buf 接收到的数据缓冲区
+		*  @param size 数据大小（字节）
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 该方法在网络线程中调用
+		*/
 		virtual void OnDtlsRecv(const uint8_t* buf, size_t size) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 接收SRTP RTP包（On SRTP RTP）
+		*  
+		*  该方法在接收并解密SRTP RTP包后被调用。解密后的RTP包可以提取
+		*  媒体负载并进行处理。
+		*  
+		*  @param data 解密后的RTP包数据指针
+		*  @param size RTP包大小（字节）
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 该方法在网络线程中调用
+		*/
 		virtual void OnSrtpRtp(  uint8_t* data, size_t size) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 接收SRTP RTCP包（On SRTP RTCP）
+		*  
+		*  该方法在接收并解密SRTP RTCP包后被调用。RTCP包用于传输统计信息、
+		*  反馈信息等。
+		*  
+		*  @param data 解密后的RTCP包数据指针
+		*  @param size RTCP包大小（字节）
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 该方法在网络线程中调用
+		*/
 		virtual void OnSrtpRtcp(  uint8_t* data, size_t size) = 0;
 	
 		
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS连接中回调（On DTLS Connecting）
+		*  
+		*  该方法在DTLS开始连接时被调用。此时DTLS握手正在进行中。
+		*  
+		*  @param dtls DTLS对象指针
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 该回调在DTLS握手开始时触发
+		*/
 		virtual void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS连接成功回调（On DTLS Connected）
+		*  
+		*  该方法在DTLS握手成功后被调用。此时可以获取到SRTP密钥材料，
+		*  用于建立SRTP加密会话。
+		*  
+		*  处理流程：
+		*  1. 获取SRTP加密套件和密钥
+		*  2. 创建SRTP发送和接收会话
+		*  3. 初始化SRTP会话
+		*  4. 开始接收和发送SRTP包
+		*  
+		*  @param dtls DTLS对象指针
+		*  @param srtpCryptoSuite SRTP加密套件（如AES_CM_128_HMAC_SHA1_80）
+		*  @param srtpLocalKey 本地SRTP密钥指针
+		*  @param srtpLocalKeyLen 本地SRTP密钥长度
+		*  @param srtpRemoteKey 远程SRTP密钥指针
+		*  @param srtpRemoteKeyLen 远程SRTP密钥长度
+		*  @param remote_cert 远程证书指纹
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note SRTP会话在此回调中创建
+		*/
 		virtual void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 			uint8_t* srtpLocalKey,
@@ -184,34 +462,253 @@ namespace gb_media_server {
 			uint8_t* srtpRemoteKey,
 			size_t srtpRemoteKeyLen,
 			std::string& remote_cert) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS发送数据包回调（On DTLS Send Packet）
+		*  
+		*  该方法在DTLS需要发送数据包时被调用。DTLS握手消息和应用数据
+		*  都通过此回调发送。
+		*  
+		*  @param dtls DTLS对象指针
+		*  @param data 待发送的数据指针
+		*  @param len 数据长度（字节）
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 数据需要通过UDP套接字发送给远程客户端
+		*/
 		virtual void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
 
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS连接关闭回调（On DTLS Closed）
+		*  
+		*  该方法在DTLS连接正常关闭时被调用。
+		*  
+		*  @param dtls DTLS对象指针
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 连接关闭后应该释放相关资源
+		*/
 		virtual void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS连接失败回调（On DTLS Failed）
+		*  
+		*  该方法在DTLS握手失败时被调用。失败原因可能是证书验证失败、
+		*  超时等。
+		*  
+		*  @param dtls DTLS对象指针
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note 握手失败后应该关闭连接
+		*/
 		virtual void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls* dtls) = 0;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief DTLS应用数据接收回调（On DTLS Application Data Received）
+		*  
+		*  该方法在接收到DTLS应用数据时被调用。应用数据通常是SCTP数据包。
+		*  
+		*  @param dtls DTLS对象指针
+		*  @param data 应用数据指针
+		*  @param len 数据长度（字节）
+		*  @note 该方法是纯虚函数，子类必须实现
+		*  @note SCTP数据包会通过此回调接收
+		*/
 		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len) = 0;
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 发送TWCC反馈（On Send TWCC）
+		*  
+		*  该方法用于发送TWCC（Transport-wide Congestion Control）反馈信息。
+		*  TWCC用于带宽估计和拥塞控制。
+		*  
+		*  处理流程：
+		*  1. 构建RTCP TWCC反馈包
+		*  2. 包含接收到的RTP包的序列号和到达时间
+		*  3. 通过SRTP发送RTCP包
+		*  
+		*  @param ssrc 同步源标识符（SSRC）
+		*  @param twcc_fci TWCC反馈控制信息（FCI）
+		*  @note TWCC用于WebRTC的带宽估计算法
+		*  @note 反馈信息帮助发送端调整发送码率
+		*  
+		*  使用示例：
+		*  @code
+		*  uint32_t ssrc = 12345678;
+		*  std::string fci = "..."; // TWCC FCI数据
+		*  rtc_interface->onSendTwcc(ssrc, fci);
+		*  @endcode
+		*/
 		void onSendTwcc(uint32_t ssrc, const std::string& twcc_fci);
 
-
-
-
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 创建数据通道（Create Data Channel）
+		*  
+		*  该方法用于创建SCTP数据通道。数据通道用于传输非媒体数据，
+		*  如文本消息、二进制数据等。
+		*  
+		*  创建流程：
+		*  1. 检查DTLS是否已连接
+		*  2. 创建SCTP关联
+		*  3. 配置SCTP参数
+		*  4. 开始SCTP握手
+		*  
+		*  @note 数据通道必须在DTLS连接成功后才能创建
+		*  @note SCTP关联通过DTLS传输
+		*  
+		*  使用示例：
+		*  @code
+		*  rtc_interface->CreateDataChannel();
+		*  @endcode
+		*/
 		void CreateDataChannel();
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 添加视频包（Add Video Packet）
+		*  
+		*  该方法用于添加视频RTP包到发送缓存。这些包会被缓存起来，
+		*  以便在收到NACK请求时进行重传。
+		*  
+		*  处理流程：
+		*  1. 将RTP包添加到缓存映射表
+		*  2. 使用序列号作为键
+		*  3. 定期清理过期的包
+		*  
+		*  @param rtp_packet RTP包的共享指针
+		*  @note 缓存的包用于NACK重传
+		*  @note 缓存大小有限制，会自动清理旧包
+		*  
+		*  使用示例：
+		*  @code
+		*  auto rtp_packet = std::make_shared<libmedia_transfer_protocol::RtpPacketToSend>();
+		*  rtc_interface->AddVideoPacket(rtp_packet);
+		*  @endcode
+		*/
 		void AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet);
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 请求NACK重传（Request NACK）
+		*  
+		*  该方法用于处理接收到的NACK请求。当接收端检测到丢包时，
+		*  会发送NACK请求，要求重传丢失的包。
+		*  
+		*  处理流程：
+		*  1. 解析NACK请求中的丢包序列号
+		*  2. 从缓存中查找对应的RTP包
+		*  3. 重新发送丢失的包
+		*  
+		*  @param nack NACK请求对象，包含丢包序列号列表
+		*  @note 只有缓存中的包才能重传
+		*  @note NACK机制用于提高视频质量
+		*  
+		*  使用示例：
+		*  @code
+		*  libmedia_transfer_protocol::rtcp::Nack nack;
+		*  // ... 填充NACK信息
+		*  rtc_interface->RequestNack(nack);
+		*  @endcode
+		*/
 		void RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack);
 	public:
-
-		// sctp inferface
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联连接中回调（On SCTP Association Connecting）
+		*  
+		*  该方法在SCTP关联开始连接时被调用。此时SCTP握手正在进行中。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @note 该方法覆盖父类的虚函数
+		*  @note SCTP关联通过DTLS传输
+		*/
 		virtual void OnSctpAssociationConnecting(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联连接成功回调（On SCTP Association Connected）
+		*  
+		*  该方法在SCTP关联连接成功后被调用。此时可以开始通过数据通道
+		*  发送和接收数据。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @note 该方法覆盖父类的虚函数
+		*  @note 连接成功后可以创建数据通道
+		*/
 		virtual void OnSctpAssociationConnected(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联连接失败回调（On SCTP Association Failed）
+		*  
+		*  该方法在SCTP关联连接失败时被调用。失败原因可能是超时、
+		*  协议错误等。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @note 该方法覆盖父类的虚函数
+		*  @note 连接失败后应该关闭关联
+		*/
 		virtual void OnSctpAssociationFailed(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联关闭回调（On SCTP Association Closed）
+		*  
+		*  该方法在SCTP关联正常关闭时被调用。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @note 该方法覆盖父类的虚函数
+		*  @note 关闭后应该释放相关资源
+		*/
 		virtual void OnSctpAssociationClosed(libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation) override;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联发送数据回调（On SCTP Association Send Data）
+		*  
+		*  该方法在SCTP关联需要发送数据时被调用。SCTP数据会通过DTLS发送。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @param data 待发送的数据指针
+		*  @param len 数据长度（字节）
+		*  @note 该方法覆盖父类的虚函数
+		*  @note SCTP数据通过DTLS应用数据发送
+		*/
 		virtual void OnSctpAssociationSendData(
 			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation, 
 			const uint8_t* data, size_t len)  override;
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief SCTP关联接收消息回调（On SCTP Association Message Received）
+		*  
+		*  该方法在接收到SCTP数据通道消息时被调用。消息可以是文本或二进制数据。
+		*  
+		*  @param sctpAssociation SCTP关联对象指针
+		*  @param streamId 流ID，用于标识数据通道
+		*  @param ppid 负载协议标识符（PPID）
+		*  @param msg 消息数据指针
+		*  @param len 消息长度（字节）
+		*  @note 该方法覆盖父类的虚函数
+		*  @note PPID常用值：51=WebRTC String, 53=WebRTC Binary
+		*/
 		virtual void OnSctpAssociationMessageReceived(
 			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
 			uint16_t streamId,
@@ -220,51 +717,133 @@ namespace gb_media_server {
 			size_t len) override;
 
 	public:
-		// rtc 特别增加的接口
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 获取RTC远程地址（Get RTC Remote Address）
+		*  
+		*  该方法用于获取远程客户端的网络地址（IP和端口）。
+		*  
+		*  @return 返回远程地址的常量引用
+		*  @note 远程地址在接收到第一个数据包时设置
+		*  @note 用于发送RTP/RTCP包到远程客户端
+		*  
+		*  使用示例：
+		*  @code
+		*  const rtc::SocketAddress& addr = rtc_interface->RtcRemoteAddress();
+		*  std::cout << "Remote IP: " << addr.ipaddr().ToString() << std::endl;
+		*  @endcode
+		*/
 		virtual  const rtc::SocketAddress& RtcRemoteAddress() const
 		{
 			return rtc_remote_address_;
 		}
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 设置RTC远程地址（Set RTC Remote Address）
+		*  
+		*  该方法用于设置远程客户端的网络地址（IP和端口）。
+		*  
+		*  @param addr 远程地址对象
+		*  @note 远程地址用于发送数据包
+		*  @note 通常在接收到第一个数据包时自动设置
+		*  
+		*  使用示例：
+		*  @code
+		*  rtc::SocketAddress addr("192.168.1.100", 12345);
+		*  rtc_interface->SetRtcRemoteAddress(addr);
+		*  @endcode
+		*/
 		virtual void  SetRtcRemoteAddress(const rtc::SocketAddress& addr);
 
-	
-
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 生成用户名片段（Get Username Fragment）
+		*  
+		*  该静态方法用于生成随机的ICE用户名片段（ufrag）。用户名片段用于
+		*  ICE连接建立。
+		*  
+		*  生成规则：
+		*  1. 使用随机数生成器
+		*  2. 生成指定长度的字符串
+		*  3. 字符集包括字母和数字
+		*  
+		*  @param size 用户名片段长度
+		*  @return 返回生成的用户名片段字符串
+		*  @note 用户名片段长度通常为4-8字节
+		*  
+		*  使用示例：
+		*  @code
+		*  std::string ufrag = RtcInterface::GetUFrag(4);
+		*  std::cout << "UFrag: " << ufrag << std::endl;
+		*  @endcode
+		*/
 		static std::string GetUFrag(int size);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-11-03
+		*  @brief 生成同步源标识符（Get SSRC）
+		*  
+		*  该静态方法用于生成随机的SSRC（Synchronization Source）。
+		*  SSRC用于唯一标识RTP流。
+		*  
+		*  生成规则：
+		*  1. 使用随机数生成器
+		*  2. 生成32位无符号整数
+		*  3. 确保SSRC的唯一性
+		*  
+		*  @param size 未使用的参数（保留）
+		*  @return 返回生成的SSRC值
+		*  @note SSRC必须在所有RTP流中唯一
+		*  
+		*  使用示例：
+		*  @code
+		*  uint32_t ssrc = RtcInterface::GetSsrc(0);
+		*  std::cout << "SSRC: " << ssrc << std::endl;
+		*  @endcode
+		*/
 		static uint32_t GetSsrc(int size);
 	protected:
+		// ICE相关参数
+		std::string local_ufrag_;              ///< 本地ICE用户名片段，用于ICE连接建立
+		std::string local_passwd_;             ///< 本地ICE密码，长度范围[12, 32]字节
+		
+		// SDP相关
+		libmedia_transfer_protocol::librtc::RtcSdp sdp_;  ///< SDP对象，用于存储和处理SDP信息
 
+		// DTLS相关
+		libmedia_transfer_protocol::libssl::Dtls   dtls_;  ///< DTLS对象，用于密钥交换和加密
+		bool dtls_done_{ false };              ///< DTLS握手完成标志
 
-		std::string local_ufrag_;
-		std::string local_passwd_;  //[12, 32]
-		libmedia_transfer_protocol::librtc::RtcSdp sdp_;
-		//Dtls dtls_;
+		// 网络地址
+		rtc::SocketAddress             rtc_remote_address_;  ///< 远程客户端地址（IP和端口）
+		
+		// SRTP会话
+		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_send_session_;  ///< SRTP发送会话，用于加密发送的RTP/RTCP包
+		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_recv_session_;  ///< SRTP接收会话，用于解密接收的RTP/RTCP包
 
-		//libmedia_transfer_protocol::librtc::DtlsCerts   dtls_certs_;
-		libmedia_transfer_protocol::libssl::Dtls   dtls_;
+		// RTP序列号
+		uint32_t      audio_seq_ = 100;        ///< 音频RTP序列号，从100开始递增
+		uint32_t      video_seq_ = 100;        ///< 视频RTP序列号，从100开始递增
+		uint32_t      video_rtx_seq_ = 100;    ///< 视频RTX序列号，用于重传包
 
-		bool dtls_done_{ false };
+		// RTP头部和扩展
+		libmedia_transfer_protocol::RTPHeader  rtp_header_;  ///< RTP头部对象，用于构建RTP包
+		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;  ///< RTP扩展头管理器
+		
+		// TWCC上下文
+		libmedia_transfer_protocol::librtcp::TwccContext     twcc_context_;  ///< TWCC上下文，用于带宽估计
 
-		rtc::SocketAddress             rtc_remote_address_;
-		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_send_session_;
-		libmedia_transfer_protocol::libsrtp::SrtpSession* srtp_recv_session_;
+		// SCTP关联
+		std::shared_ptr< libmedia_transfer_protocol::librtc::SctpAssociationImp> sctp_;  ///< SCTP关联对象，用于数据通道
 
-
-
-
-		uint32_t      audio_seq_ = 100;
-		uint32_t      video_seq_ = 100;
-		uint32_t      video_rtx_seq_ = 100;
-		//libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
-		libmedia_transfer_protocol::RTPHeader  rtp_header_;
-		libmedia_transfer_protocol::RtpHeaderExtensionMap    extension_manager_;
-		libmedia_transfer_protocol::librtcp::TwccContext     twcc_context_;
-
-		//libmedia_transfer_protocol::librtc::SctpAssociationImp::Ptr   sctp_;
-		std::shared_ptr< libmedia_transfer_protocol::librtc::SctpAssociationImp> sctp_;
-
-
-		std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;
+		// RTP包缓存
+		std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
 	};
  
 }
