@@ -48,6 +48,9 @@
 
 #include "gb_media_server_log.h"
 
+
+#include "api/task_queue/default_task_queue_factory.h"
+
 namespace  gb_media_server
 {
 	RtcService::RtcService()

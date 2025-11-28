@@ -60,6 +60,8 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_to_send.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/nack.h"
 #include <memory>
+#include <unordered_map>
+#include <map>
 namespace gb_media_server {
  
 	/**
@@ -843,7 +845,8 @@ namespace gb_media_server {
 		std::shared_ptr< libmedia_transfer_protocol::librtc::SctpAssociationImp> sctp_;  ///< SCTP关联对象，用于数据通道
 
 		// RTP包缓存
-		std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
+		//std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
+		std::map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
 	};
  
 }

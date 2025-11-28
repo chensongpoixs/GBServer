@@ -34,6 +34,7 @@
 #ifndef _C_GB_MEDIA_SERVER_CAPUTRE_H_
 #define _C_GB_MEDIA_SERVER_CAPUTRE_H_
 
+#if 0
 #include <algorithm>
 
 #include "absl/types/optional.h"
@@ -95,5 +96,7 @@ namespace gb_media_server {
 	};
 
 }
+
+#endif // 
 
 #endif // 

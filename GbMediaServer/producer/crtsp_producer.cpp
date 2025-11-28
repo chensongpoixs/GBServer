@@ -51,8 +51,8 @@ namespace gb_media_server {
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
 		:  Producer(  stream, s)
-		, rtp_video_frame_assembler_(std::make_unique<libmedia_transfer_protocol::RtpVideoFrameAssembler>(
-			libmedia_transfer_protocol::RtpVideoFrameAssembler::kH264))
+		//, rtp_video_frame_assembler_(std::make_unique<libmedia_transfer_protocol::RtpVideoFrameAssembler>(
+	//		libmedia_transfer_protocol::RtpVideoFrameAssembler::kH264))
 		, recv_buffer_(new uint8_t[kRecvBufferSize])
 		, recv_buffer_size_(0)
 		, video_ssrc_(0)
@@ -186,6 +186,7 @@ namespace gb_media_server {
 	void RtspProducer::ProcessRtpPacket(const libmedia_transfer_protocol::RtpPacketReceived& rtp_packet)
 	{
 		// 使用 RtpVideoFrameAssembler 组装视频帧
+		#if 0
 		auto frames = rtp_video_frame_assembler_->InsertPacket(rtp_packet);
 
 		for (auto& frame : frames)
@@ -205,6 +206,7 @@ namespace gb_media_server {
 				GetStream()->AddVideoFrame(std::move(encoded_image));
 			}
 		}
+		#endif // rtp_video_frame_assembler_
 	}
 
 	void RtspProducer::ProcessRtcpPacket(const rtc::ArrayView<uint8_t>& data)

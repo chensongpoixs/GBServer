@@ -70,7 +70,7 @@
 
 namespace gb_media_server
 {
-	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s)
+	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream, const  std::shared_ptr<Session> &s)
 	: RtcInterface ()
 	, Consumer(stream, s)
 		

@@ -49,7 +49,7 @@ namespace gb_media_server
 	{
 	public:
 		explicit RtspConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection, 
-			std::shared_ptr<Stream> &stream, std::shared_ptr<Session> &s);
+			std::shared_ptr<Stream> &stream, const std::shared_ptr<Session> &s);
 		virtual ~RtspConsumer();
 
 	public:

@@ -32,7 +32,7 @@
  ******************************************************************************/
 #include "share/capture.h"
 #include "gb_media_server_log.h"
-
+#if  0
 namespace gb_media_server
 {
 	Capture::Capture()
@@ -120,3 +120,6 @@ namespace gb_media_server
 	void   Capture::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> f){}
 	void   Capture::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> f){}
 }
+
+
+#endif // 

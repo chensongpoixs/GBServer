@@ -67,6 +67,15 @@
 #include "rtc_base/string_utils.h"
 #include "rtc_base/string_encode.h"
 #include "libmedia_transfer_protocol/librtc/sctp_association.h"
+#include <iterator>
+#include <algorithm> // for std::lower_bound (on iterators)
+#include <iterator> // std::ostream_iterator
+#include <sstream>  // std::ostringstream
+#include <utility>  // std::make_pair()
+
+
+
+
 
 namespace gb_media_server
 {
