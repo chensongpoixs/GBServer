@@ -135,6 +135,7 @@ file(GLOB GbMediaServer_source
 #add_subdirectory(libsip)
  
 add_executable(${PROJECT_NAME}     ${GbMediaServer_source}  ${Media_source}   )
+add_dependencies(${PROJECT_NAME} libmedia_codec)
 add_dependencies(${PROJECT_NAME} libmedia_transfer_protocol)
 #add_dependencies(${PROJECT_NAME}   libswagger)
 # add_dependencies(${PROJECT_NAME} libsip)
@@ -163,19 +164,11 @@ set(ALL_LIB
 			p2p 
 			pc 
 			rtc_base
-		 
-				  
-  
-
-			  crypto
+		 	crypto
 				ssl
-				 
-
-
-				###########################
-
-				 
-				 #AAC
+			 ###########################
+ 
+				 ## AAC
 				 faad
 				 opus
 				 libsrtp2
