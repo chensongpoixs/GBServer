@@ -593,10 +593,10 @@ namespace gb_media_server {
 
 	void RtcProducer::RequestKeyFrame()
 	{
-		if (request_key_frame_ > (rtc::SystemTimeMillis()  ))
+		/*if (request_key_frame_ > (rtc::SystemTimeMillis()  ))
 		{
 			return;
-		}
+		}*/
 		request_key_frame_ = rtc::SystemTimeMillis() + 100;
 		///////////////////////////////////////////////////////////////////////////
 	////                         IDR Request

@@ -164,8 +164,7 @@ set(ALL_LIB
 			p2p 
 			pc 
 			rtc_base
-		 	crypto
-				ssl
+		 	
 			 ###########################
  
 				 ## AAC
@@ -186,7 +185,7 @@ set(ALL_LIB
 
 		  
 	 
-		vpx
+		
 		
 		yaml_cpp
 		 
@@ -218,8 +217,9 @@ set(ALL_LIB
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     message(STATUS "current platform: windows")
     set(WIN_LIB 
+		libvpx
 	     audio_processing
-		 vpx_asm
+		 libvpx_asm
 		Dnsapi.lib   
 			delayimp.lib
 			ws2_32.lib
@@ -264,7 +264,8 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 			ws2_32.lib
 			winmm.lib
 
-
+			libcrypto
+			libssl
 			yuv
 		#libcrypto.lib 
 		#libssl.lib 
@@ -292,9 +293,13 @@ if (CMAKE_SYSTEM_NAME MATCHES "Windows")
 elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
 	message(STATUS "current platform: unix")
     set(LINUX_LIB 
-		m 
-		dl
-      rt
+		vpx
+
+				crypto
+				ssl
+				m 
+				dl
+				rt
 	)
 
 endif()
