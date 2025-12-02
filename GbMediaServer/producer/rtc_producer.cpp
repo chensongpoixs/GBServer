@@ -245,8 +245,10 @@ namespace gb_media_server {
                      }),
         result.recheck_event->recheck_delay_ms);
 		*/
-		//gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
-		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this]() {
+#if 1
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_.flag(),
+		// gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 
+			[this]() {
 				if (!dtls_done_)
 				{
 
@@ -267,6 +269,10 @@ namespace gb_media_server {
  
 			OnTimer();
 		}), 5000);
+
+#endif // 
+		//gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 5000,   this, );
+
 	}
 
 	bool RtcProducer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) {
