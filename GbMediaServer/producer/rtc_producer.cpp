@@ -65,6 +65,8 @@ namespace gb_media_server {
 		const std::shared_ptr<Session> &s)
 		: RtcInterface()
 		, Producer(  stream, s), 
+		task_safety_(webrtc::PendingTaskSafetyFlag::CreateDetachedInactive()),
+
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0) 
 		 ,nal_parse_(nullptr)
@@ -246,7 +248,7 @@ namespace gb_media_server {
         result.recheck_event->recheck_delay_ms);
 		*/
 #if 1
-		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_.flag(),
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
 		// gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 
 			[this]() {
 				if (!dtls_done_)
@@ -270,8 +272,11 @@ namespace gb_media_server {
 			OnTimer();
 		}), 5000);
 
-#endif // 
-		//gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 5000,   this, );
+#endif //
+		// PostDelayed(RTC_FROM_HERE, milliseconds, &queued_task_handler_,
+		/*id=*///0,
+		//	new ScopedMessageData<webrtc::QueuedTask>(std::move(task)));
+	//	gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 5000,   this, );
 
 	}
 
