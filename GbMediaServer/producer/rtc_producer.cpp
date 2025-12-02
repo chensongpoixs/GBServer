@@ -245,8 +245,8 @@ namespace gb_media_server {
                      }),
         result.recheck_event->recheck_delay_ms);
 		*/
-		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
-			[this]() {
+		//gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this]() {
 				if (!dtls_done_)
 				{
 
