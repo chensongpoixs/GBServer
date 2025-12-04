@@ -43,13 +43,12 @@
     </style>
 
 </head>
-
+<!-- ?RtcIp=192.168.9.178&RtcPort=1443&app=live&StreamName=chensong -->
 <body>
     <h2>Rtc推拉流系统</h2>
     <div>
         <div class="push" style="float:left;">
-            <h3>推流http地址： <input id="PushhttpUrl" value="https://192.168.9.172:2443"   style='width:300px'>
-			</h3>
+            
             <form>
                 推流选项：
                 <input type="radio" name="select" id="pushScreenRadio" checked="checked" /> 推流屏幕
@@ -57,55 +56,52 @@
                 <input type="checkbox" id="audioCheckbox" checked="checked">音频</input>
             </form>
 			
-			
-			
-			webrtc:
-            <input id="PushStreamUrl" value="webrtc://127.0.0.1:8001/live/34020000001320000001"   style='width:300px'>
-            </br>
-           Send Data:
-            <input id="pushDataChannel" value="">      <button id="PushSendDataBtn">发送数据</button>
-			
-            
-			
-            <div style="margin-top:5px">
+			<div style="margin-top:5px">
                 <video id="localVideo" autoplay controls></video>
             </div>
-        
-            <button id="startPushBtn">开始推流</button>
-            <button id="stopPushBtn">停止推流</button>
+			
+			 
+          
         
             <div class="highlight">
                 <span id="pushTips1"></span> <br>
                 <span id="pushTips2"></span> <br>
                 <span id="pushTips3"></span>
             </div>
+			 Send Data:
+            <input id="pushDataChannel" value="">      <button id="PushSendDataBtn">发送数据</button>
+			
+            
+			 <br/> 
+            
+        
+            <button id="startPushBtn">开始推流</button>
+            <button id="stopPushBtn">停止推流</button>
         </div>
         
         <div class="pull" style="float:left;margin-left:30px;">
-            <h3>拉流http地址：<input id="PullhttpUrl" value="https://192.168.9.172:2443"   style='width:300px'></h3>
+             
 			<input type="checkbox" id="pullCaptureBtn" checked="checked">播放桌面</input>
-            <br/>
-			
-            webrtc:
-            <input id="PullStreamUrl" value="webrtc://127.0.0.1/live/34020000001320000001"  style='width:300px'>
-            </br>
-            Send Data:
-            <input id="pullDataChannel" value=""> <button id="PullSendDataBtn">发送数据</button>
-			
-              
-           
-            <div style="margin-top:5px">
+            <br/> 
+             <div style="margin-top:5px">
                 <video id="remoteVideo" autoplay controls></video>
             </div>
-        
-            <button id="StartpullBtn">开始拉流</button>
-            <button id="stopPullBtn">停止拉流</button>
+           
         
             <div class="highlight">
                 <span id="pullTips1"></span> <br>
                 <span id="pullTips2"></span> <br>
                 <span id="pullTips3"></span>
             </div>
+			 Send Data:
+            <input id="pullDataChannel" value=""> <button id="PullSendDataBtn">发送数据</button>
+			
+              
+            <br/> 
+           
+        
+            <button id="StartpullBtn">开始拉流</button>
+            <button id="stopPullBtn">停止拉流</button>
         </div>
     </div>
     

@@ -498,7 +498,7 @@ namespace gb_media_server {
 
 
 
-		int64_t    request_key_frame_;
+		time_t    request_key_frame_;
 		
 
 
