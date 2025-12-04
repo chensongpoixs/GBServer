@@ -370,7 +370,8 @@ namespace gb_media_server
 				{
 					GBMEDIASERVER_LOG(LS_INFO) << "rtx packet seq : " << packetid << ", rtx packet_id : " << video_rtx_seq_;
 					auto rtx_packet = iter->second;
-					rtx_packet->SetPayloadType(sdp_.VideoRtxSsrc());
+					rtx_packet->SetPayloadType(sdp_.GetVideoPayloadRtxType());
+					rtx_packet->SetSsrc(sdp_.VideoRtxSsrc());
 					rtx_packet->SetSequenceNumber(video_rtx_seq_++);
 					SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
 					
