@@ -31,7 +31,7 @@ include_directories(
 	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
 	 
 )
-
+add_subdirectory(libsip)
 #add_subdirectory(libswagger)
-#add_subdirectory(GbSipServer)
+add_subdirectory(GbSipServer)
 add_subdirectory(GbMediaServer) 

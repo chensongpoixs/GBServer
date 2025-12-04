@@ -4,7 +4,7 @@
 
 namespace   cmedia
 {
-	__declspec(dllimport)  bool    GetRequest(const char * rtsp_url, const char * media_url);
+	 bool    GetRequest(const char * rtsp_url, const char * media_url);
 }
 
 
