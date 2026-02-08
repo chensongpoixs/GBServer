@@ -6,6 +6,7 @@ MESSAGE(STATUS  "####################################")
 MESSAGE(STATUS  "#############${PROJECT_NAME}###############")
 MESSAGE(STATUS  "####################################")
 set(CMAKE_CXX_STANDARD 17)
+# apt-get install libsqlite3-dev -y
 
 
 #set(DEPS_DIR  "D:/dep/c_dep")
@@ -18,7 +19,25 @@ set(CMAKE_CXX_STANDARD 17)
 				#	-DUNICODE
 				#	-D_AFXDLL
 #)
-
+ADD_DEFINITIONS(-DHAVE_NETDB_H 
+		-DHAVE_NETINET_IN_H
+		-DHAVE_SYS_IOCTL_H
+		-D__POCC__
+		-DHAVE_LIMITS_H
+		-DHAVE_FCNTL_H
+		-DHAVE_FCNTL_O_NONBLOCK
+		-DHAVE_STRUCT_TIMEVAL=0
+		-DHAVE_PTHREAD
+		-DHAVE_SEMAPHORE_H
+		-DHAVE_ERRNO_H
+		#-DHAVE_RECV
+		#-DHAVE_SEND
+		#-DRECV_TYPE_RETV
+		#-DHAVE_SEND
+		-DHAVE_SYS_SOCKET_H
+		-DHAVE_CONFIG_H   
+		#-DHAVE_SETSOCKOPT_SO_NONBLOCK
+		)
 add_definitions(
 
 
@@ -32,15 +51,15 @@ add_definitions(
 
 
         ## define path to swagger-ui static resources folder
-        -DOATPP_SWAGGER_RES_PATH="${DEPS_DIR}/oatpp/include/oatpp-1.4.0/bin/oatpp-swagger/res"
+        -DOATPP_SWAGGER_RES_PATH="swagger/res"
 
         ## SQLite database file
-        -DDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/db.sqlite"
+        -DDATABASE_FILE="db/db.sqlite"
         ## SQLite database test file
-        -DTESTDATABASE_FILE="${CMAKE_CURRENT_SOURCE_DIR}/test-db.sqlite"
+        -DTESTDATABASE_FILE="db/test-db.sqlite"
 
         ## Path to database migration scripts
-        -DDATABASE_MIGRATIONS="${CMAKE_CURRENT_SOURCE_DIR}/sql"
+        -DDATABASE_MIGRATIONS="sql"
 )
 
 
@@ -49,26 +68,34 @@ add_definitions(
 	#../../deps/libyuv/include
 	 ../../deps/abseil-cpp/
 	.
-	../../deps/libsip
-	../../deps/libsip/c-ares 
-	../../deps/libsip/eXosip2
-	../../deps/libsip/osip2
-	../../deps/libsip/osipparser2
+	../libsip
+	../libsip/c-ares 
+	../libsip/eXosip2
+	../libsip/osip2
+	../libsip/osipparser2
 	./utils 
 	#../libswagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-swagger
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite/sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
-	${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
+	#	/usr/local/include/oatpp-1.4.0
+	#/usr/local/include/oatpp-1.4.0/oatpp
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-swagger
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite/sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+
+	${DEPS_DIR}/oatpp-1.4.0/oatpp
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-swagger
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite/sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
+	
 	 
 )
 link_directories( 
 
-${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
-
+${DEPS_DIR}/oatpp-1.4.0/lib
+/usr/local/lib/oatpp-1.4.0
 )
 
 
@@ -116,31 +143,69 @@ add_executable(${PROJECT_NAME}     ${GbSipServer_source}
 								)
 #add_dependencies(${PROJECT_NAME} libswagger)
  add_dependencies(${PROJECT_NAME} libsip)
+ 
+
+
 
 set(ALL_LIB 
-
-	yaml_cpp
-
-
- crypt32.lib
-			iphlpapi.lib
-			secur32.lib
-#libswagger
-libsip 
-Dnsapi.lib   
-delayimp.lib
-ws2_32.lib
- Qwave.lib
- libcrypto.lib 
-		libssl.lib 
- #
- oatpp
+	libsip
+			  oatpp
  oatpp-sqlite
  oatpp-swagger
- sqlite
+ 
+			api 
+			libice
+		libp2p_peerconnection 
+		libmedia_codec 
+		libmedia_transfer_protocol
+		#libcross_platform_collection_render
+			audio_device
+			#audio_processing
+			desktop_capture
+			video_capture
+			video_coding
+			audio_coding
 
- # absl 
- #abseil_dll
+			call
+			common_audio
+			common_video
+			libwebrtc 
+			logging 
+			media
+			p2p 
+			pc 
+			rtc_base
+		 	
+			 ###########################
+ 
+				 ## AAC
+				 faad
+				 opus
+				 libsrtp2
+				 x264
+		   jpeg-static
+		
+
+		#curl 
+		jsoncpp_static
+		 
+		 
+
+	 
+
+
+		  
+	 
+		
+		
+		yaml_cpp
+		 
+		usrsctp
+
+	 
+		 
+		 
+		#abseil_dll
 		absl_cordz_functions
 		absl_cordz_handle
 		absl_cordz_info
@@ -157,12 +222,65 @@ ws2_32.lib
 		absl_flags_usage_internal
 		absl_low_level_hash
 		absl_random_internal_distribution_test_util
- # rtc_base
-  
+		
+			)
 
- iphlpapi.lib
-		#crypto32.lib 
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    message(STATUS "current platform: windows")
+    set(WIN_LIB 
+	sqlite
+		libvpx
+	     audio_processing
+		 libvpx_asm
+		Dnsapi.lib   
+			delayimp.lib
+			ws2_32.lib
+			 Qwave.lib
+			 crypt32.lib
+			iphlpapi.lib
+			secur32.lib
+			crypt32.lib
+			iphlpapi.lib
+			secur32.lib
+			 iphlpapi.lib
+		 
 		ws2_32   
+		crypt32
+		Shell32.lib
+		 advapi32
+              iphlpapi
+              psapi
+              shell32
+              user32
+              userenv
+              ws2_32
+			  mswsock.lib
+			  #  webrtc  timeGetTime  
+			  winmm.lib  
+			  dbghelp.lib
+		 crypt32.lib
+		iphlpapi.lib
+       secur32.lib
+	   d3d11.lib
+      dxgi.lib
+	  	 dmoguids.lib
+          wmcodecdspuuid.lib
+        amstrmid.lib
+         msdmo.lib
+        oleaut32.lib
+
+		Ws2_32.lib
+		Wldap32.lib
+	 Imm32 
+			comctl32
+			ws2_32.lib
+			winmm.lib
+
+			libcrypto
+			libssl
+			yuv
+		#libcrypto.lib 
+		#libssl.lib 
 		crypt32
 		Shell32.lib
 		 advapi32
@@ -178,27 +296,34 @@ ws2_32.lib
 			  #ucrt.lib
 			  #  libuv.lib  的依赖库
 			  dbghelp.lib
+			   dmoguids.lib
+          wmcodecdspuuid.lib
+        amstrmid.lib
+         msdmo.lib
+        oleaut32.lib
+	)
+elseif (CMAKE_SYSTEM_NAME MATCHES "Linux")
+	message(STATUS "current platform: unix")
+    set(LINUX_LIB 
+	sqlite3
+		vpx
 
-			  libp2p_peerconnection 
-			  libice
-			  api 
-			audio_device
-			audio_processing
-			desktop_capture
-			video_capture
-			video_coding
-			call
-			common_audio
-			common_video
-			libwebrtc 
-			logging 
-			media
-			p2p 
-			pc 
-			rtc_base
-			 
+				crypto
+				ssl
+				m 
+				dl
+				rt
+	)
 
-			)
+endif()
+ 
+target_link_libraries(${PROJECT_NAME}   ${ALL_LIB}   
+
+	${WIN_LIB}
+	${LINUX_LIB}
+)
+
+
  
 target_link_libraries(${PROJECT_NAME}   ${ALL_LIB} )
 

@@ -38,6 +38,21 @@ let audioElem ;
 var lastConnectionState = "";
 
  
+
+
+/**
+ * 从URL查询参数中获取指定参数的值
+ * 
+ * @param {string} name - 要获取的参数名称
+ * @returns {string|null} 参数的值，如果参数不存在则返回null
+ */
+function getUrlParam(name) {
+    const reg = new RegExp(`(^|&)${name}=([^&]*)(&|$)`);
+    const r = window.location.search.substr(1).match(reg);
+    if (r != null) return decodeURIComponent(r[2]);
+    return null;
+}
+
 function PullSendDataChannel()
 {
 	var sendData = $("#pullDataChannel").val();
@@ -68,11 +83,17 @@ function stopPull() {
 }
 
 function sendOffer(offerSdp) {
-	var rtc_api_server = $("#PullhttpUrl").val();
-	var StreamUrl = $("#PullStreamUrl").val();
-	 
+	//var rtc_api_server = $("#PullhttpUrl").val();
+	//var StreamUrl = $("#PullStreamUrl").val();
+	 const rtc_ip = getUrlParam('RtcIp');
+    const rtc_port = getUrlParam('RtcPort');
 
-	
+
+    const app_name = getUrlParam('app'); // 'John'
+    const stream_name = getUrlParam('StreamName'); // 'John'
+
+	const rtc_api_server = 'https://' + rtc_ip + ':' + rtc_port;
+	var StreamUrl = 'webrtc://'+rtc_ip +':'+rtc_port+'/' + app_name + '/' + stream_name;
 	console.log("captureType:"+captureType);
     console.log("send offer: /RtcApi/send  offer "+ rtc_api_server);
 

@@ -75,7 +75,7 @@ namespace gb_media_server {
 		void ProcessRtcpPacket(const rtc::ArrayView<uint8_t>& data);
 
 	private:
-		std::unique_ptr<libmedia_transfer_protocol::RtpVideoFrameAssembler> rtp_video_frame_assembler_;
+		//std::unique_ptr<libmedia_transfer_protocol::RtpVideoFrameAssembler> rtp_video_frame_assembler_;
 		uint8_t* recv_buffer_;
 		int32_t recv_buffer_size_;
 		static constexpr int32_t kRecvBufferSize = 1024 * 1024 * 8;

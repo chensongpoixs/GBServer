@@ -481,8 +481,8 @@ namespace gb_media_server {
 
 
 		//std::unique_ptr< libmedia_transfer_protocol::libmpeg::MpegDecoder>    mpeg_decoder_;
-
-		webrtc::ScopedTaskSafety task_safety_;
+		const rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> task_safety_;
+		//webrtc::ScopedTaskSafety task_safety_;
 		//rtc::Buffer recv_buffer_;
 		std::unique_ptr<uint8_t[]> recv_buffer_;
 		int32_t recv_buffer_size_;
@@ -498,7 +498,7 @@ namespace gb_media_server {
 
 
 
-		int64_t    request_key_frame_;
+		time_t    request_key_frame_;
 		
 
 

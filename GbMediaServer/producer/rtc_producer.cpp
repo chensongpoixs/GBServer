@@ -65,6 +65,8 @@ namespace gb_media_server {
 		const std::shared_ptr<Session> &s)
 		: RtcInterface()
 		, Producer(  stream, s), 
+		task_safety_(webrtc::PendingTaskSafetyFlag::CreateDetachedInactive()),
+
 		recv_buffer_(new uint8_t[1024 * 1024 * 8])
 	, recv_buffer_size_(0) 
 		 ,nal_parse_(nullptr)
@@ -245,7 +247,9 @@ namespace gb_media_server {
                      }),
         result.recheck_event->recheck_delay_ms);
 		*/
+#if 1
 		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
+		// gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 
 			[this]() {
 				if (!dtls_done_)
 				{
@@ -267,6 +271,13 @@ namespace gb_media_server {
  
 			OnTimer();
 		}), 5000);
+
+#endif //
+		// PostDelayed(RTC_FROM_HERE, milliseconds, &queued_task_handler_,
+		/*id=*///0,
+		//	new ScopedMessageData<webrtc::QueuedTask>(std::move(task)));
+	//	gb_media_server::GbMediaService::GetInstance().worker_thread()->PostDelayed(RTC_FROM_HERE, 5000,   this, );
+
 	}
 
 	bool RtcProducer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) {
@@ -593,11 +604,11 @@ namespace gb_media_server {
 
 	void RtcProducer::RequestKeyFrame()
 	{
-		if (request_key_frame_ > (rtc::SystemTimeMillis()  ))
+		if (request_key_frame_ > std::time(nullptr))
 		{
 			return;
 		}
-		request_key_frame_ = rtc::SystemTimeMillis() + 100;
+		request_key_frame_ = std::time(nullptr) + 3;
 		///////////////////////////////////////////////////////////////////////////
 	////                         IDR Request
 

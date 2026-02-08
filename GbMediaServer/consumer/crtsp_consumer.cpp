@@ -43,7 +43,7 @@
 namespace gb_media_server
 {
 	RtspConsumer::RtspConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
-		std::shared_ptr<Stream>& stream, std::shared_ptr<Session>& s)
+		std::shared_ptr<Stream>& stream, const std::shared_ptr<Session>& s)
 		: Consumer(stream, s)
 		, connection_(connection)
 		, rtp_header_extension_map_(std::make_unique<libmedia_transfer_protocol::RtpHeaderExtensionMap>())

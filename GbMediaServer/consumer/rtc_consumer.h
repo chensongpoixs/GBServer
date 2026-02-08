@@ -144,7 +144,7 @@ namespace gb_media_server {
 		*  auto consumer = std::make_shared<RtcConsumer>(stream, session);
 		*  @endcode
 		*/
-		explicit RtcConsumer(   std::shared_ptr<Stream> &stream,   std::shared_ptr<Session> &s);
+		explicit RtcConsumer(   std::shared_ptr<Stream> &stream, const  std::shared_ptr<Session> &s);
 
 		/**
 		*  @author chensong

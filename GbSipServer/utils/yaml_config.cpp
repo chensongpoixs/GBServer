@@ -26,13 +26,14 @@ namespace   gbsip_server
 	bool YamlConfig::LoadFile(const char* config_file)
 	{
 		try {
-			// ´ÓÎÄ¼þ¼ÓÔØYAML
+			// ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½YAML
 			YAML::Node node = YAML::LoadFile(config_file);
 
 			if (node["server"]) {
+				http_server_config_.ip = node["server"]["ip"].as<std::string>();
 				http_server_config_.port = node["server"]["port"].as<uint16_t>();
 
-				SIPSERVER_LOG(LS_INFO) << "http server config \n port:" << http_server_config_.port;
+				SIPSERVER_LOG(LS_INFO) << "http server config  host:"<< http_server_config_.ip << ", port:" << http_server_config_.port;
 			}
 
 			if (node["sip"]) {
@@ -51,7 +52,7 @@ namespace   gbsip_server
 				media_config_.ip = node["media"]["ip"].as<std::string>();
 				media_config_.port = node["media"]["http-port"].as<uint16_t>();
 				 
-				SIPSERVER_LOG(LS_INFO) << "media config info £º\n" << "ip : " << media_config_.ip
+				SIPSERVER_LOG(LS_INFO) << "media config info ï¿½ï¿½\n" << "ip : " << media_config_.ip
 					<< ", http-port: " << media_config_.port;
 			}
 		}

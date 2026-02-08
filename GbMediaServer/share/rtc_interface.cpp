@@ -67,6 +67,15 @@
 #include "rtc_base/string_utils.h"
 #include "rtc_base/string_encode.h"
 #include "libmedia_transfer_protocol/librtc/sctp_association.h"
+#include <iterator>
+#include <algorithm> // for std::lower_bound (on iterators)
+#include <iterator> // std::ostream_iterator
+#include <sstream>  // std::ostringstream
+#include <utility>  // std::make_pair()
+
+
+
+
 
 namespace gb_media_server
 {
@@ -361,7 +370,8 @@ namespace gb_media_server
 				{
 					GBMEDIASERVER_LOG(LS_INFO) << "rtx packet seq : " << packetid << ", rtx packet_id : " << video_rtx_seq_;
 					auto rtx_packet = iter->second;
-					rtx_packet->SetPayloadType(sdp_.VideoRtxSsrc());
+					rtx_packet->SetPayloadType(sdp_.GetVideoPayloadRtxType());
+					rtx_packet->SetSsrc(sdp_.VideoRtxSsrc());
 					rtx_packet->SetSequenceNumber(video_rtx_seq_++);
 					SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
 					

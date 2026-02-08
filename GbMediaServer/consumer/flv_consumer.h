@@ -37,8 +37,10 @@
 #include "consumer/consumer.h"
 
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
+#include "server/session.h"
 namespace gb_media_server
 {
+	class Session;
 	/**
 	*  @author chensong
 	*  @date 2025-04-29
@@ -106,7 +108,7 @@ namespace gb_media_server
 		*  @endcode
 		*/
 		explicit FlvConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection, 
-			std::shared_ptr<Stream> &stream, std::shared_ptr<Session> &s);
+			std::shared_ptr<Stream> &stream, const std::shared_ptr<Session> &s);
 
 		/**
 		*  @author chensong
