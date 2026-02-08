@@ -57,35 +57,53 @@ namespace  gb_media_server
 	*  @brief 共享资源类型枚举（Share Resource Type Enum）
 	*  
 	*  该枚举用于标识不同的生产者（Producer）和消费者（Consumer）类型。
-	*  每种类型对应不同的媒体传输协议。
+	*  每种类型对应不同的媒体传输协议。在GBMediaServer流媒体服务器中，
+	*  生产者负责接收媒体流，消费者负责发送媒体流。
 	*  
 	*  生产者类型说明：
 	*  - kProducerTypeGB28181: GB28181协议生产者，用于接收GB28181设备的媒体流
+	*    GB28181是中国公共安全视频监控联网标准，广泛应用于安防监控领域
 	*  - kProducerTypeRtc: RTC协议生产者，用于接收WebRTC推流的媒体流
+	*    WebRTC是实时通信协议，支持低延迟的音视频传输
 	*  - kProducerTypeRtmp: RTMP协议生产者，用于接收RTMP推流的媒体流
+	*    RTMP是Adobe开发的流媒体协议，广泛用于直播推流
 	*  - kProducerTypeRtsp: RTSP协议生产者，用于接收RTSP推流的媒体流
+	*    RTSP是实时流协议，常用于IP摄像头和监控设备
 	*  
 	*  消费者类型说明：
 	*  - kConsumerTypeRTC: RTC协议消费者，用于WebRTC拉流播放
+	*    支持浏览器和移动端的实时播放
 	*  - kConsumerTypeFlv: FLV协议消费者，用于HTTP-FLV拉流播放
+	*    HTTP-FLV延迟低，适合直播场景
 	*  - kConsumerTypeRtmp: RTMP协议消费者，用于RTMP拉流播放
+	*    兼容Flash播放器和RTMP客户端
 	*  - kConsumerTypeRtsp: RTSP协议消费者，用于RTSP拉流播放
+	*    适合监控客户端和专业播放器
 	*  
 	*  @note kShareResourceTypeUnknowed表示未知类型，用于错误处理
+	*  @note 枚举值从0开始，便于数组索引和统计
+	*  
+	*  使用示例：
+	*  @code
+	*  ShareResourceType type = producer->ShareResouceType();
+	*  if (type == kProducerTypeRtc) {
+	*      std::cout << "This is a WebRTC producer" << std::endl;
+	*  }
+	*  @endcode
 	*/
 	enum  ShareResourceType
 	{
 	 
-		kProducerTypeGB28181 = 0,      ///< GB28181协议生产者
-		kProducerTypeRtc=1,            ///< RTC协议生产者
-		kProducerTypeRtmp,             ///< RTMP协议生产者
-		kProducerTypeRtsp,             ///< RTSP协议生产者
+		kProducerTypeGB28181 = 0,      ///< GB28181协议生产者，用于接收国标设备推流
+		kProducerTypeRtc=1,            ///< RTC协议生产者，用于接收WebRTC推流
+		kProducerTypeRtmp,             ///< RTMP协议生产者，用于接收RTMP推流
+		kProducerTypeRtsp,             ///< RTSP协议生产者，用于接收RTSP推流
 		//  
-		kConsumerTypeRTC,              ///< RTC协议消费者
-		kConsumerTypeFlv,              ///< FLV协议消费者
-		kConsumerTypeRtmp,             ///< RTMP协议消费者
-		kConsumerTypeRtsp,             ///< RTSP协议消费者
-		kShareResourceTypeUnknowed = 255,  ///< 未知类型
+		kConsumerTypeRTC,              ///< RTC协议消费者，用于WebRTC拉流播放
+		kConsumerTypeFlv,              ///< FLV协议消费者，用于HTTP-FLV拉流播放
+		kConsumerTypeRtmp,             ///< RTMP协议消费者，用于RTMP拉流播放
+		kConsumerTypeRtsp,             ///< RTSP协议消费者，用于RTSP拉流播放
+		kShareResourceTypeUnknowed = 255,  ///< 未知类型，用于错误处理
 
 	};
 	class Stream;
@@ -98,29 +116,41 @@ namespace  gb_media_server
 	*  
 	*  ShareResource是GBMediaServer流媒体服务器中所有生产者和消费者的基类。
 	*  它提供了共同的功能，包括应用名称、流名称、参数管理、远程地址管理等。
-	*  Producer和Consumer类都继承自此类。
+	*  Producer和Consumer类都继承自此类，实现了流媒体服务器的核心抽象。
 	*  
 	*  ShareResource功能：
 	*  1. 管理应用名称（App Name）和流名称（Stream Name）
+	*     - 应用名称用于区分不同的业务场景（如live、vod等）
+	*     - 流名称用于唯一标识一个媒体流
 	*  2. 管理附加参数（Param）
+	*     - 用于传递协议特定的配置信息
+	*     - 如认证token、编码参数等
 	*  3. 管理远程地址（Remote Address）
+	*     - 存储客户端的IP地址和端口
+	*     - 用于发送数据包和连接管理
 	*  4. 提供流对象（Stream）和会话对象（Session）的访问
+	*     - Stream管理媒体流的生命周期
+	*     - Session管理客户端会话
 	*  5. 提供数据接收和处理的虚函数接口
+	*     - OnRecv: 接收网络数据
+	*     - OnDataChannel: 接收数据通道消息
 	*  6. 提供资源类型标识
+	*     - 用于运行时类型识别
 	*  
 	*  应用和流名称说明：
 	*  - 格式通常为 "app/stream"，如 "live/stream1"
-	*  - app_name_: 应用名称，如 "live"
-	*  - stream_name_: 流名称，如 "stream1"
-	*  - param_: 附加参数，用于传递协议特定的配置信息
+	*  - app_name_: 应用名称，如 "live"（直播）、"vod"（点播）
+	*  - stream_name_: 流名称，如 "stream1"、"camera001"
+	*  - param_: 附加参数，如 "token=abc123&quality=high"
 	*  
 	*  @note ShareResource是抽象基类，不能直接实例化
-	*  @note 子类需要实现纯虚函数，如OnRecv、OnDataChannel等
-	*  @note 使用enable_shared_from_this支持智能指针管理
+	*  @note 子类需要实现纯虚函数，如ShareResouceType()
+	*  @note 使用enable_shared_from_this支持智能指针管理，避免循环引用
+	*  @note 所有成员变量都是protected，子类可以直接访问
 	*  
 	*  继承层次：
-	*  - Producer: 继承自ShareResource，用于接收媒体流
-	*  - Consumer: 继承自ShareResource，用于发送媒体流
+	*  - Producer: 继承自ShareResource，用于接收媒体流（推流端）
+	*  - Consumer: 继承自ShareResource，用于发送媒体流（拉流端）
 	*  
 	*  使用示例：
 	*  @code
@@ -128,60 +158,243 @@ namespace  gb_media_server
 	*  auto producer = std::make_shared<RtcProducer>(stream, session);
 	*  producer->SetAppName("live");
 	*  producer->SetStreamName("stream1");
+	*  producer->SetParam("token=abc123");
+	*  
+	*  // 获取资源类型
+	*  ShareResourceType type = producer->ShareResouceType();
 	*  @endcode
 	*/
 	class ShareResource : public std::enable_shared_from_this<ShareResource>
 	{
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 构造函数（Constructor）
+		*  
+		*  该构造函数用于初始化ShareResource实例。它会保存流对象和会话对象的引用，
+		*  并记录创建时间戳。
+		*  
+		*  初始化流程：
+		*  1. 保存流对象的共享指针
+		*  2. 保存会话对象的共享指针
+		*  3. 记录创建时间戳（毫秒）
+		*  
+		*  @param stream 流对象的共享指针，用于管理媒体流
+		*  @param s 会话对象的共享指针，用于管理客户端会话
+		*  @note 流对象和会话对象必须有效，不能为空
+		*  @note 创建时间戳用于统计连接时长
+		*/
 		explicit ShareResource(const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 析构函数（Destructor）
+		*  
+		*  该析构函数用于清理ShareResource实例。由于使用智能指针管理资源，
+		*  不需要手动释放内存。
+		*  
+		*  @note 析构时会自动释放流对象和会话对象的引用
+		*/
 		virtual ~ShareResource();
 
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取应用名称（Get App Name）
+		*  
+		*  该方法用于获取应用名称。应用名称用于区分不同的业务场景。
+		*  
+		*  @return 返回应用名称的常量引用
+		*  @note 应用名称通常在创建时设置，如"live"、"vod"等
+		*/
 		const std::string & AppName() const;
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 设置应用名称（Set App Name）
+		*  
+		*  该方法用于设置应用名称。
+		*  
+		*  @param app_name 应用名称字符串
+		*  @note 应用名称应该在接收到第一个请求时设置
+		*/
 		void SetAppName(const std::string & app_name);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取流名称（Get Stream Name）
+		*  
+		*  该方法用于获取流名称。流名称用于唯一标识一个媒体流。
+		*  
+		*  @return 返回流名称的常量引用
+		*  @note 流名称通常在创建时设置，如"stream1"、"camera001"等
+		*/
 		const std::string & StreamName() const;
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 设置流名称（Set Stream Name）
+		*  
+		*  该方法用于设置流名称。
+		*  
+		*  @param stream 流名称字符串
+		*  @note 流名称应该在接收到第一个请求时设置
+		*/
 		void SetStreamName(const std::string & stream);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取附加参数（Get Param）
+		*  
+		*  该方法用于获取附加参数。附加参数用于传递协议特定的配置信息。
+		*  
+		*  @return 返回附加参数的常量引用
+		*  @note 参数格式通常为"key1=value1&key2=value2"
+		*/
 		const std::string & Param() const;
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 设置附加参数（Set Param）
+		*  
+		*  该方法用于设置附加参数。
+		*  
+		*  @param param 附加参数字符串
+		*  @note 参数可以包含认证token、编码参数等
+		*/
 		void SetParam(const std::string & param);
 
-
-
-
-		//接受不同协议上层处理 实现
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 接收数据（On Receive）
+		*  
+		*  该方法用于接收来自网络的数据。不同的协议会有不同的实现。
+		*  
+		*  @param buffer 接收到的数据缓冲区
+		*  @note 该方法是虚函数，子类可以重写实现特定协议的数据处理
+		*  @note 默认实现为空，不做任何处理
+		*/
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer) {}
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 接收数据通道消息（On Data Channel）
+		*  
+		*  该方法用于接收来自SCTP数据通道的消息。数据通道用于传输非媒体数据。
+		*  
+		*  @param params SCTP流参数，包含流ID等信息
+		*  @param ppid 负载协议标识符（PPID）
+		*  @param msg 消息数据指针
+		*  @param len 消息长度（字节）
+		*  @note 该方法是虚函数，子类可以重写实现数据通道处理
+		*  @note 默认实现为空，不做任何处理
+		*/
 		virtual void OnDataChannel(const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, uint32_t ppid, const uint8_t* msg, size_t len) {}
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取资源类型（Get Share Resource Type）
+		*  
+		*  该方法用于获取资源的类型标识。用于运行时类型识别。
+		*  
+		*  @return 返回资源类型枚举值
+		*  @note 该方法是虚函数，子类必须重写返回正确的类型
+		*  @note 默认返回kShareResourceTypeUnknowed（未知类型）
+		*/
 		virtual ShareResourceType ShareResouceType() const { return kShareResourceTypeUnknowed; }
 		 
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取远程地址（Get Remote Address）
+		*  
+		*  该方法用于获取远程客户端的网络地址（IP和端口）。
+		*  
+		*  @return 返回远程地址的常量引用
+		*  @note 远程地址在接收到第一个数据包时设置
+		*/
 		virtual const rtc::SocketAddress &RemoteAddress() const
 		{
 			return remote_address_;
 		}
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 设置远程地址（Set Remote Address）
+		*  
+		*  该方法用于设置远程客户端的网络地址。
+		*  
+		*  @param addr 远程地址对象
+		*  @note 远程地址用于发送数据包
+		*/
 		virtual void  SetRemoteAddress(const rtc::SocketAddress & addr);
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取会话对象（Get Session）
+		*  
+		*  该方法用于获取关联的会话对象。
+		*  
+		*  @return 返回会话对象的共享指针
+		*  @note 会话对象管理客户端连接的生命周期
+		*/
 		std::shared_ptr<Session> GetSession() const
 		{
 			return session_;
 		}
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取流对象（Get Stream - const版本）
+		*  
+		*  该方法用于获取关联的流对象（常量版本）。
+		*  
+		*  @return 返回流对象的共享指针
+		*  @note 流对象管理媒体流的生命周期
+		*/
 		std::shared_ptr < Stream> GetStream() const
 		{
 			return stream_;
 		}
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取流对象（Get Stream - 非const版本）
+		*  
+		*  该方法用于获取关联的流对象（非常量版本）。
+		*  
+		*  @return 返回流对象的共享指针
+		*  @note 流对象管理媒体流的生命周期
+		*/
 		std::shared_ptr < Stream> GetStream()
 		{
 			return stream_;
 		}
+
 	protected:
-		std::shared_ptr < Stream> stream_;
-		std::string     app_name_;
-		std::string     stream_name_;
-		std::string     param_; 
-		rtc::SocketAddress   remote_address_;
-		int64_t			start_timestamp_{ 0 }; // 启始时间 
+		std::shared_ptr < Stream> stream_;        ///< 流对象，管理媒体流的生命周期
+		std::string     app_name_;                ///< 应用名称，如"live"、"vod"
+		std::string     stream_name_;             ///< 流名称，如"stream1"、"camera001"
+		std::string     param_;                   ///< 附加参数，如"token=abc123"
+		rtc::SocketAddress   remote_address_;     ///< 远程客户端地址（IP和端口）
+		int64_t			start_timestamp_{ 0 };    ///< 创建时间戳（毫秒），用于统计连接时长
 		 
-		std::shared_ptr < Session> session_;
+		std::shared_ptr < Session> session_;      ///< 会话对象，管理客户端会话
 	};
 }
 

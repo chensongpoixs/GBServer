@@ -45,44 +45,66 @@
 
 namespace gb_media_server {
 
-
- 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtspProducer构造函数实现（RtspProducer Constructor Implementation）
+	*  
+	*  该构造函数用于初始化RtspProducer实例。它会调用Producer基类构造函数，
+	*  并初始化RTSP相关的数据结构，包括接收缓冲区和SSRC。
+	*  
+	*  初始化流程：
+	*  1. 调用Producer基类构造函数，关联Stream和Session
+	*  2. 创建RTP视频帧组装器（用于组装分片的RTP包，已注释）
+	*  3. 分配接收缓冲区（8MB大小）
+	*  4. 初始化接收缓冲区大小为0
+	*  5. 初始化视频和音频SSRC为0
+	*  
+	*  @param stream 指向Stream的共享指针，用于推送媒体数据
+	*  @param s 指向Session的共享指针，用于管理会话状态
+	*  @note 构造函数会自动分配8MB的接收缓冲区
+	*  @note RTP视频帧组装器已被注释掉，可能正在重构中
+	*  @note 注释掉的代码是早期版本的初始化逻辑，已废弃
+	*/
 	RtspProducer::RtspProducer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
 		:  Producer(  stream, s)
 		//, rtp_video_frame_assembler_(std::make_unique<libmedia_transfer_protocol::RtpVideoFrameAssembler>(
-	//		libmedia_transfer_protocol::RtpVideoFrameAssembler::kH264))
-		, recv_buffer_(new uint8_t[kRecvBufferSize])
-		, recv_buffer_size_(0)
-		, video_ssrc_(0)
-		, audio_ssrc_(0)
+	//		libmedia_transfer_protocol::RtpVideoFrameAssembler::kH264))  // 创建H.264视频帧组装器（已注释）
+		, recv_buffer_(new uint8_t[kRecvBufferSize])  // 分配8MB接收缓冲区
+		, recv_buffer_size_(0)  // 初始化缓冲区大小为0
+		, video_ssrc_(0)  // 初始化视频SSRC为0
+		, audio_ssrc_(0)  // 初始化音频SSRC为0
 	{
-		//local_ufrag_ = GetUFrag(8);
-		//local_passwd_ = GetUFrag(32);
-		///uint32_t audio_ssrc = GetSsrc(10);
-		//uint32_t video_ssrc = audio_ssrc + 1;
-
-		//sdp_.SetLocalUFrag(local_ufrag_);
-		//sdp_.SetLocalPasswd(local_passwd_);
-		//sdp_.SetAudioSsrc(audio_ssrc);
-		//sdp_.SetVideoSsrc(video_ssrc);
-		//dtls_certs_.Init();
-		//dtls_.Init();
-		//dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);
-		//dtls_.SignalDtlsHandshakeDone.connect(this, &PlayRtcUser::OnDtlsHandshakeDone);
-		//dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
-
-
-	 
-
-
-		
-	
+		// 注释掉的代码是早期版本的初始化逻辑，已废弃
+		// 包括：UFrag/Passwd生成、SSRC生成、SDP设置、DTLS初始化等
+		// 这些功能已移至RtcProducer中实现
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtspProducer析构函数实现（RtspProducer Destructor Implementation）
+	*  
+	*  该析构函数用于清理RtspProducer实例。它会释放所有相关资源，
+	*  特别是接收缓冲区。
+	*  
+	*  清理流程：
+	*  1. 记录日志，标记析构开始
+	*  2. 检查接收缓冲区是否存在
+	*  3. 释放接收缓冲区内存
+	*  4. 将指针设置为nullptr
+	*  
+	*  @note 析构函数会自动调用，不需要手动释放资源
+	*  @note 必须释放接收缓冲区，否则会导致内存泄漏
+	*/
 	RtspProducer::~RtspProducer()
 	{
+		// 记录日志，标记析构开始
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		
+		// 释放接收缓冲区
 		if (recv_buffer_)
 		{
 			delete[] recv_buffer_;
@@ -90,38 +112,70 @@ namespace gb_media_server {
 		}
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtspProducer接收数据实现（RtspProducer On Receive Implementation）
+	*  
+	*  该方法用于接收来自RTSP客户端的TCP数据包。它会将数据包追加到接收缓冲区，
+	*  然后解析RTSP Interleaved帧，提取RTP/RTCP数据包，并推送到Stream中。
+	*  
+	*  处理流程：
+	*  1. 检查缓冲区是否溢出，如果溢出则重置
+	*  2. 将新数据追加到接收缓冲区
+	*  3. 循环解析RTSP Interleaved帧：
+	*     a. 检查是否有至少4字节（帧头大小）
+	*     b. 检查Magic Byte（'$'）
+	*     c. 读取Channel ID和Length
+	*     d. 检查是否有完整的数据包
+	*     e. 根据数据包类型（RTP或RTCP）进行处理
+	*     f. 更新parse_size
+	*  4. 移动未处理的数据到缓冲区开头
+	*  
+	*  RTSP Interleaved帧格式：
+	*  - Byte 0: Magic Byte ('$', 0x24)
+	*  - Byte 1: Channel ID (0-255)
+	*  - Byte 2-3: Length (大端序，2字节)
+	*  - Byte 4+: Payload (RTP或RTCP数据)
+	*  
+	*  @param buffer1 接收到的数据包，包含RTSP Interleaved帧
+	*  @note 该方法在网络线程中调用，需要注意线程安全
+	*  @note 数据包可能不完整，需要缓存并等待更多数据
+	*  @note 如果缓冲区溢出，会重置缓冲区并丢弃所有数据
+	*/
 	void RtspProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
-		// 将新数据追加到接收缓冲区
+		// 检查缓冲区是否溢出
 		if (recv_buffer_size_ + buffer1.size() > kRecvBufferSize)
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "recv buffer overflow, reset buffer";
 			recv_buffer_size_ = 0;
 		}
 
+		// 将新数据追加到接收缓冲区
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
 		recv_buffer_size_ += buffer1.size();
 
 		int32_t parse_size = 0;
 
-		// 解析 RTSP interleaved frames (TCP mode)
+		// 循环解析RTSP Interleaved帧（TCP模式）
 		while (recv_buffer_size_ - parse_size >= 4)
 		{
-			// 检查是否是 RTSP interleaved frame (magic byte '$')
+			// 检查是否是RTSP Interleaved帧（Magic Byte为'$'）
 			if (recv_buffer_[parse_size] != '$')
 			{
-				// 可能是 RTSP 协议消息，跳过
+				// 可能是RTSP协议消息（如SETUP、PLAY等），跳过
 				GBMEDIASERVER_LOG(LS_WARNING) << "not RTSP interleaved frame, skip";
 				parse_size = recv_buffer_size_;
 				break;
 			}
 
-			// 读取 magic header
+			// 读取Magic Header（4字节）
 			RtspMagic magic;
-			magic.magic_ = recv_buffer_[parse_size];
-			magic.channel_ = recv_buffer_[parse_size + 1];
+			magic.magic_ = recv_buffer_[parse_size];  // Magic Byte: '$'
+			magic.channel_ = recv_buffer_[parse_size + 1];  // Channel ID
 			magic.length_ = libmedia_transfer_protocol::ByteReader<uint16_t>::ReadBigEndian(
-				&recv_buffer_[parse_size + 2]);
+				&recv_buffer_[parse_size + 2]);  // Payload长度（大端序）
 
 			// 检查是否有完整的数据包
 			if (recv_buffer_size_ - parse_size < (4 + magic.length_))
@@ -130,20 +184,25 @@ namespace gb_media_server {
 				break;
 			}
 
-			parse_size += 4; // 跳过 magic header
+			parse_size += 4; // 跳过Magic Header
 
-			// 根据 channel 判断是 RTP 还是 RTCP
+			// 根据Channel判断是RTP还是RTCP
 			if (magic.channel_ == 0 || magic.channel_ == 1)
 			{
 				// RTP packet (channel 0) or RTCP packet (channel 1)
 				rtc::ArrayView<uint8_t> packet_data(recv_buffer_ + parse_size, magic.length_);
 
+				// 判断是RTP还是RTCP
 				if (libmedia_transfer_protocol::IsRtpPacket(packet_data))
 				{
+					// 解析RTP数据包
 					libmedia_transfer_protocol::RtpPacketReceived rtp_packet;
 					if (rtp_packet.Parse(recv_buffer_ + parse_size, magic.length_))
 					{
+						// 处理RTP数据包
 						ProcessRtpPacket(rtp_packet);
+						
+						// 如果video_ssrc_为0，则设置为当前RTP包的SSRC
 						if (video_ssrc_ == 0)
 						{
 							video_ssrc_ = rtp_packet.Ssrc();
@@ -156,6 +215,7 @@ namespace gb_media_server {
 				}
 				else if (libmedia_transfer_protocol::IsRtcpPacket(packet_data))
 				{
+					// 处理RTCP数据包
 					ProcessRtcpPacket(packet_data);
 				}
 				else
@@ -183,17 +243,40 @@ namespace gb_media_server {
 		}
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理RTP数据包实现（Process RTP Packet Implementation）
+	*  
+	*  该方法用于处理解析后的RTP数据包。它会使用RtpVideoFrameAssembler
+	*  组装分片的RTP包，重构完整的视频帧，并推送到Stream中。
+	*  
+	*  处理流程（注释掉的代码展示了早期版本的实现）：
+	*  1. 使用RtpVideoFrameAssembler插入RTP包
+	*  2. 检查是否有完整的视频帧
+	*  3. 遍历所有完整的视频帧
+	*  4. 将视频帧转换为EncodedImage
+	*  5. 设置时间戳、帧类型、宽度、高度等信息
+	*  6. 推送到Stream中
+	*  
+	*  @param rtp_packet 解析后的RTP数据包
+	*  @note 该方法在网络线程中调用，需要注意线程安全
+	*  @note RTP包可能被分片，需要组装为完整的视频帧
+	*  @note 当前版本的实现已被注释掉（#if 0），可能正在重构中
+	*/
 	void RtspProducer::ProcessRtpPacket(const libmedia_transfer_protocol::RtpPacketReceived& rtp_packet)
 	{
-		// 使用 RtpVideoFrameAssembler 组装视频帧
+		// 使用RtpVideoFrameAssembler组装视频帧（已注释）
 		#if 0
+		// 插入RTP包，返回完整的视频帧列表
 		auto frames = rtp_video_frame_assembler_->InsertPacket(rtp_packet);
 
+		// 遍历所有完整的视频帧
 		for (auto& frame : frames)
 		{
 			if (frame && frame->size() > 0)
 			{
-				// 转换为 EncodedImage
+				// 转换为EncodedImage
 				libmedia_codec::EncodedImage encoded_image;
 				encoded_image.SetEncodedData(
 					libmedia_codec::EncodedImageBuffer::Create(frame->data(), frame->size()));
@@ -202,23 +285,53 @@ namespace gb_media_server {
 				encoded_image._encodedWidth = frame->_encodedWidth;
 				encoded_image._encodedHeight = frame->_encodedHeight;
 
-				// 推送到 Stream
+				// 推送到Stream
 				GetStream()->AddVideoFrame(std::move(encoded_image));
 			}
 		}
 		#endif // rtp_video_frame_assembler_
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理RTCP数据包实现（Process RTCP Packet Implementation）
+	*  
+	*  该方法用于处理解析后的RTCP数据包。RTCP用于传输控制信息，
+	*  如接收报告、发送报告、反馈等。
+	*  
+	*  处理流程：
+	*  1. 创建RTCP CommonHeader对象
+	*  2. 解析RTCP数据包
+	*  3. 如果解析成功，记录RTCP类型
+	*  4. 如果解析失败，记录警告日志
+	*  
+	*  RTCP类型：
+	*  - SR (Sender Report): 发送报告
+	*  - RR (Receiver Report): 接收报告
+	*  - SDES (Source Description): 源描述
+	*  - BYE: 结束会话
+	*  - APP: 应用自定义
+	*  
+	*  @param data RTCP数据包的ArrayView
+	*  @note 该方法在网络线程中调用，需要注意线程安全
+	*  @note RTCP包用于统计和控制，不包含媒体数据
+	*  @note 当前版本只记录日志，未进行实际处理
+	*/
 	void RtspProducer::ProcessRtcpPacket(const rtc::ArrayView<uint8_t>& data)
 	{
+		// 创建RTCP CommonHeader对象
 		libmedia_transfer_protocol::rtcp::CommonHeader rtcp_header;
+		
+		// 解析RTCP数据包
 		if (rtcp_header.Parse(data.data(), data.size()))
 		{
-			// RTCP 包处理（可以用于统计、同步等）
+			// RTCP包处理（可以用于统计、同步等）
 			GBMEDIASERVER_LOG(LS_VERBOSE) << "received RTCP packet, type:" << (int)rtcp_header.type();
 		}
 		else
 		{
+			// 解析失败
 			GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed";
 		}
 	}

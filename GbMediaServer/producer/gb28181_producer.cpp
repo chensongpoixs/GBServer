@@ -45,8 +45,17 @@
 
 namespace gb_media_server {
 
-
- 
+	/**
+	*  @brief 构造GB28181生产者实例
+	*  
+	*  初始化GB28181生产者，创建MPEG解码器并连接信号槽。
+	*  
+	*  初始化内容：
+	*  - 创建MpegDecoder实例用于解析PS流
+	*  - 分配8MB接收缓冲区
+	*  - 连接视频帧信号槽到OnProcessVideoFrame
+	*  - 连接音频帧信号槽到OnProcessAudioFrame
+	*/
 	Gb28181Producer::Gb28181Producer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
@@ -59,6 +68,17 @@ namespace gb_media_server {
 		mpeg_decoder_->SignalRecvAudioFrame.connect(this, &Gb28181Producer::OnProcessAudioFrame);
 		
 	}
+	
+	/**
+	*  @brief 析构GB28181生产者实例
+	*  
+	*  清理MPEG解码器和接收缓冲区资源。
+	*  
+	*  清理流程：
+	*  1. 断开MpegDecoder的信号槽连接
+	*  2. 释放MpegDecoder实例
+	*  3. 释放接收缓冲区内存
+	*/
 	Gb28181Producer::~Gb28181Producer()
 	{
 		if (mpeg_decoder_)
@@ -73,6 +93,33 @@ namespace gb_media_server {
 			recv_buffer_ = nullptr;
 		}
 	}
+	
+	/**
+	*  @brief 接收并处理RTP数据
+	*  
+	*  该方法接收来自GB28181设备的RTP数据，解析RTP包并提取PS流数据。
+	*  
+	*  处理流程：
+	*  1. 将新数据追加到接收缓冲区
+	*  2. 循环解析缓冲区中的数据包：
+	*     - 读取2字节长度字段（大端序）
+	*     - 检查是否有完整的数据包
+	*     - 判断数据包类型（RTP或RTCP）
+	*     - 如果是RTP包：
+	*       * 解析RTP头部
+	*       * 检查payload type是否为96（PS流）
+	*       * 将PS流数据传递给MpegDecoder解析
+	*     - 如果是RTCP包：
+	*       * 解析RTCP头部（当前只记录日志）
+	*  3. 移动未处理的数据到缓冲区开头
+	*  
+	*  数据包格式：
+	*  - Length（2字节）：数据包长度（大端序）
+	*  - Data（N字节）：RTP或RTCP包数据
+	*  
+	*  @note 如果缓冲区中的数据不足一个完整包，会等待更多数据
+	*  @note PS流的payload type通常为96
+	*/
 	void Gb28181Producer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
 
@@ -151,6 +198,20 @@ namespace gb_media_server {
 		
 	}
 
+	/**
+	*  @brief 处理解析出的视频帧
+	*  
+	*  该方法是MpegDecoder的回调，当解析出完整的H264视频帧时触发。
+	*  
+	*  处理流程：
+	*  1. 接收MpegDecoder解析出的视频帧
+	*  2. 将视频帧推送到Stream中
+	*  3. Stream会将视频帧分发给所有消费者
+	*  
+	*  @param frame 编码后的H264视频帧
+	*  @note 视频帧会被移动（std::move）到Stream中，避免拷贝
+	*  @note 可以取消注释保存到文件的代码，用于调试
+	*/
 	void Gb28181Producer::OnProcessVideoFrame(libmedia_codec::EncodedImage frame)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";
@@ -168,6 +229,21 @@ namespace gb_media_server {
 		GetStream()->AddVideoFrame(std::move(frame));
 
 	}
+	
+	/**
+	*  @brief 处理解析出的音频帧
+	*  
+	*  该方法是MpegDecoder的回调，当解析出完整的音频帧时触发。
+	*  
+	*  处理流程：
+	*  1. 接收MpegDecoder解析出的音频帧
+	*  2. 将音频帧推送到Stream中（当前被注释掉）
+	*  
+	*  @param frame 音频编码数据缓冲区
+	*  @param pts 呈现时间戳，单位为毫秒
+	*  @note 当前实现中音频处理被注释掉，需要根据实际需求启用
+	*  @note 可以取消注释保存到文件的代码，用于调试
+	*/
 	void Gb28181Producer::OnProcessAudioFrame(rtc::CopyOnWriteBuffer frame, int64_t  pts)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "";

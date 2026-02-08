@@ -46,15 +46,113 @@
 
 namespace  gb_media_server
 {
+	/**
+	*  @author chensong
+	*  @date 2025-10-17
+	*  @brief 字符串工具命名空间（String Utilities Namespace）
+	*  
+	*  该命名空间提供了一组常用的字符串处理工具函数，用于处理URL、文件路径、字符串分割等操作。
+	*  这些工具函数在流媒体服务器中广泛使用，用于解析配置、处理请求、提取信息等。
+	*  
+	*  主要功能：
+	*  1. 字符串分割（split）：按指定分隔符分割字符串
+	*  2. URL解析（GetSessionNameFromUrl）：从流媒体URL中提取会话名称
+	*  3. 文件扩展名提取（FileExt）：从文件路径中提取扩展名
+	*  
+	*  使用场景：
+	*  - 解析WebRTC、RTMP、RTSP等流媒体URL
+	*  - 提取应用名和流名，用于会话管理
+	*  - 识别文件类型，用于内容分发
+	*  - 处理配置文件和路径
+	*  
+	*  @note 所有函数都是独立的工具函数，不依赖于类实例
+	*  @note 函数设计为线程安全，可以在多线程环境中使用
+	*  
+	*  使用示例：
+	*  @code
+	*  using namespace gb_media_server::string_utils;
+	*  
+	*  // 分割字符串
+	*  std::vector<std::string> fields;
+	*  split("a,b,c", ',', &fields);
+	*  
+	*  // 提取会话名称
+	*  std::string session = GetSessionNameFromUrl("webrtc://server.com:9091/live/test");
+	*  
+	*  // 提取文件扩展名
+	*  std::string ext = FileExt("/path/to/video.mp4");
+	*  @endcode
+	*/
 	namespace string_utils 
 	{
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-17
+		*  @brief 字符串分割函数（Split String）
+		*  
+		*  该函数用于将字符串按照指定的分隔符进行分割，将分割后的子字符串存储到vector中。
+		*  这是一个常用的字符串处理工具函数，用于解析配置、URL、路径等。
+		*  
+		*  @param source 待分割的源字符串
+		*  @param delimiter 分隔符字符，用于标识分割位置
+		*  @param fields 输出参数，存储分割后的子字符串的vector指针，不能为空
+		*  @return 返回分割后的子字符串数量
+		*  @note 如果源字符串为空，返回的vector包含一个空字符串
+		*  @note 连续的分隔符会产生空字符串
+		*  
+		*  使用示例：
+		*  @code
+		*  std::vector<std::string> fields;
+		*  size_t count = split("a/b/c", '/', &fields);
+		*  // fields = ["a", "b", "c"], count = 3
+		*  @endcode
+		*/
 		size_t split(std::string source,
 			char delimiter,
 		std::vector<std::string>* fields);
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-17
+		*  @brief 从URL中提取会话名称（Get Session Name From URL）
+		*  
+		*  该函数用于从WebRTC、RTMP、RTSP等流媒体URL中提取会话名称。
+		*  会话名称由应用名（app）和流名（stream）组成，格式为"app/stream"。
+		*  
+		*  支持的URL格式：
+		*  - protocol://domain:port/app/stream
+		*  - protocol://domain:port/domain_name/app/stream
+		*  
+		*  @param url 完整的流媒体URL，包含协议、域名、端口、应用名和流名
+		*  @return 返回会话名称（格式为"app/stream"），如果URL格式不正确则返回空字符串
+		*  
+		*  使用示例：
+		*  @code
+		*  std::string url = "webrtc://chensong.com:9091/live/test";
+		*  std::string session = GetSessionNameFromUrl(url);
+		*  // session = "live/test"
+		*  @endcode
+		*/
 		std::string  GetSessionNameFromUrl(const std::string &url);
 	
+		/**
+		*  @author chensong
+		*  @date 2025-10-17
+		*  @brief 提取文件扩展名（File Extension）
+		*  
+		*  该函数用于从文件路径或文件名中提取文件扩展名（不包含点号）。
+		*  扩展名用于识别文件类型，例如"mp4"、"flv"、"txt"等。
+		*  
+		*  @param path 文件路径或文件名，可以是相对路径或绝对路径
+		*  @return 返回文件扩展名（不包含点号），如果没有扩展名则返回文件名
+		*  @note 返回的扩展名不包含点号，例如"mp4"而不是".mp4"
+		*  
+		*  使用示例：
+		*  @code
+		*  std::string ext = FileExt("/home/user/video.mp4");
+		*  // ext = "mp4"
+		*  @endcode
+		*/
 		std::string  FileExt(const std::string & path);
 	}
 }

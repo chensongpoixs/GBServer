@@ -42,6 +42,19 @@
 
 namespace gb_media_server
 {
+	/**
+	*  @brief 构造RTSP消费者实例
+	*  
+	*  初始化RTSP消费者，设置网络连接、RTP header extension map和视频相关参数。
+	*  
+	*  初始化内容：
+	*  - 保存网络连接指针
+	*  - 创建RTP header extension map并注册扩展类型
+	*  - 初始化视频SSRC为0x12345678（默认值）
+	*  - 初始化视频序列号为0
+	*  - 初始化视频RTP时间戳为0
+	*  - 设置视频payload type为96（H264标准）
+	*/
 	RtspConsumer::RtspConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
 		std::shared_ptr<Stream>& stream, const std::shared_ptr<Session>& s)
 		: Consumer(stream, s)
@@ -57,10 +70,25 @@ namespace gb_media_server
 		rtp_header_extension_map_->RegisterByType(2, libmedia_transfer_protocol::kRtpExtensionAbsoluteSendTime);
 	}
 
+	/**
+	*  @brief 析构RTSP消费者实例
+	*  
+	*  清理RTSP消费者相关资源。RTP header extension map会自动释放。
+	*/
 	RtspConsumer::~RtspConsumer()
 	{ 
 	}
 
+	/**
+	*  @brief 处理视频帧
+	*  
+	*  将视频帧封装为RTP包并通过RTSP interleaved模式发送。
+	*  
+	*  处理流程：
+	*  1. 检查视频帧大小和网络连接是否有效
+	*  2. 调用PacketizeH264Frame方法封装视频帧为RTP包
+	*  3. RTP包通过SendRtpPacketInterleaved方法发送
+	*/
 	void RtspConsumer::OnVideoFrame(const libmedia_codec::EncodedImage & frame)
 	{
 		if (frame.size() <= 0 || !connection_)
@@ -71,12 +99,43 @@ namespace gb_media_server
 		PacketizeH264Frame(frame);
 	}
 
+	/**
+	*  @brief 处理音频帧
+	*  
+	*  将音频帧封装为RTP包并通过RTSP interleaved模式发送。
+	*  
+	*  @note 当前实现只记录日志，音频RTP封装待实现
+	*/
 	void RtspConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
 		// TODO: 实现音频 RTP 封装
 		GBMEDIASERVER_LOG(LS_VERBOSE) << "audio frame received, size:" << frame.size() << ", pts:" << pts;
 	}
 
+	/**
+	*  @brief 封装H264视频帧为RTP包
+	*  
+	*  该方法将H264视频帧封装为一个或多个RTP包，并通过RTSP interleaved模式发送。
+	*  
+	*  封装流程：
+	*  1. 创建RTP packetizer，设置payload大小限制（最大1200字节）
+	*  2. 创建RTP video header，设置H264 packetization mode为NonInterleaved
+	*  3. 更新RTP时间戳（使用90kHz时钟）
+	*  4. 循环生成RTP包：
+	*     - 创建RTP packet对象
+	*     - 设置RTP头部（payload type、序列号、时间戳、SSRC等）
+	*     - 调用packetizer生成RTP payload
+	*     - 设置最后一个包的marker bit为1
+	*     - 通过SendRtpPacketInterleaved发送RTP包
+	*  
+	*  RTP封装说明：
+	*  - 如果H264帧小于1200字节，封装为单个RTP包
+	*  - 如果H264帧大于1200字节，使用FU-A分片模式分割为多个RTP包
+	*  - 每个RTP包的序列号递增
+	*  - 最后一个RTP包的marker bit设置为1，表示帧结束
+	*  
+	*  @param frame 编码后的H264视频帧
+	*/
 	void RtspConsumer::PacketizeH264Frame(const libmedia_codec::EncodedImage& frame)
 	{
 		// 创建 RTP packetizer
@@ -136,6 +195,30 @@ namespace gb_media_server
 		}
 	}
 
+	/**
+	*  @brief 发送RTSP interleaved RTP包
+	*  
+	*  该方法将RTP包封装为RTSP interleaved帧格式并通过TCP连接发送。
+	*  
+	*  Interleaved帧格式：
+	*  - Magic Byte（1字节）：固定为'$'（0x24）
+	*  - Channel ID（1字节）：0表示RTP，1表示RTCP
+	*  - Length（2字节）：RTP包的长度（大端序）
+	*  - Data（N字节）：RTP包数据
+	*  
+	*  封装流程：
+	*  1. 检查网络连接是否存在
+	*  2. 计算interleaved帧的总大小（4字节头部 + RTP包大小）
+	*  3. 创建缓冲区并写入：
+	*     - Magic byte '$'
+	*     - Channel ID
+	*     - RTP包长度（大端序）
+	*     - RTP包数据
+	*  4. 通过网络连接发送数据
+	*  
+	*  @param rtp_packet RTP包对象，包含完整的RTP头部和payload
+	*  @param channel 通道ID，0表示RTP，1表示RTCP
+	*/
 	void RtspConsumer::SendRtpPacketInterleaved(const libmedia_transfer_protocol::RtpPacketToSend& rtp_packet, uint8_t channel)
 	{
 		if (!connection_)

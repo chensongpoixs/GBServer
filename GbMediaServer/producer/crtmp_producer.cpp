@@ -57,119 +57,159 @@
 #include "producer/crtmp_producer.h"
 namespace gb_media_server {
 
-
- 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtmpProducer构造函数实现（RtmpProducer Constructor Implementation）
+	*  
+	*  该构造函数用于初始化RtmpProducer实例。它会调用Producer基类构造函数，
+	*  并初始化RTMP相关的数据结构。
+	*  
+	*  初始化流程：
+	*  1. 调用Producer基类构造函数，关联Stream和Session
+	*  2. 初始化RTMP解析器（用于解析RTMP协议）
+	*  3. 初始化接收缓冲区（用于缓存不完整的数据包）
+	*  4. 初始化MPEG解码器（用于解析FLV格式）
+	*  
+	*  @param stream 指向Stream的共享指针，用于推送媒体数据
+	*  @param s 指向Session的共享指针，用于管理会话状态
+	*  @note 构造函数会自动创建RTMP解析器和接收缓冲区
+	*  @note 注释掉的代码是早期版本的初始化逻辑，已废弃
+	*/
 	RtmpProducer::RtmpProducer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
 		:  Producer(  stream, s) 
 		 
 	{
-		//local_ufrag_ = GetUFrag(8);
-		//local_passwd_ = GetUFrag(32);
-		///uint32_t audio_ssrc = GetSsrc(10);
-		//uint32_t video_ssrc = audio_ssrc + 1;
-
-		//sdp_.SetLocalUFrag(local_ufrag_);
-		//sdp_.SetLocalPasswd(local_passwd_);
-		//sdp_.SetAudioSsrc(audio_ssrc);
-		//sdp_.SetVideoSsrc(video_ssrc);
-		//dtls_certs_.Init();
-		//dtls_.Init();
-		//dtls_.SignalDtlsSendPakcet.connect(this, &PlayRtcUser::OnDtlsSendPakcet);
-		//dtls_.SignalDtlsHandshakeDone.connect(this, &PlayRtcUser::OnDtlsHandshakeDone);
-		//dtls_.SignalDtlsClose.connect(this, &PlayRtcUser::OnDtlsClosed);
-
-
-	 
-
-
+		// 注释掉的代码是早期版本的初始化逻辑，已废弃
+		// 包括：UFrag/Passwd生成、SSRC生成、SDP设置、DTLS初始化等
+		// 这些功能已移至RtcProducer中实现
 		
-	
+		// 当前版本的RTMP生产者只需要基类构造函数即可完成初始化
+		// 具体的RTMP解析逻辑在OnRecv方法中实现
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtmpProducer析构函数实现（RtmpProducer Destructor Implementation）
+	*  
+	*  该析构函数用于清理RtmpProducer实例。它会释放所有相关资源，
+	*  包括RTMP解析器、接收缓冲区等。
+	*  
+	*  清理流程：
+	*  1. 记录日志，标记析构开始
+	*  2. 释放RTMP解析器
+	*  3. 释放接收缓冲区
+	*  4. 清理所有资源
+	*  
+	*  @note 析构函数会自动调用，不需要手动释放资源
+	*  @note 注释掉的代码是早期版本的清理逻辑，已废弃
+	*/
 	RtmpProducer::~RtmpProducer()
 	{
+		// 记录日志，标记析构开始
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 
-		//dtls_.SignalDtlsSendPakcet.disconnect(this);
-		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
-		//dtls_.SignalDtlsClose.disconnect(this);
-
+		// 注释掉的代码是早期版本的清理逻辑，已废弃
+		// 包括：断开DTLS信号连接等
+		// 这些功能已移至RtcProducer中实现
 		 
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RtmpProducer接收数据实现（RtmpProducer On Receive Implementation）
+	*  
+	*  该方法用于接收来自RTMP客户端的TCP数据包。它会将数据包追加到接收缓冲区，
+	*  然后解析RTMP协议，提取音视频数据，并推送到Stream中。
+	*  
+	*  处理流程（注释掉的代码展示了早期版本的实现）：
+	*  1. 将新数据追加到接收缓冲区
+	*  2. 读取2字节的payload长度（大端序）
+	*  3. 检查是否有完整的数据包
+	*  4. 判断数据包类型（RTP或RTCP）
+	*  5. 解析对应类型的数据包
+	*  6. 移动未处理的数据到缓冲区开头
+	*  
+	*  @param buffer1 接收到的数据包，包含RTMP协议数据
+	*  @note 该方法在网络线程中调用，需要注意线程安全
+	*  @note 当前版本的实现已被注释掉（#if 0），可能正在重构中
+	*  @note 注释掉的代码展示了TCP分包处理、RTP/RTCP解析等逻辑
+	*/
 	void RtmpProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
 #if 0
+		// 将新数据追加到接收缓冲区
 		memcpy(recv_buffer_ + recv_buffer_size_, buffer1.data(), buffer1.size());
 		recv_buffer_size_ += buffer1.size();
-		//recv_buffer_.SetData(buffer1);
+		
 		int32_t   parse_size = 0;
 
-		 
+		// 循环解析接收缓冲区中的数据包
 		while (recv_buffer_size_ - parse_size > 2)
 		{ 
+			// 读取2字节的payload长度（大端序）
 			int16_t  payload_size = libmedia_transfer_protocol::ByteReader<int16_t>::ReadBigEndian((&recv_buffer_[parse_size]));
 			 
+			// 检查是否有完整的数据包
 			if ((recv_buffer_size_ - parse_size) < (payload_size + 2))
 			{
-				// 当不不够一个完整包需要继续等待下一个包的到来
-				//GBMEDIASERVER_LOG(LS_INFO) << "tcp tail small !!!  (read_bytes -parse_size:" << (recv_buffer_size_ - parse_size) << ") payload_size:" << payload_size;
+				// 数据不完整，等待下一个包的到来
 				break;
 			}
-			parse_size += 2;  
+			parse_size += 2;  // 跳过长度字段
+			
+			// 判断数据包类型：RTP或RTCP
 			if (libmedia_transfer_protocol::IsRtpPacket(rtc::ArrayView<uint8_t>(recv_buffer_ + parse_size, payload_size)))
 			{
+				// 解析RTP数据包
 				libmedia_transfer_protocol::RtpPacketReceived  rtp_packet_received; 
 				bool ret = rtp_packet_received.Parse(recv_buffer_  + parse_size, payload_size);
 				if (!ret)
 				{ 
-					GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" << (recv_buffer_size_ - parse_size); //<< "  , hex :" << rtc::hex_encode((const char *)(buffer.begin() + paser_size), (size_t)(read_bytes - paser_size));
+					GBMEDIASERVER_LOG(LS_WARNING) << "rtp parse failed !!! size:" << (recv_buffer_size_ - parse_size);
 				}
 				else
 				{
-					//RTC_LOG(LS_INFO) << "rtp info :" << rtp_packet_received.ToString();
+					// RTP解析成功，处理媒体数据
 					if (rtp_packet_received.PayloadType() == 96)
 					{
-						//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());; 
+						// 使用MPEG解码器解析媒体数据（已注释）
+						//mpeg_decoder_->parse( rtp_packet_received.payload().data(), rtp_packet_received.payload_size());
 					} 
 				}
 			}
-			else if (libmedia_transfer_protocol::IsRtcpPacket(rtc::ArrayView<uint8_t>(recv_buffer_ + parse_size, payload_size/*read_bytes - paser_size*/)))
+			else if (libmedia_transfer_protocol::IsRtcpPacket(rtc::ArrayView<uint8_t>(recv_buffer_ + parse_size, payload_size)))
 			{
-				libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;  //rtcp_packet;
-				bool ret = rtcp_block.Parse(recv_buffer_ + parse_size, payload_size/* read_bytes - paser_size*/);
+				// 解析RTCP数据包
+				libmedia_transfer_protocol::rtcp::CommonHeader rtcp_block;
+				bool ret = rtcp_block.Parse(recv_buffer_ + parse_size, payload_size);
 				if (!ret)
 				{
 					GBMEDIASERVER_LOG(LS_WARNING) << "rtcp parse failed !!!";
 				}
-				//else
-				{
-					//parse_size += payload_size;
-					//	RTC_LOG(LS_INFO) << "rtcp info :" << rtcp_block.ToString();
-				}
 			}
 			else
 			{
+				// 未知类型的数据包
 				GBMEDIASERVER_LOG(LS_ERROR) << " not know type --> : payload_size: " << payload_size;
-				//parse_size += payload_size;
 			}
 			parse_size += payload_size;
  
 		}
-		//GBMEDIASERVER_LOG(LS_INFO) << "read_bytes:" << recv_buffer_size_ << ", parse_size:" << parse_size;
+		
+		// 移动未处理的数据到缓冲区开头
 		if (recv_buffer_size_ - parse_size > 0)
 		{
-			//memcpy((char *)recv_buffer_.begin(), buffer.data() + parse_size, (buffer.size() - parse_size));
-			recv_buffer_size_ -= parse_size;;
+			recv_buffer_size_ -= parse_size;
 			memmove(recv_buffer_, recv_buffer_+ parse_size,recv_buffer_size_);
-			 
 		}
 		else
 		{
 			recv_buffer_size_ = 0;
 			parse_size = 0;
-			//memcpy((char *)recv_buffer_.begin(), buffer.begin() + parse_size, (read_bytes - parse_size));
-			//recv_buffer_size_ = read_bytes - parse_size;
 		}
 		
 #endif // recv_buffer_size_

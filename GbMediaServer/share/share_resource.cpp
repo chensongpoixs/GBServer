@@ -38,41 +38,149 @@
 #include "server/stream.h"
 namespace  gb_media_server
 {
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 构造共享资源对象（Constructor）
+	*  
+	*  该构造函数用于初始化共享资源对象。共享资源是生产者和消费者的基类，
+	*  提供了流对象和会话对象的访问接口。
+	*  
+	*  初始化流程：
+	*  1. 保存流对象的共享指针，用于访问媒体流数据
+	*  2. 保存会话对象的共享指针，用于管理会话状态
+	*  3. 记录资源创建的时间戳，用于统计资源使用时长
+	*  
+	*  @param stream 流对象的共享指针，用于访问媒体流数据，不能为空
+	*  @param s 会话对象的共享指针，用于管理会话状态，不能为空
+	*  @note 流对象和会话对象通过共享指针管理，确保生命周期正确
+	*  @note 创建时间戳用于统计资源使用时长和性能分析
+	*/
 	ShareResource::ShareResource(const std::shared_ptr<Stream>& stream, const std::shared_ptr<Session>& s)
 		: stream_(stream), session_(s)
 	{
 		start_timestamp_ = rtc::TimeMillis();
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 析构共享资源对象（Destructor）
+	*  
+	*  该析构函数用于清理共享资源对象。由于使用共享指针管理流对象和会话对象，
+	*  不需要手动释放资源。
+	*/
 	ShareResource::~ShareResource()
 	{
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 获取应用名称（Get Application Name）
+	*  
+	*  该方法用于获取流媒体应用的名称。应用名称是流媒体URL的一部分，
+	*  用于标识不同的应用或业务场景。
+	*  
+	*  @return 返回应用名称的常量引用
+	*  @note 应用名称通常在URL中指定，例如"live"、"vod"等
+	*/
 	const std::string & ShareResource::AppName() const
 	{
 		// TODO: insert return statement here
 		return app_name_;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 设置应用名称（Set Application Name）
+	*  
+	*  该方法用于设置流媒体应用的名称。应用名称是流媒体URL的一部分，
+	*  用于标识不同的应用或业务场景。
+	*  
+	*  @param app_name 应用名称，例如"live"、"vod"等
+	*/
 	void ShareResource::SetAppName(const std::string & app_name)
 	{
 		app_name_ = app_name;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 获取流名称（Get Stream Name）
+	*  
+	*  该方法用于获取流媒体流的名称。流名称是流媒体URL的一部分，
+	*  用于唯一标识一个媒体流。
+	*  
+	*  @return 返回流名称的常量引用
+	*  @note 流名称通常在URL中指定，例如"stream1"、"test"等
+	*/
 	const std::string & ShareResource::StreamName() const
 	{
 		// TODO: insert return statement here
 		return stream_name_;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 设置流名称（Set Stream Name）
+	*  
+	*  该方法用于设置流媒体流的名称。流名称是流媒体URL的一部分，
+	*  用于唯一标识一个媒体流。
+	*  
+	*  @param stream 流名称，例如"stream1"、"test"等
+	*/
 	void ShareResource::SetStreamName(const std::string & stream)
 	{
 		stream_name_ = stream;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 获取URL参数（Get URL Parameters）
+	*  
+	*  该方法用于获取流媒体URL中的查询参数。URL参数用于传递额外的配置信息，
+	*  例如认证令牌、播放参数等。
+	*  
+	*  @return 返回URL参数的常量引用
+	*  @note URL参数通常以"?"开头，例如"?token=abc123&quality=hd"
+	*/
 	const std::string & ShareResource::Param() const
 	{
 		// TODO: insert return statement here
 		return param_;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 设置URL参数（Set URL Parameters）
+	*  
+	*  该方法用于设置流媒体URL中的查询参数。URL参数用于传递额外的配置信息，
+	*  例如认证令牌、播放参数等。
+	*  
+	*  @param param URL参数字符串，例如"?token=abc123&quality=hd"
+	*/
 	void ShareResource::SetParam(const std::string & param)
 	{
 		param_ = param;
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 设置远程地址（Set Remote Address）
+	*  
+	*  该方法用于设置客户端的远程地址（IP和端口）。远程地址用于标识客户端，
+	*  并用于发送数据包到客户端。
+	*  
+	*  @param addr 客户端的套接字地址，包含IP地址和端口号
+	*  @note 远程地址在连接建立时设置，用于后续的数据发送
+	*/
 	void ShareResource::SetRemoteAddress(const rtc::SocketAddress & addr)
 	{
 		remote_address_ = addr;

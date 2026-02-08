@@ -49,11 +49,50 @@
 #include "gb_media_server_log.h"
 namespace gb_media_server
 {
- 
+	/**
+	*  @brief DTLS连接中回调（DTLS Connecting）
+	*  
+	*  当DTLS握手开始时触发该回调。此时DTLS连接正在建立中，
+	*  但尚未完成密钥交换和证书验证。
+	*  
+	*  @param dtls DTLS对象指针
+	*  @note 该回调用于记录DTLS连接状态，便于调试和监控
+	*/
 	 void RtcConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
 	}
+	
+	/**
+	*  @brief DTLS连接成功回调（DTLS Connected）
+	*  
+	*  当DTLS握手成功完成时触发该回调。此时已经完成密钥交换和证书验证，
+	*  可以开始创建SRTP会话并发送加密的媒体数据。
+	*  
+	*  处理流程：
+	*  1. 记录DTLS连接成功日志
+	*  2. 删除旧的SRTP会话（如果存在）
+	*  3. 创建SRTP发送会话（OUTBOUND），使用本地密钥
+	*  4. 创建SRTP接收会话（INBOUND），使用远程密钥
+	*  5. 设置dtls_done_标志为true，表示可以开始发送媒体数据
+	*  6. 如果SDP中包含数据通道参数，创建SCTP关联
+	*  
+	*  SRTP会话说明：
+	*  - SRTP（Secure Real-time Transport Protocol）用于加密RTP/RTCP包
+	*  - 发送会话使用本地密钥加密发送的RTP/RTCP包
+	*  - 接收会话使用远程密钥解密接收的RTP/RTCP包
+	*  - 密钥通过DTLS握手协商得到
+	*  
+	*  @param dtls DTLS对象指针
+	*  @param srtpCryptoSuite SRTP加密套件（例如AES_CM_128_HMAC_SHA1_80）
+	*  @param srtpLocalKey 本地SRTP密钥，用于加密发送的数据
+	*  @param srtpLocalKeyLen 本地密钥长度
+	*  @param srtpRemoteKey 远程SRTP密钥，用于解密接收的数据
+	*  @param srtpRemoteKeyLen 远程密钥长度
+	*  @param remote_cert 远程证书（用于验证对端身份）
+	*  @note 如果SRTP会话创建失败，会记录错误日志
+	*  @note SCTP关联用于WebRTC数据通道，如果不需要数据通道可以不创建
+	*/
 	void RtcConsumer::OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 		libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 		uint8_t* srtpLocalKey,
@@ -106,6 +145,24 @@ namespace gb_media_server
 		
 		//StartCapture();
 	}
+	
+	/**
+	*  @brief DTLS发送数据包回调（DTLS Send Packet）
+	*  
+	*  当DTLS需要发送数据包时触发该回调。DTLS握手过程中会生成多个握手消息，
+	*  这些消息需要通过UDP发送给对端。
+	*  
+	*  处理流程：
+	*  1. 记录DTLS发送数据包日志
+	*  2. 将数据包封装为rtc::Buffer
+	*  3. 通过RTC服务器发送数据包到远程地址
+	*  
+	*  @param dtls DTLS对象指针
+	*  @param data 待发送的数据指针
+	*  @param len 数据长度
+	*  @note 该方法会在DTLS握手过程中被多次调用
+	*  @note 数据包通过UDP发送，不保证可靠传输，DTLS会处理重传
+	*/
 	void RtcConsumer::OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t *data, size_t len)
 	{
 		GBMEDIASERVER_LOG(LS_INFO) << "dtls send size:" << len;
@@ -113,7 +170,25 @@ namespace gb_media_server
 		rtc::Buffer buffer(data, len);
 		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 	}
-	//void OnDtlsHandshakeDone(libmedia_transfer_protocol::libssl::Dtls *dtls);
+	
+	/**
+	*  @brief DTLS连接关闭回调（DTLS Closed）
+	*  
+	*  当DTLS连接被远程端关闭时触发该回调。此时需要清理相关资源，
+	*  并从会话中移除该消费者。
+	*  
+	*  处理流程：
+	*  1. 记录DTLS连接关闭日志
+	*  2. 设置dtls_done_标志为false，停止发送媒体数据
+	*  3. 获取会话名称
+	*  4. 在工作线程中执行清理操作：
+	*     - 从RTC服务中注销RTC接口
+	*     - 从会话中移除该消费者
+	*  
+	*  @param dtls DTLS对象指针
+	*  @note 该方法会在工作线程中异步执行清理操作
+	*  @note 清理操作包括注销RTC接口和移除消费者
+	*/
 	void RtcConsumer::OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls *dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS remotely closed";
@@ -130,6 +205,25 @@ namespace gb_media_server
 		});
 		// 
 	}
+	
+	/**
+	*  @brief DTLS连接失败回调（DTLS Failed）
+	*  
+	*  当DTLS握手失败时触发该回调。失败原因可能包括证书验证失败、
+	*  超时、网络错误等。此时需要清理相关资源，并从会话中移除该消费者。
+	*  
+	*  处理流程：
+	*  1. 记录DTLS连接失败日志
+	*  2. 设置dtls_done_标志为false，停止发送媒体数据
+	*  3. 获取会话名称
+	*  4. 在工作线程中执行清理操作：
+	*     - 从RTC服务中注销RTC接口
+	*     - 从会话中移除该消费者
+	*  
+	*  @param dtls DTLS对象指针
+	*  @note 该方法会在工作线程中异步执行清理操作
+	*  @note DTLS失败通常意味着连接无法建立，需要重新连接
+	*/
 	void RtcConsumer::OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls *dtls)
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
@@ -147,6 +241,29 @@ namespace gb_media_server
 		});
 		// 
 	}
+	
+	/**
+	*  @brief DTLS应用数据接收回调（DTLS Application Data Received）
+	*  
+	*  当DTLS连接建立后，接收到应用层数据时触发该回调。
+	*  对于WebRTC，应用层数据通常是SCTP数据包，用于数据通道传输。
+	*  
+	*  处理流程：
+	*  1. 记录接收到应用数据的日志
+	*  2. 如果SCTP关联存在，将数据传递给SCTP处理
+	*  3. SCTP会解析数据包并触发相应的数据通道回调
+	*  
+	*  SCTP说明：
+	*  - SCTP（Stream Control Transmission Protocol）用于WebRTC数据通道
+	*  - SCTP数据包通过DTLS连接传输，提供可靠的数据传输
+	*  - 数据通道可以传输任意二进制数据或文本数据
+	*  
+	*  @param dtls DTLS对象指针
+	*  @param data 接收到的应用数据指针
+	*  @param len 数据长度
+	*  @note 如果SCTP关联不存在，数据会被忽略
+	*  @note 该回调只在DTLS连接建立后才会触发
+	*/
 	void RtcConsumer::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
 	{
 		// Pass it to the parent transport.

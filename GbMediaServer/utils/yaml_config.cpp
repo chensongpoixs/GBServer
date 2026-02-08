@@ -36,15 +36,122 @@
 #include "gb_media_server_log.h"
 namespace  gb_media_server
 {
+	/**
+	*  @author chensong
+	*  @date 2025-10-17
+	*  @brief YamlConfig构造函数实现（YamlConfig Constructor Implementation）
+	*  
+	*  该构造函数用于初始化YamlConfig实例。它会初始化所有配置结构体为默认值。
+	*  
+	*  初始化流程：
+	*  1. 初始化http_server_config_为默认值（ip="127.0.0.1", port=8001）
+	*  2. 初始化rtc_server_config_为默认值（ips=["127.0.0.1"], udp_port=10001等）
+	*  3. 初始化rtp_port_config_为默认值（udp_min_port=40000等）
+	*  
+	*  @note 构造函数是私有的，只能通过GetInstance方法获取实例（单例模式）
+	*  @note 默认值在结构体定义中指定，构造函数只需调用默认构造函数
+	*/
 	YamlConfig::YamlConfig()
-		: http_server_config_()
-		, rtc_server_config_()
-		, rtp_port_config_()
+		: http_server_config_()   // 使用默认构造函数初始化HTTP服务器配置
+		, rtc_server_config_()    // 使用默认构造函数初始化RTC服务器配置
+		, rtp_port_config_()      // 使用默认构造函数初始化RTP端口配置
 	{
+		// 所有配置项都已通过成员初始化列表初始化为默认值
+		// 实际配置将在LoadFile方法中从YAML文件加载
 	}
+	
+	/**
+	*  @author chensong
+	*  @date 2025-10-17
+	*  @brief YamlConfig析构函数实现（YamlConfig Destructor Implementation）
+	*  
+	*  该析构函数用于清理YamlConfig实例。由于YamlConfig只包含简单的数据成员，
+	*  不需要手动释放资源，析构函数为空。
+	*  
+	*  @note 析构函数会自动调用，不需要手动释放资源
+	*  @note 配置结构体的析构由编译器自动处理
+	*/
 	YamlConfig::~YamlConfig()
 	{
+		// 无需手动清理资源
+		// 所有成员变量都是值类型或标准库容器，会自动析构
 	}
+}
+	/**
+	*  @author chensong
+	*  @date 2025-10-17
+	*  @brief 从YAML配置文件加载配置（Load Configuration File）
+	*  
+	*  该方法用于从YAML格式的配置文件中加载服务器配置信息。
+	*  配置文件包含HTTP服务器、RTC服务器和RTP端口范围等配置项。
+	*  
+	*  支持的配置项：
+	*  1. HTTP服务器配置（http节点）：
+	*     - port: HTTP服务器监听端口
+	*  
+	*  2. RTC服务器配置（rtc节点）：
+	*     - ips: 服务器IP地址列表（支持多个IP）
+	*     - udp.port: UDP监听端口
+	*     - tcp.port: TCP监听端口
+	*     - cert: DTLS证书公钥文件路径
+	*     - key: DTLS证书私钥文件路径
+	*  
+	*  3. RTP端口配置（rtp节点）：
+	*     - udp.min_port: UDP端口范围的最小值
+	*     - udp.max_port: UDP端口范围的最大值
+	*     - tcp.min_port: TCP端口范围的最小值
+	*     - tcp.max_port: TCP端口范围的最大值
+	*  
+	*  处理流程：
+	*  1. 使用yaml-cpp库加载YAML文件
+	*  2. 解析http节点，提取HTTP服务器端口
+	*  3. 解析rtc节点，提取RTC服务器IP、端口和证书路径
+	*  4. 解析rtp节点，提取RTP端口范围
+	*  5. 记录配置信息到日志
+	*  6. 如果解析失败，捕获异常并返回false
+	*  
+	*  @param file 配置文件路径，可以是相对路径或绝对路径
+	*  @return 如果加载成功返回true，否则返回false
+	*  @note 配置文件必须是有效的YAML格式
+	*  @note 如果配置项缺失，会使用默认值或导致加载失败
+	*  @note 加载失败时会记录错误日志
+	*  
+	*  YAML配置文件示例：
+	*  @code
+	*  http:
+	*    port: 8080
+	*  
+	*  rtc:
+	*    ips:
+	*      - 192.168.1.100
+	*      - 10.0.0.1
+	*    udp:
+	*      port: 9091
+	*    tcp:
+	*      port: 9092
+	*    cert: /path/to/cert.pem
+	*    key: /path/to/key.pem
+	*  
+	*  rtp:
+	*    udp:
+	*      min_port: 10000
+	*      max_port: 20000
+	*    tcp:
+	*      min_port: 10000
+	*      max_port: 20000
+	*  @endcode
+	*  
+	*  使用示例：
+	*  @code
+	*  YamlConfig& config = YamlConfig::GetInstance();
+	*  if (config.LoadFile("config.yaml")) {
+	*      uint16_t http_port = config.GetHttpServerConfig().port;
+	*      std::vector<std::string> ips = config.GetRtcServerConfig().ips;
+	*  } else {
+	*      // 处理加载失败
+	*  }
+	*  @endcode
+	*/
 	bool YamlConfig::LoadFile(const char* file)
 	{
 		try {

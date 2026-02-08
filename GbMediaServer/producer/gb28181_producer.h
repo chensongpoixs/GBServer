@@ -60,27 +60,220 @@
 
 namespace gb_media_server {
 
-
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief GB28181生产者类（GB28181 Producer）
+	*  
+	*  Gb28181Producer是GBMediaServer流媒体服务器中用于GB28181协议推流的生产者类。
+	*  该类继承自Producer基类，负责接收来自GB28181设备的PS流（Program Stream），
+	*  解析PS流中的音视频数据，并将其推送到服务器的媒体流中。
+	*  
+	*  GB28181协议说明：
+	*  - GB28181是中国公共安全视频监控联网系统的国家标准
+	*  - GB28181使用SIP协议进行信令交互，使用RTP协议传输媒体数据
+	*  - 媒体数据封装为PS流（Program Stream），基于MPEG-2标准
+	*  - PS流包含视频流（通常为H264）和音频流（通常为G711或AAC）
+	*  
+	*  PS流格式说明：
+	*  - PS流由多个PS包组成，每个PS包包含一个或多个PES包
+	*  - PES包（Packetized Elementary Stream）包含音频或视频的基本流数据
+	*  - PS包头包含时间戳、流ID等信息
+	*  - 视频流ID通常为0xE0，音频流ID通常为0xC0
+	*  
+	*  工作流程：
+	*  1. GB28181设备通过SIP协议注册到服务器
+	*  2. 服务器发送INVITE请求，设备开始推流
+	*  3. 设备通过RTP协议发送PS流数据
+	*  4. Gb28181Producer接收RTP包，提取PS流数据
+	*  5. 使用MpegDecoder解析PS流，提取音视频帧
+	*  6. 将音视频帧推送到Stream中，供消费者使用
+	*  
+	*  @note 该类使用TCP interleaved模式接收RTP包
+	*  @note PS流解析使用MpegDecoder类，支持H264视频和G711/AAC音频
+	*  @note 接收缓冲区大小为8MB，用于处理大帧和网络抖动
+	*  
+	*  使用示例：
+	*  @code
+	*  // 在GB28181服务中创建GB28181生产者
+	*  auto producer = std::make_shared<Gb28181Producer>(stream, session);
+	*  session->SetProducer(producer);
+	*  // Gb28181Producer会自动处理后续的PS流解析和媒体帧推送
+	*  @endcode
+	*/
 	class Gb28181Producer : public Producer, public sigslot::has_slots<>
 	{
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 构造GB28181生产者（Constructor）
+		*  
+		*  该构造函数用于创建Gb28181Producer实例。它会初始化MPEG解码器、
+		*  接收缓冲区，并连接信号槽用于接收解析后的音视频帧。
+		*  
+		*  初始化流程：
+		*  1. 调用基类Producer的构造函数，初始化流和会话
+		*  2. 创建MpegDecoder实例，用于解析PS流
+		*  3. 分配接收缓冲区（8MB），用于存储接收到的RTP数据
+		*  4. 连接MpegDecoder的信号槽：
+		*     - SignalRecvVideoFrame：接收解析后的视频帧
+		*     - SignalRecvAudioFrame：接收解析后的音频帧
+		*  
+		*  @param stream 流对象的共享指针，用于推送媒体流数据
+		*  @param s 会话对象的共享指针，用于管理会话生命周期
+		*  @note 接收缓冲区大小为8MB，可根据需要调整
+		*  @note MpegDecoder会自动解析PS流并触发信号槽回调
+		*  
+		*  使用示例：
+		*  @code
+		*  auto producer = std::make_shared<Gb28181Producer>(stream, session);
+		*  @endcode
+		*/
 		explicit Gb28181Producer( const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 析构GB28181生产者（Destructor）
+		*  
+		*  该析构函数用于清理Gb28181Producer实例。它会释放MPEG解码器、
+		*  接收缓冲区等资源。
+		*  
+		*  清理流程：
+		*  1. 断开MpegDecoder的信号槽连接
+		*  2. 释放MpegDecoder实例
+		*  3. 释放接收缓冲区内存
+		*  4. 调用基类的析构函数进行基类资源清理
+		*  
+		*  @note 析构函数会自动调用，不需要手动释放资源
+		*/
 		virtual ~Gb28181Producer();
+		
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 接收数据（On Receive）
+		*  
+		*  该方法用于接收来自GB28181设备的RTP数据。数据通过TCP interleaved模式传输，
+		*  每个RTP包前面有2字节的长度字段。
+		*  
+		*  数据处理流程：
+		*  1. 将接收到的数据追加到接收缓冲区
+		*  2. 循环解析缓冲区中的数据包：
+		*     - 读取2字节的长度字段（大端序）
+		*     - 检查是否有完整的数据包
+		*     - 判断数据包类型（RTP或RTCP）
+		*     - 如果是RTP包，解析RTP头部并提取payload
+		*     - 如果payload type为96（PS流），传递给MpegDecoder解析
+		*     - 如果是RTCP包，解析RTCP头部（当前只记录日志）
+		*  3. 移动未处理的数据到缓冲区开头
+		*  
+		*  RTP包格式：
+		*  - Length（2字节）：RTP包的长度（大端序）
+		*  - RTP Header（12字节）：包含版本、payload type、序列号、时间戳、SSRC等
+		*  - RTP Payload（N字节）：PS流数据
+		*  
+		*  @param buffer 接收到的数据缓冲区，包含一个或多个RTP包
+		*  @note 该方法会在网络线程中调用，需要注意线程安全
+		*  @note 接收缓冲区会自动管理，防止溢出
+		*  @note PS流的payload type通常为96
+		*  
+		*  使用示例：
+		*  @code
+		*  // 在网络线程中调用
+		*  producer->OnRecv(received_buffer);
+		*  @endcode
+		*/
 		virtual  void OnRecv(const rtc::CopyOnWriteBuffer&  buffer)  ;
 
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 获取资源类型（Get Share Resource Type）
+		*  
+		*  该方法用于标识该生产者的资源类型。对于Gb28181Producer，返回kProducerTypeGB28181。
+		*  
+		*  @return 返回kProducerTypeGB28181，表示这是GB28181协议的生产者
+		*/
 		virtual ShareResourceType ShareResouceType() const { return kProducerTypeGB28181; }
+		
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 处理视频帧（On Process Video Frame）
+		*  
+		*  该方法是MpegDecoder的信号槽回调，当解析出完整的视频帧时触发。
+		*  视频帧通常为H264格式，包含完整的NALU单元。
+		*  
+		*  处理流程：
+		*  1. 接收MpegDecoder解析出的视频帧
+		*  2. 将视频帧推送到Stream中
+		*  3. Stream会将视频帧分发给所有消费者
+		*  
+		*  @param frame 编码后的视频帧，包含H264编码数据和元信息（时间戳、尺寸等）
+		*  @note 该方法会在MpegDecoder解析线程中调用
+		*  @note 视频帧会被移动（std::move）到Stream中，避免拷贝
+		*  @note 可以通过取消注释的代码将视频帧保存到文件，用于调试
+		*  
+		*  使用示例：
+		*  @code
+		*  // 该方法由MpegDecoder自动调用，不需要手动调用
+		*  @endcode
+		*/
 		void OnProcessVideoFrame(libmedia_codec::EncodedImage  frame);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 处理音频帧（On Process Audio Frame）
+		*  
+		*  该方法是MpegDecoder的信号槽回调，当解析出完整的音频帧时触发。
+		*  音频帧通常为G711或AAC格式。
+		*  
+		*  处理流程：
+		*  1. 接收MpegDecoder解析出的音频帧
+		*  2. 将音频帧推送到Stream中（当前代码中被注释掉）
+		*  3. Stream会将音频帧分发给所有消费者
+		*  
+		*  @param frame 音频编码数据缓冲区，包含压缩后的音频数据
+		*  @param pts 呈现时间戳（Presentation Time Stamp），单位为毫秒
+		*  @note 该方法会在MpegDecoder解析线程中调用
+		*  @note 当前实现中音频处理被注释掉，需要根据实际需求启用
+		*  @note 可以通过取消注释的代码将音频帧保存到文件，用于调试
+		*  
+		*  使用示例：
+		*  @code
+		*  // 该方法由MpegDecoder自动调用，不需要手动调用
+		*  @endcode
+		*/
 		void OnProcessAudioFrame( rtc::CopyOnWriteBuffer   frame, int64_t  pts);
+		
 	private:
-
-
+		/**
+		*  @brief MPEG解码器
+		*  
+		*  该对象用于解析PS流（Program Stream），提取音视频帧。
+		*  MpegDecoder会自动识别PS包头、PES包头，并提取基本流数据。
+		*/
 		std::unique_ptr< libmedia_transfer_protocol::libmpeg::MpegDecoder>    mpeg_decoder_;
 
-
-		//rtc::Buffer recv_buffer_;
-		   uint8_t  * recv_buffer_;
+		/**
+		*  @brief 接收缓冲区指针
+		*  
+		*  该缓冲区用于存储接收到的RTP数据，大小为8MB。
+		*  缓冲区会自动管理，当数据处理完成后会移动未处理的数据到开头。
+		*/
+		uint8_t  * recv_buffer_;
+		
+		/**
+		*  @brief 接收缓冲区当前大小
+		*  
+		*  该变量记录接收缓冲区中当前存储的数据大小。
+		*  当接收到新数据时，会追加到缓冲区末尾并更新该变量。
+		*/
 		int32_t recv_buffer_size_;
 	};
 }

@@ -36,6 +36,12 @@
 #include "gb_media_server_log.h"
 namespace gb_media_server
 {
+	/**
+	*  @brief 构造RTMP消费者实例
+	*  
+	*  初始化RTMP消费者，保存网络连接指针和流对象。
+	*  RTMP消费者负责将媒体流封装为RTMP格式并发送给客户端。
+	*/
 	RtmpConsumer::RtmpConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection,
 		std::shared_ptr<Stream>& stream,const std::shared_ptr<Session>& s)
 		: Consumer(stream, s), connection_(connection) 
@@ -46,10 +52,30 @@ namespace gb_media_server
 		StartCapture();
 #endif //
 	}
+	
+	/**
+	*  @brief 析构RTMP消费者实例
+	*  
+	*  清理RTMP消费者相关资源。网络连接由外部管理，不需要在此释放。
+	*/
 	RtmpConsumer::~RtmpConsumer()
 	{
 		 
 	}
+	
+	/**
+	*  @brief 处理视频帧
+	*  
+	*  将视频帧封装为RTMP视频消息并发送给客户端。
+	*  该方法会检查视频帧的有效性，并从网络连接上下文中获取RTMP编码器。
+	*  
+	*  处理流程：
+	*  1. 检查视频帧大小是否有效
+	*  2. 获取RTMP编码器上下文（当前代码中被注释掉）
+	*  3. 封装视频帧为RTMP消息并发送
+	*  
+	*  @note 当前实现被注释掉，需要根据实际需求实现RTMP视频封装逻辑
+	*/
 	void RtmpConsumer::OnVideoFrame(const libmedia_codec::EncodedImage & frame)
 	{
 		if (frame.size() <= 0)
@@ -72,6 +98,21 @@ namespace gb_media_server
 
 
 	}
+	
+	/**
+	*  @brief 处理音频帧
+	*  
+	*  将音频帧封装为RTMP音频消息并发送给客户端。
+	*  该方法会从网络连接上下文中获取RTMP编码器，并将音频帧封装为RTMP消息。
+	*  
+	*  处理流程：
+	*  1. 获取RTMP编码器上下文（当前代码中被注释掉）
+	*  2. 封装音频帧为RTMP消息并发送
+	*  3. 时间戳转换为毫秒级别
+	*  
+	*  @note 当前实现被注释掉，需要根据实际需求实现RTMP音频封装逻辑
+	*  @note RTMP的PTS精度为毫秒级别，需要从微秒转换（除以1000）
+	*/
 	void RtmpConsumer::OnAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
 		//return;

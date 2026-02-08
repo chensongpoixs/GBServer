@@ -39,20 +39,184 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 namespace gb_media_server
 {
+	/**
+	*  @author chensong
+	*  @date 2025-04-29
+	*  @brief RTMP消费者类（RTMP Consumer）
+	*  
+	*  RtmpConsumer是GBMediaServer流媒体服务器中用于RTMP协议播放的消费者类。
+	*  该类继承自Consumer基类，负责将接收到的媒体流（视频和音频）封装为RTMP格式
+	*  并通过TCP连接发送给客户端进行播放。
+	*  
+	*  RTMP（Real-Time Messaging Protocol）协议说明：
+	*  - RTMP是Adobe开发的流媒体传输协议，广泛用于直播和点播场景
+	*  - RTMP基于TCP协议，提供可靠的数据传输
+	*  - RTMP支持实时流媒体播放，延迟较低，适合直播场景
+	*  - 客户端可以通过RTMP协议拉取流进行播放
+	*  
+	*  RTMP消息格式：
+	*  - RTMP Handshake（握手）：建立连接时的三次握手
+	*  - RTMP Chunk（块）：RTMP消息被分割为多个块进行传输
+	*  - RTMP Message（消息）：包含音频、视频、控制信息等
+	*  
+	*  工作流程：
+	*  1. 客户端通过RTMP协议连接服务器
+	*  2. 服务器创建RtmpConsumer实例，关联网络连接
+	*  3. RtmpConsumer初始化RTMP上下文
+	*  4. 当接收到视频/音频帧时，封装为RTMP消息并发送
+	*  5. 持续发送媒体帧，直到客户端断开连接
+	*  
+	*  @note 该类实现单播模式的RTMP流媒体分发
+	*  @note RTMP时间戳精度为毫秒级别，需要转换微秒级时间戳
+	*  @note 该类自动管理RTMP握手和消息封装
+	*  
+	*  使用示例：
+	*  @code
+	*  // 在RTMP服务中创建RTMP消费者
+	*  auto consumer = session->CreateConsumer(connection, "live/stream1", "", ShareResourceType::kConsumerTypeRtmp);
+	*  // RtmpConsumer会自动处理后续的媒体帧封装和发送
+	*  @endcode
+	*/
 	class RtmpConsumer : public  Consumer
 	{
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-04-29
+		*  @brief 构造RTMP消费者（Constructor）
+		*  
+		*  该构造函数用于创建RtmpConsumer实例。RTMP消费者负责将媒体流封装为RTMP格式
+		*  并通过TCP连接发送给客户端。
+		*  
+		*  初始化流程：
+		*  1. 调用基类Consumer的构造函数，初始化流和会话
+		*  2. 保存网络连接指针，用于后续数据发送
+		*  3. 初始化RTMP上下文（如果需要）
+		*  
+		*  @param connection 网络连接对象指针，用于与客户端通信，不能为空
+		*  @param stream 流对象的共享指针，用于访问媒体流数据
+		*  @param s 会话对象的共享指针，用于管理会话生命周期
+		*  @note 网络连接对象必须在RtmpConsumer生命周期内保持有效
+		*  @note RTMP上下文需要在连接建立后单独设置
+		*  
+		*  使用示例：
+		*  @code
+		*  auto consumer = std::make_shared<RtmpConsumer>(connection, stream, session);
+		*  @endcode
+		*/
 		explicit RtmpConsumer(libmedia_transfer_protocol::libnetwork::Connection*    connection, 
 			std::shared_ptr<Stream> &stream,const std::shared_ptr<Session> &s);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-04-29
+		*  @brief 析构RTMP消费者（Destructor）
+		*  
+		*  该析构函数用于清理RtmpConsumer实例。主要清理RTMP上下文和相关资源，
+		*  其他资源的清理由基类负责。
+		*  
+		*  清理流程：
+		*  1. 清理RTMP上下文
+		*  2. 基类析构函数自动清理其他资源
+		*  
+		*  @note 析构时不需要手动关闭网络连接，连接的生命周期由外部管理
+		*/
 		virtual ~RtmpConsumer();
 
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-04-29
+		*  @brief 处理视频帧（On Video Frame）
+		*  
+		*  该方法用于处理接收到的视频帧，将视频帧封装为RTMP视频消息
+		*  并通过网络连接发送给客户端。
+		*  
+		*  视频帧处理流程：
+		*  1. 检查视频帧是否有效（大小大于0）
+		*  2. 从网络连接上下文中获取RTMP编码器
+		*  3. 将视频帧封装为RTMP视频消息并发送
+		*  4. 时间戳转换为毫秒级别（RTMP要求）
+		*  
+		*  RTMP视频消息结构：
+		*  - Message Header：包含消息类型、时间戳、流ID等
+		*  - Video Data：包含视频编码格式（H264）、帧类型（关键帧/非关键帧）和编码数据
+		*  
+		*  @param frame 编码后的视频帧，包含H264编码数据和元信息（时间戳、尺寸等）
+		*  @note 该方法会自动处理RTMP消息封装
+		*  @note 视频帧时间戳会被转换为毫秒级别（除以1000）
+		*  @note 如果RTMP编码器上下文不存在，会记录警告日志并返回
+		*  
+		*  使用示例：
+		*  @code
+		*  libmedia_codec::EncodedImage frame;
+		*  frame.SetTimestamp(timestamp_us);
+		*  frame.SetEncodedData(encoded_data);
+		*  rtmp_consumer->OnVideoFrame(frame);
+		*  @endcode
+		*/
 		virtual void OnVideoFrame(const libmedia_codec::EncodedImage &frame);
+		
+		/**
+		*  @author chensong
+		*  @date 2025-04-29
+		*  @brief 处理音频帧（On Audio Frame）
+		*  
+		*  该方法用于处理接收到的音频帧，将音频帧封装为RTMP音频消息
+		*  并通过网络连接发送给客户端。
+		*  
+		*  音频帧处理流程：
+		*  1. 从网络连接上下文中获取RTMP编码器
+		*  2. 将音频帧封装为RTMP音频消息并发送
+		*  3. 时间戳转换为毫秒级别（RTMP要求）
+		*  
+		*  RTMP音频消息结构：
+		*  - Message Header：包含消息类型、时间戳、流ID等
+		*  - Audio Data：包含音频编码格式（AAC）、采样率、声道数和编码数据
+		*  
+		*  @param frame 音频编码数据缓冲区，包含压缩后的音频数据（AAC格式）
+		*  @param pts 呈现时间戳（Presentation Time Stamp），单位为微秒
+		*  @note 该方法会自动处理RTMP消息封装
+		*  @note 音频时间戳会被转换为毫秒级别（除以1000）
+		*  @note 如果RTMP编码器上下文不存在，会记录警告日志并返回
+		*  @note RTMP的PTS精度为毫秒级别，需要从微秒转换
+		*  
+		*  使用示例：
+		*  @code
+		*  rtc::CopyOnWriteBuffer audio_data(aac_encoded_data, data_size);
+		*  int64_t pts_us = rtc::TimeMicros(); // 微秒级时间戳
+		*  rtmp_consumer->OnAudioFrame(audio_data, pts_us);
+		*  @endcode
+		*/
 		virtual void OnAudioFrame(const rtc::CopyOnWriteBuffer& frame, int64_t pts);
+		
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-04-29
+		*  @brief 获取资源类型（Get Resource Type）
+		*  
+		*  该方法用于标识消费者的资源类型，返回RTMP消费者类型标识。
+		*  资源类型用于系统区分不同的消费者实现类。
+		*  
+		*  @return 返回 ShareResourceType::kConsumerTypeRtmp，表示这是RTMP协议的消费者
+		*  @note 该方法为虚函数重写，用于运行时类型识别
+		*  
+		*  使用示例：
+		*  @code
+		*  ShareResourceType type = rtmp_consumer->ShareResouceType();
+		*  // type == ShareResourceType::kConsumerTypeRtmp
+		*  @endcode
+		*/
 		virtual ShareResourceType ShareResouceType() const { return kConsumerTypeRtmp; }
 
 	private:
+		/**
+		*  @brief 网络连接对象指针
+		*  
+		*  该指针指向与客户端建立的TCP连接对象，用于发送RTMP消息。
+		*  连接对象的生命周期由外部管理，RtmpConsumer只持有指针。
+		*/
 		libmedia_transfer_protocol::libnetwork::Connection*    connection_;
 
 		 
