@@ -10,6 +10,8 @@ docker pull ubuntu:22.04
 #步骤 3: 进入容器
 docker exec -it <container_id_or_name> bash
 
+# docker run -it ubuntu:22.04 /bin/bash
+
 #步骤 4: 更新和升级系统（可选）
 apt update && apt upgrade -y
 
