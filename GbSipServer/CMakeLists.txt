@@ -6,6 +6,7 @@ MESSAGE(STATUS  "####################################")
 MESSAGE(STATUS  "#############${PROJECT_NAME}###############")
 MESSAGE(STATUS  "####################################")
 set(CMAKE_CXX_STANDARD 17)
+# apt-get install libsqlite3-dev -y
 
 
 #set(DEPS_DIR  "D:/dep/c_dep")
@@ -74,20 +75,26 @@ add_definitions(
 	../libsip/osipparser2
 	./utils 
 	#../libswagger
-		/usr/local/include/oatpp-1.4.0
-	/usr/local/include/oatpp-1.4.0/oatpp
-	/usr/local/include/oatpp-1.4.0/oatpp-sqlite
-	/usr/local/include/oatpp-1.4.0/oatpp-swagger
-	/usr/local/include/oatpp-1.4.0/oatpp-sqlite/sqlite
-	/usr/local/include/oatpp-1.4.0/oatpp-sqlite
-	/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+	#	/usr/local/include/oatpp-1.4.0
+	#/usr/local/include/oatpp-1.4.0/oatpp
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-swagger
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite/sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
+	#/usr/local/include/oatpp-1.4.0/oatpp-sqlite
 
+	${DEPS_DIR}/oatpp-1.4.0/oatpp
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-swagger
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite/sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
+	${DEPS_DIR}/oatpp-1.4.0/oatpp-sqlite
 	
 	 
 )
 link_directories( 
 
-${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
+${DEPS_DIR}/oatpp-1.4.0/lib
 /usr/local/lib/oatpp-1.4.0
 )
 
