@@ -4,6 +4,8 @@
 
 #include "db/UserDb.hpp"
 #include "db/DeviceDb.hpp"
+#include "db/RecordDb.hpp"
+#include "db/AlarmDb.hpp"
 
 class DatabaseComponent {
 public:
@@ -52,6 +54,38 @@ public:
 
 	  /* Create MyClient database client */
 	  return std::make_shared<DeviceDb>(executor);
+
+  }());
+
+  /**
+   * Create RecordDb client
+   */
+  OATPP_CREATE_COMPONENT(std::shared_ptr<RecordDb>, recordDb)([] {
+
+	  /* Get database ConnectionProvider component */
+	  OATPP_COMPONENT(std::shared_ptr<oatpp::provider::Provider<oatpp::sqlite::Connection>>, connectionProvider);
+
+	  /* Create database-specific Executor */
+	  auto executor = std::make_shared<oatpp::sqlite::Executor>(connectionProvider);
+
+	  /* Create RecordDb database client */
+	  return std::make_shared<RecordDb>(executor);
+
+  }());
+
+  /**
+   * Create AlarmDb client
+   */
+  OATPP_CREATE_COMPONENT(std::shared_ptr<AlarmDb>, alarmDb)([] {
+
+	  /* Get database ConnectionProvider component */
+	  OATPP_COMPONENT(std::shared_ptr<oatpp::provider::Provider<oatpp::sqlite::Connection>>, connectionProvider);
+
+	  /* Create database-specific Executor */
+	  auto executor = std::make_shared<oatpp::sqlite::Executor>(connectionProvider);
+
+	  /* Create AlarmDb database client */
+	  return std::make_shared<AlarmDb>(executor);
 
   }());
 
