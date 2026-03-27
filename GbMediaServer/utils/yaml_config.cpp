@@ -34,6 +34,10 @@
 #include "utils/yaml_config.h"
 #include "yaml-cpp/yaml.h" 
 #include "gb_media_server_log.h"
+#include "utils/yaml_config.h"
+
+
+
 namespace  gb_media_server
 {
 	/**
@@ -76,7 +80,7 @@ namespace  gb_media_server
 		// 无需手动清理资源
 		// 所有成员变量都是值类型或标准库容器，会自动析构
 	}
-}
+
 	/**
 	*  @author chensong
 	*  @date 2025-10-17
@@ -152,7 +156,7 @@ namespace  gb_media_server
 	*  }
 	*  @endcode
 	*/
-	bool YamlConfig::LoadFile(const char* file)
+	bool  YamlConfig::LoadFile(const char* file)
 	{
 		try {
 			// 从文件加载YAML
