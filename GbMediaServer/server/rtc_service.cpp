@@ -53,18 +53,59 @@
 
 namespace  gb_media_server
 {
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 构造函数（Constructor）
+	 *  
+	 *  初始化RTC服务实例，创建任务队列工厂。
+	 *  
+	 *  初始化流程：
+	 *  1. 创建WebRTC默认任务队列工厂
+	 *  2. 初始化RTC接口映射表
+	 *  3. 初始化互斥锁
+	 *  
+	 *  @note 任务队列工厂用于创建异步任务队列
+	 *  @note 使用WebRTC库提供的默认实现
+	 */
 	RtcService::RtcService()
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 	{
 		
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 析构函数（Destructor）
+	 *  
+	 *  清理RTC服务资源。
+	 *  
+	 *  @note 任务队列工厂由unique_ptr自动释放
+	 *  @note RTC接口映射表会自动清空
+	 */
 	RtcService::~RtcService()
 	{
 		
 	}
- 
-
-
+	 
+	 /***
+	  *  @author chensong
+	  *  @date 2025-10-18
+	  *  @brief 注册RTC接口（Register RTC Interface）
+	  *  
+	  *  将RTC接口注册到服务中，使其能够接收数据包。
+	  *  
+	  *  注册流程：
+	  *  1. 使用互斥锁保护映射表
+	  *  2. 使用LocalUFrag作为键，将接口添加到映射表
+	  *  3. LocalUFrag是ICE协议中的用户名片段，用于标识连接
+	  *  
+	  *  @param rtc_interface RTC接口的共享指针
+	  *  @note 该方法线程安全
+	  *  @note TODO: 如果多个连接使用相同的LocalUFrag会导致冲突
+	  *  @note 后创建的连接会覆盖先创建的连接
+	  */
 	 void RtcService::RegisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
@@ -75,6 +116,23 @@ namespace  gb_media_server
 		 name_rtc_interface_.emplace(rtc_interface->LocalUFrag(), rtc_interface);
 	 }
 
+	 /***
+	  *  @author chensong
+	  *  @date 2025-10-18
+	  *  @brief 注销RTC接口（Unregister RTC Interface）
+	  *  
+	  *  从服务中注销RTC接口，停止向其路由数据包。
+	  *  
+	  *  注销流程：
+	  *  1. 使用互斥锁保护映射表
+	  *  2. 从name_rtc_interface_映射表中移除（按LocalUFrag索引）
+	  *  3. 从rtc_interfaces_映射表中移除（按远程地址索引）
+	  *  4. 构造远程地址键：IP:Port格式
+	  *  
+	  *  @param rtc_interface RTC接口的共享指针
+	  *  @note 该方法线程安全
+	  *  @note 需要同时从两个映射表中移除
+	  */
 	 void RtcService::UnregisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
 		 std::lock_guard<std::mutex> lk(lock_);
@@ -85,12 +143,50 @@ namespace  gb_media_server
  
 	 }
 
+	 /***
+	  *  @author chensong
+	  *  @date 2025-10-18
+	  *  @brief 获取任务队列工厂（Get Task Queue Factory）
+	  *  
+	  *  返回任务队列工厂指针，供RTC接口创建任务队列。
+	  *  
+	  *  @return 返回任务队列工厂指针
+	  *  @note 任务队列工厂在构造函数中创建
+	  *  @note 返回的指针由服务管理，不需要手动释放
+	  */
 	 webrtc::TaskQueueFactory * RtcService::GetTaskQueueFactory()
 	 {
 		 return task_queue_factory_.get();
 	 }
 
-	 void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const uint8_t * data, size_t len,
+	 /***
+	  *  @author chensong
+	  *  @date 2025-10-18
+	  *  @brief 处理STUN数据包（UDP版本）（On STUN Packet - UDP）
+	  *  
+	  *  处理来自UDP套接字的STUN数据包，实现ICE连接建立。
+	  *  
+	  *  处理流程：
+	  *  1. 解析STUN数据包，提取LocalUFrag
+	  *  2. 根据LocalUFrag查找对应的RTC接口
+	  *  3. 如果找到接口：
+	  *     - 设置STUN密码
+	  *     - 更新RTC接口的远程地址
+	  *     - 构造STUN Binding Response
+	  *     - 设置Mapped Address（客户端的公网地址）
+	  *     - 发送响应给客户端
+	  *     - 将接口添加到rtc_interfaces_映射表（按远程地址索引）
+	  *  4. 如果未找到接口，记录警告日志
+	  *  
+	  *  @param socket UDP套接字指针
+	  *  @param data STUN数据包指针
+	  *  @param len 数据包长度
+	  *  @param addr 远程地址
+	  *  @param ms 时间戳
+	  *  @note 该方法在网络线程中调用
+	  *  @note STUN响应包含客户端的公网地址，用于NAT穿透
+	  */
+	void RtcService::OnStun(rtc::AsyncPacketSocket * socket, const uint8_t * data, size_t len,
 		 const rtc::SocketAddress & addr, const int64_t & ms)
 	{
 		//GBMEDIASERVER_LOG_F(LS_INFO) << "local:" << socket->GetLocalAddress().ToString() << ", remote:" << addr.ToString();
@@ -138,6 +234,29 @@ namespace  gb_media_server
 		}
 		
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理DTLS数据包（UDP版本）（On DTLS Packet - UDP）
+	 *  
+	 *  处理来自UDP套接字的DTLS数据包，实现密钥交换和握手。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnDtlsRecv方法处理DTLS数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  @param socket UDP套接字指针
+	 *  @param data DTLS数据包指针
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note DTLS握手完成后会建立SRTP加密会话
+	 */
 	void RtcService::OnDtls(rtc::AsyncPacketSocket * socket, const uint8_t * data, 
 		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
@@ -157,6 +276,29 @@ namespace  gb_media_server
 			}
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理RTP数据包（UDP版本）（On RTP Packet - UDP）
+	 *  
+	 *  处理来自UDP套接字的RTP数据包，传输音视频媒体数据。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnSrtpRtp方法处理RTP数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  @param socket UDP套接字指针
+	 *  @param data RTP数据包指针（可能是SRTP加密的）
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note RTP数据包通常经过SRTP加密，需要解密后才能使用
+	 */
 	void RtcService::OnRtp(rtc::AsyncPacketSocket * socket, const uint8_t * data, 
 		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
@@ -173,6 +315,29 @@ namespace  gb_media_server
 
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理RTCP数据包（UDP版本）（On RTCP Packet - UDP）
+	 *  
+	 *  处理来自UDP套接字的RTCP数据包，传输控制信息。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnSrtpRtcp方法处理RTCP数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  @param socket UDP套接字指针
+	 *  @param data RTCP数据包指针（可能是SRTCP加密的）
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note RTCP数据包通常经过SRTCP加密，需要解密后才能使用
+	 */
 	void RtcService::OnRtcp(rtc::AsyncPacketSocket * socket, const uint8_t * data,
 		size_t len, const rtc::SocketAddress & addr, const int64_t & ms)
 	{
@@ -190,6 +355,39 @@ namespace  gb_media_server
 		}
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理STUN数据包（TCP版本）（On STUN Packet - TCP）
+	 *  
+	 *  处理来自TCP套接字的STUN数据包，实现ICE连接建立。
+	 *  
+	 *  处理流程：
+	 *  1. 解析STUN数据包，提取LocalUFrag
+	 *  2. 根据LocalUFrag查找对应的RTC接口
+	 *  3. 如果找到接口：
+	 *     - 设置STUN密码
+	 *     - 更新RTC接口的远程地址
+	 *     - 构造STUN Binding Response
+	 *     - 设置Mapped Address（客户端的公网地址）
+	 *     - 发送响应给客户端（使用TCP套接字）
+	 *     - 将接口添加到rtc_interfaces_映射表（按远程地址索引）
+	 *  4. 如果未找到接口，记录警告日志
+	 *  
+	 *  TCP与UDP的区别：
+	 *  - TCP版本使用rtc::Socket而非rtc::AsyncPacketSocket
+	 *  - TCP版本的SendTo不需要PacketOptions参数
+	 *  - TCP提供可靠传输，适用于防火墙限制UDP的场景
+	 *  
+	 *  @param socket TCP套接字指针
+	 *  @param data STUN数据包指针
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note TCP版本的STUN处理流程与UDP版本基本相同
+	 *  @note 主要用于某些特殊网络环境（如UDP被阻止）
+	 */
 	void RtcService::OnStun(rtc::Socket* socket, const uint8_t* data, size_t len,
 		const rtc::SocketAddress& addr, const int64_t& ms)
 	{
@@ -238,6 +436,35 @@ namespace  gb_media_server
 		}
 
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理DTLS数据包（TCP版本）（On DTLS Packet - TCP）
+	 *  
+	 *  处理来自TCP套接字的DTLS数据包，实现密钥交换和握手。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnDtlsRecv方法处理DTLS数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  TCP与UDP的区别：
+	 *  - TCP版本使用rtc::Socket而非rtc::AsyncPacketSocket
+	 *  - TCP提供可靠传输，确保DTLS握手数据不丢失
+	 *  - 适用于防火墙限制UDP的场景
+	 *  
+	 *  @param socket TCP套接字指针
+	 *  @param data DTLS数据包指针
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note DTLS握手完成后会建立SRTP加密会话
+	 *  @note TCP版本的DTLS处理流程与UDP版本相同
+	 */
 	void RtcService::OnDtls(rtc::Socket* socket, const uint8_t* data,
 		size_t len, const rtc::SocketAddress& addr, const int64_t& ms)
 	{
@@ -257,6 +484,36 @@ namespace  gb_media_server
 			}
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理RTP数据包（TCP版本）（On RTP Packet - TCP）
+	 *  
+	 *  处理来自TCP套接字的RTP数据包，传输音视频媒体数据。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnSrtpRtp方法处理RTP数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  TCP与UDP的区别：
+	 *  - TCP版本使用rtc::Socket而非rtc::AsyncPacketSocket
+	 *  - TCP提供可靠传输，避免RTP包丢失
+	 *  - TCP传输RTP会增加延迟，但提高可靠性
+	 *  - 适用于防火墙限制UDP的场景
+	 *  
+	 *  @param socket TCP套接字指针
+	 *  @param data RTP数据包指针（可能是SRTP加密的）
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note RTP数据包通常经过SRTP加密，需要解密后才能使用
+	 *  @note TCP版本的RTP处理流程与UDP版本相同
+	 */
 	void RtcService::OnRtp(rtc::Socket* socket, const uint8_t* data,
 		size_t len, const rtc::SocketAddress& addr, const int64_t& ms)
 	{
@@ -273,6 +530,35 @@ namespace  gb_media_server
 
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理RTCP数据包（TCP版本）（On RTCP Packet - TCP）
+	 *  
+	 *  处理来自TCP套接字的RTCP数据包，传输控制信息。
+	 *  
+	 *  处理流程：
+	 *  1. 构造远程地址键（IP:Port格式）
+	 *  2. 使用互斥锁保护映射表
+	 *  3. 根据远程地址查找对应的RTC接口
+	 *  4. 如果找到接口，调用其OnSrtpRtcp方法处理RTCP数据
+	 *  5. 如果未找到接口，记录警告日志
+	 *  
+	 *  TCP与UDP的区别：
+	 *  - TCP版本使用rtc::Socket而非rtc::AsyncPacketSocket
+	 *  - TCP提供可靠传输，确保RTCP控制信息不丢失
+	 *  - 适用于防火墙限制UDP的场景
+	 *  
+	 *  @param socket TCP套接字指针
+	 *  @param data RTCP数据包指针（可能是SRTCP加密的）
+	 *  @param len 数据包长度
+	 *  @param addr 远程地址
+	 *  @param ms 时间戳
+	 *  @note 该方法在网络线程中调用
+	 *  @note RTCP数据包通常经过SRTCP加密，需要解密后才能使用
+	 *  @note TCP版本的RTCP处理流程与UDP版本相同
+	 */
 	void RtcService::OnRtcp(rtc::Socket* socket, const uint8_t* data,
 		size_t len, const rtc::SocketAddress& addr, const int64_t& ms)
 	{

@@ -47,6 +47,30 @@
 
 namespace  gb_media_server
 {
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 构造函数（Constructor）
+	 *  
+	 *  初始化Web服务，创建HTTP服务器实例并注册所有HTTP路由映射。
+	 *  
+	 *  初始化流程：
+	 *  1. 创建HTTP服务器实例（http_server_）
+	 *  2. 连接HTTP请求信号到OnRequest方法
+	 *  3. 连接连接销毁信号到OnDestroy方法
+	 *  4. 注册所有HTTP路由到回调映射表：
+	 *     - WebRTC推流接口：/rtc/push
+	 *     - WebRTC拉流接口：/rtc/play
+	 *     - HTTP-FLV接口：.flv扩展名
+	 *     - HLS M3U8接口：.m3u8扩展名
+	 *     - HLS TS接口：.ts扩展名
+	 *     - GB28181 RTP服务器开启接口：/api/openRtpServer
+	 *     - GB28181 RTP服务器关闭接口：/api/closeRtpServer
+	 *  
+	 *  @note 构造函数不会启动HTTP服务器，需要调用StartWebServer启动
+	 *  @note 使用信号槽机制实现HTTP事件的异步处理
+	 *  @note 路由映射表支持完整路径匹配和文件扩展名匹配
+	 */
 	WebService::WebService()
 		:http_server_(new libmedia_transfer_protocol::libhttp::HttpServer())
 		, http_event_callback_map_()
@@ -79,6 +103,22 @@ namespace  gb_media_server
 		//http_event_callback_map_["/rtsp/play"] = &WebService::HandlerRtspConsumer;
 	
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 析构函数（Destructor）
+	 *  
+	 *  清理Web服务资源，断开所有信号槽连接。
+	 *  
+	 *  清理流程：
+	 *  1. 检查HTTP服务器实例是否存在
+	 *  2. 断开OnRequest信号槽连接
+	 *  3. 断开OnDestroy信号槽连接
+	 *  
+	 *  @note HTTP服务器实例使用unique_ptr管理，会自动释放
+	 *  @note 断开信号槽连接可以避免悬空指针问题
+	 */
 	WebService::~WebService()
 	{
 		if (http_server_)
@@ -87,10 +127,61 @@ namespace  gb_media_server
 			http_server_->SignalOnDestory.disconnect(this);
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 启动Web服务器（Start Web Server）
+	 *  
+	 *  启动HTTP服务器并监听指定的IP地址和端口。
+	 *  
+	 *  @param ip 监听的IP地址，默认为"127.0.0.1"（本地回环地址）
+	 *  @param port 监听的端口号，默认为8001
+	 *  @return bool 启动成功返回true，失败返回false
+	 *  @note 如果端口已被占用，启动会失败
+	 *  @note 建议在生产环境中使用"0.0.0.0"监听所有网卡
+	 *  @note 该方法会阻塞直到服务器启动完成
+	 */
 	bool WebService::StartWebServer(const char * ip, uint16_t port)
 	{
 		return http_server_->Startup(ip, port);
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief HTTP请求处理回调（On Request）
+	 *  
+	 *  该方法是HTTP服务器的信号槽回调，当收到HTTP请求时触发。
+	 *  负责解析HTTP请求、记录日志并路由到对应的处理器。
+	 *  
+	 *  处理流程：
+	 *  1. 从连接中获取HTTP上下文，如果不存在则记录警告并返回
+	 *  2. 记录请求日志：
+	 *     - 如果是请求：记录方法（GET/POST等）和路径
+	 *     - 如果是响应：记录状态码和状态消息
+	 *  3. 记录所有HTTP头部信息
+	 *  4. 处理OPTIONS预检请求（CORS支持）：
+	 *     - 创建OPTIONS响应
+	 *     - 发送响应并完成写入
+	 *  5. 对于其他请求，投递到工作线程异步处理：
+	 *     - 优先匹配完整路径（如 /rtc/push）
+	 *     - 如果路径不匹配，提取文件扩展名匹配（如 .flv）
+	 *     - 调用对应的处理器方法
+	 *     - 如果都不匹配，记录警告日志
+	 *  
+	 *  CORS支持说明：
+	 *  - OPTIONS请求用于浏览器的跨域预检
+	 *  - 服务器返回允许的方法、头部等信息
+	 *  - 预检通过后，浏览器才会发送实际请求
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象，包含请求方法、路径、头部等
+	 *  @param packet HTTP数据包对象，包含请求的原始数据
+	 *  @note 该方法在HTTP服务器的IO线程中调用
+	 *  @note 实际的请求处理会投递到工作线程异步执行，避免阻塞IO线程
+	 *  @note 使用成员函数指针实现路由分发，提高代码可维护性
+	 */
 	void WebService::OnRequest(libmedia_transfer_protocol::libnetwork::Connection * conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet)
@@ -154,6 +245,44 @@ namespace  gb_media_server
 			}); 
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 连接销毁回调（On Destroy）
+	 *  
+	 *  该方法是HTTP服务器的信号槽回调，当客户端连接断开时触发。
+	 *  负责清理连接相关的所有资源，包括生产者、消费者和编码器等。
+	 *  
+	 *  清理流程：
+	 *  1. 从连接中获取共享资源上下文（ShareResource）
+	 *  2. 如果共享资源存在，根据资源类型执行不同的清理操作：
+	 *     - kProducerTypeGB28181（GB28181生产者）：
+	 *       记录警告日志，标识生产者资源类型
+	 *     - kConsumerTypeRTC（WebRTC消费者）：
+	 *       从会话中移除该消费者，停止推送媒体流
+	 *     - kConsumerTypeFlv（HTTP-FLV消费者）：
+	 *       从会话中移除该消费者，停止推送FLV流
+	 *     - kConsumerTypeRtsp（RTSP消费者）：
+	 *       从会话中移除该消费者，停止推送RTSP流
+	 *     - 其他类型：
+	 *       记录警告日志，标识未知资源类型
+	 *  3. 在工作线程中同步清理共享资源上下文
+	 *  4. 从连接中获取FLV编码器上下文（FlvEncoder）
+	 *  5. 如果FLV编码器存在，在工作线程中同步清理编码器上下文
+	 *  
+	 *  资源类型说明：
+	 *  - kProducerTypeGB28181：GB28181推流生产者，接收GB28181设备的PS流
+	 *  - kConsumerTypeRTC：WebRTC拉流消费者，向客户端推送WebRTC流
+	 *  - kConsumerTypeFlv：HTTP-FLV拉流消费者，向客户端推送FLV流
+	 *  - kConsumerTypeRtsp：RTSP拉流消费者，向客户端推送RTSP流
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @note 该方法在HTTP服务器的IO线程中调用
+	 *  @note 资源清理操作使用Invoke在工作线程中同步执行，确保线程安全
+	 *  @note 消费者从会话中移除后，会自动停止接收和推送媒体流
+	 *  @note FLV编码器的清理是独立的，因为编码器可能被多个消费者共享
+	 */
 	void WebService::OnDestroy(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		auto shareResource = conn->GetContext<ShareResource>(libmedia_transfer_protocol::libnetwork::kShareResourceContext);

@@ -126,25 +126,163 @@ namespace gb_media_server
 	 
 		  
 		class Session;
+		
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 媒体流管理类（Stream）
+		 *  
+		 *  该类是媒体服务器的核心流管理类，负责处理和分发音视频数据流。
+		 *  实现了实时流的接收、处理、缓存和分发功能，支持多种流媒体协议。
+		 *  
+		 *  主要功能：
+		 *  1. 音视频帧接收 - 接收来自生产者的编码后的音视频帧
+		 *  2. 时间戳处理 - 修正和同步音视频时间戳
+		 *  3. GOP管理 - 管理视频GOP（Group of Pictures）缓存
+		 *  4. 编解码器头部处理 - 处理和缓存SPS/PPS等编解码器配置信息
+		 *  5. HLS支持 - 生成M3U8播放列表和TS切片
+		 *  6. 帧分发 - 将音视频帧分发给所有消费者
+		 *  
+		 *  流处理流程：
+		 *  1. 生产者推送音视频帧到Stream
+		 *  2. Stream修正时间戳并缓存关键帧
+		 *  3. 检测到关键帧后，流状态变为"准备好"
+		 *  4. 消费者请求数据时，先发送编解码器头部
+		 *  5. 然后按顺序发送音视频帧
+		 *  6. 如果消费者落后太多，重新定位到最新的GOP
+		 *  
+		 *  流超时机制：
+		 *  - 记录最后接收数据的时间
+		 *  - 如果长时间未收到数据，流标记为超时
+		 *  - 超时的流会被自动清理
+		 *  
+		 *  流准备状态：
+		 *  - 收到第一个关键帧后，流进入"准备好"状态
+		 *  - 只有准备好的流才能被消费者播放
+		 *  
+		 *  @note 该类使用enable_shared_from_this，支持安全的shared_ptr管理
+		 *  @note 所有音视频帧操作都使用移动语义，避免数据拷贝
+		 *  @note 支持HLS协议，自动生成M3U8和TS切片
+		 */
 		class Stream : public std::enable_shared_from_this<Stream>
 		{
 		public:
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 构造函数
+			 *  
+			 *  初始化Stream实例，关联到指定的会话。
+			 *  
+			 *  @param s 所属的会话引用
+			 *  @param session_name 会话名称，用于标识流
+			 *  @note 使用explicit防止隐式类型转换
+			 *  @note 会话引用在Stream生命周期内必须有效
+			 */
 			explicit Stream( Session &s, const std::string & session_name);
 
 
 
 		public:
 
-
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 添加视频帧（Add Video Frame）
+			 *  
+			 *  接收并处理来自生产者的编码后的视频帧。
+			 *  
+			 *  处理流程：
+			 *  1. 接收编码后的视频帧（H264/H265等）
+			 *  2. 检查是否为关键帧（IDR帧）
+			 *  3. 如果是关键帧，更新GOP缓存
+			 *  4. 修正视频帧时间戳
+			 *  5. 将视频帧传递给HLS Muxer（如果启用）
+			 *  6. 将视频帧分发给会话中的所有消费者
+			 *  
+			 *  关键帧处理：
+			 *  - 关键帧标记流进入"准备好"状态
+			 *  - 关键帧作为GOP的起始点
+			 *  - 新消费者必须从关键帧开始播放
+			 *  
+			 *  @param frame 编码后的视频帧，使用移动语义避免拷贝
+			 *  @note 该方法会在生产者线程中调用
+			 *  @note 视频帧包含编码数据、时间戳、帧类型等信息
+			 *  @note 使用std::move传递帧数据，调用后frame将失效
+			 *  @note TODO: 需要完善HLS协议的实现
+			 */
 			void AddVideoFrame(  libmedia_codec::EncodedImage &&frame);
+			
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 添加音频帧（Add Audio Frame）
+			 *  
+			 *  接收并处理来自生产者的编码后的音频帧。
+			 *  
+			 *  处理流程：
+			 *  1. 接收编码后的音频帧（AAC/Opus等）
+			 *  2. 修正音频帧时间戳
+			 *  3. 将音频帧传递给HLS Muxer（如果启用）
+			 *  4. 将音频帧分发给会话中的所有消费者
+			 *  
+			 *  音频帧特点：
+			 *  - 音频帧通常较小且频繁
+			 *  - 音频帧没有关键帧概念
+			 *  - 音频时间戳用于音视频同步
+			 *  
+			 *  @param frame 编码后的音频帧数据，使用移动语义避免拷贝
+			 *  @param pts 音频帧的显示时间戳（Presentation Timestamp）
+			 *  @note 该方法会在生产者线程中调用
+			 *  @note 音频帧的pts用于与视频帧同步
+			 *  @note 使用std::move传递帧数据，调用后frame将失效
+			 *  @note TODO: 需要完善HLS协议的实现
+			 */
 			void AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t  pts);
 	 
 		public:
-
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 获取HLS播放列表（Get Play List）
+			 *  
+			 *  返回HLS协议的M3U8播放列表内容。
+			 *  
+			 *  M3U8播放列表包含：
+			 *  - 播放列表版本信息
+			 *  - 目标切片时长
+			 *  - TS切片文件列表
+			 *  - 每个切片的时长信息
+			 *  
+			 *  @return std::string M3U8播放列表的文本内容
+			 *  @note 播放列表由HLS Muxer动态生成
+			 *  @note 客户端会定期请求播放列表以获取最新切片
+			 *  @note 播放列表采用UTF-8编码
+			 */
 			std::string  GetPlayList()
 			{
 				return hls_muxer_.PlayList();
 			}
+			
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 获取HLS TS切片（Get Fragment）
+			 *  
+			 *  根据切片名称获取对应的TS切片数据。
+			 *  
+			 *  切片管理：
+			 *  - 切片由HLS Muxer生成和管理
+			 *  - 每个切片包含固定时长的音视频数据
+			 *  - 切片数据缓存在内存中
+			 *  - 旧切片会被自动清理
+			 *  
+			 *  @param name TS切片文件名（如 "stream-0.ts"）
+			 *  @return std::shared_ptr<Fragment> TS切片对象的智能指针，如果不存在返回nullptr
+			 *  @note 切片名称必须与M3U8播放列表中的名称一致
+			 *  @note Fragment对象包含切片的二进制数据和大小信息
+			 *  @note 使用智能指针管理切片生命周期
+			 */
 			std::shared_ptr< libmedia_transfer_protocol::libhls::Fragment>  GetFragement(const std::string &name)
 			{
 				return hls_muxer_.GetFragment(name);
@@ -153,23 +291,86 @@ namespace gb_media_server
 
 		public:
 
-		
-
-
-
-			// 流信息函数
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 获取会话名称（Session Name）
+			 *  
+			 *  返回该流所属的会话名称。
+			 *  
+			 *  会话名称用途：
+			 *  - 唯一标识一个媒体流
+			 *  - 用于日志记录和调试
+			 *  - 用于流的查找和管理
+			 *  
+			 *  @return const std::string& 会话名称的常量引用
+			 *  @note 会话名称在Stream创建时设置，之后不可更改
+			 *  @note 返回引用避免字符串拷贝
+			 */
 			const std::string & SessionName() const;
 		
  
 
 
 		private:
-
-			 
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 所属会话引用（Session Reference）
+			 *  
+			 *  指向该流所属的会话对象的引用。
+			 *  
+			 *  用途：
+			 *  - 将音视频帧分发给会话中的所有消费者
+			 *  - 访问会话级别的配置和状态
+			 *  - 与会话进行双向通信
+			 *  
+			 *  @note 使用引用而非指针，确保会话对象始终有效
+			 *  @note 会话对象的生命周期必须长于Stream对象
+			 */
 			 Session  &session_;
+			 
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief 会话名称（Session Name）
+			 *  
+			 *  该流的唯一标识符，用于区分不同的媒体流。
+			 *  
+			 *  命名规则：
+			 *  - 通常格式为 "app/stream"
+			 *  - 例如：live/stream1, vod/movie1
+			 *  - 必须在整个服务器中唯一
+			 *  
+			 *  @note 会话名称在构造时设置，之后不可更改
+			 *  @note 用于日志记录、流查找和管理
+			 */
 			std::string    session_name_;
 			 
-
+			/***
+			 *  @author chensong
+			 *  @date 2025-10-18
+			 *  @brief HLS复用器（HLS Muxer）
+			 *  
+			 *  负责将音视频帧封装为HLS格式，生成M3U8播放列表和TS切片。
+			 *  
+			 *  主要功能：
+			 *  - 接收音视频帧并封装为TS格式
+			 *  - 按时长切分TS切片（通常5-10秒）
+			 *  - 生成和更新M3U8播放列表
+			 *  - 管理TS切片的缓存和清理
+			 *  
+			 *  HLS工作流程：
+			 *  1. 接收音视频帧
+			 *  2. 封装为MPEG-TS格式
+			 *  3. 达到切片时长后生成新切片
+			 *  4. 更新M3U8播放列表
+			 *  5. 清理过期的旧切片
+			 *  
+			 *  @note HLS Muxer在Stream构造时创建
+			 *  @note 使用会话名称作为HLS流的标识
+			 *  @note TODO: 当前HLS功能尚未完全实现
+			 */
 			libmedia_transfer_protocol::libhls::HLSMuxer      hls_muxer_;
 
 

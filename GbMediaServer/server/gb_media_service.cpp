@@ -52,8 +52,40 @@ namespace  gb_media_server
 {
 	namespace
 	{
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 空会话对象（Null Session）
+		 *  
+		 *  用于在创建或查找会话失败时返回的空对象。
+		 *  
+		 *  @note 使用静态对象避免重复创建
+		 *  @note 调用者应检查返回值是否为空
+		 */
 		static std::shared_ptr < Session> session_null;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 构造函数（Constructor）
+	 *  
+	 *  初始化GB媒体服务实例，创建连接上下文、RTC服务器和Web服务。
+	 *  
+	 *  初始化流程：
+	 *  1. 创建ConnectionContext，管理WebRTC线程和连接上下文
+	 *  2. 创建RTC服务器实例
+	 *  3. 创建Web服务实例
+	 *  4. 连接RTC服务器的信号到RTC服务的处理方法：
+	 *     - STUN数据包信号
+	 *     - DTLS数据包信号
+	 *     - RTP数据包信号
+	 *     - RTCP数据包信号
+	 *  5. 同时连接同步版本的信号（TCP版本）
+	 *  
+	 *  @note RTC服务器通过信号槽机制将数据包路由到RTC服务
+	 *  @note 支持UDP和TCP两种传输方式
+	 */
 	GbMediaService::GbMediaService()
 		: context_  ( libp2p_peerconnection::ConnectionContext::Create())
 		, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
@@ -72,9 +104,45 @@ namespace  gb_media_server
 		rtc_server_->SignalSyncRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
 		rtc_server_->SignalSyncRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 析构函数（Destructor）
+	 *  
+	 *  清理GB媒体服务资源。
+	 *  
+	 *  @note 所有资源由智能指针自动管理
+	 *  @note 建议在析构前先调用Stop()和Destroy()
+	 */
 	GbMediaService::~GbMediaService()
 	{
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 创建会话（Create Session）
+	 *  
+	 *  创建或获取指定名称的会话。
+	 *  
+	 *  创建流程：
+	 *  1. 使用互斥锁保护会话映射表
+	 *  2. 查找会话是否已存在，如果存在直接返回
+	 *  3. 如果split为true，验证会话名称格式：
+	 *     - 使用'/'分割会话名称
+	 *     - 至少包含2个部分（app/stream）
+	 *     - 格式不正确返回空指针
+	 *  4. 创建新的Session实例
+	 *  5. 将会话添加到映射表
+	 *  6. 记录创建成功日志
+	 *  
+	 *  @param session_name 会话名称，格式为 "app/stream"
+	 *  @param split 是否验证会话名称格式，默认为true
+	 *  @return 返回会话的共享指针，失败返回空指针
+	 *  @note 该方法线程安全
+	 *  @note 如果会话已存在，返回已存在的会话
+	 */
 	std::shared_ptr < Session> GbMediaService::CreateSession(const std::string &session_name, bool split  )
 	{
 		std::lock_guard<std::mutex> lk(lock_);
@@ -104,6 +172,23 @@ namespace  gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << " now:" << rtc::TimeMillis();
 		return s;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 查找会话（Find Session）
+	 *  
+	 *  根据会话名称查找已存在的会话。
+	 *  
+	 *  查找流程：
+	 *  1. 使用互斥锁保护会话映射表
+	 *  2. 在映射表中查找指定名称的会话
+	 *  3. 如果找到返回会话指针，否则返回空指针
+	 *  
+	 *  @param session_name 会话名称
+	 *  @return 返回会话的共享指针，不存在返回空指针
+	 *  @note 该方法线程安全
+	 */
 	std::shared_ptr < Session> GbMediaService::FindSession(const std::string &session_name  )
 	{
 		std::lock_guard<std::mutex> lk(lock_);
@@ -114,6 +199,26 @@ namespace  gb_media_server
 		}
 		return session_null;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 关闭会话（Close Session）
+	 *  
+	 *  关闭指定的会话并释放资源。
+	 *  
+	 *  关闭流程：
+	 *  1. 使用互斥锁保护会话映射表
+	 *  2. 在映射表中查找指定名称的会话
+	 *  3. 如果找到，从映射表中移除
+	 *  4. 释放锁后，调用会话的Clear方法清理资源
+	 *  5. 记录关闭日志
+	 *  
+	 *  @param session_name 会话名称
+	 *  @return 如果关闭成功返回true，会话不存在返回false
+	 *  @note 该方法线程安全
+	 *  @note 会话的Clear方法会释放所有Producer和Consumer
+	 */
 	bool GbMediaService::CloseSession(const std::string &session_name  )
 	{
 		std::shared_ptr < Session> s;
@@ -133,6 +238,34 @@ namespace  gb_media_server
 		}
 		return true;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 打开TCP服务器（Open TCP Server）
+	 *  
+	 *  为指定的流创建TCP服务器，用于接收RTP/RTCP数据。
+	 *  
+	 *  创建流程：
+	 *  1. 检查当前线程是否为工作线程
+	 *  2. 查找流ID是否已存在TCP服务器，如果存在返回nullptr
+	 *  3. 创建TcpServer实例
+	 *  4. 连接TCP服务器的信号到服务的处理方法：
+	 *     - 新连接信号 -> OnNewConnection
+	 *     - 接收数据信号 -> OnRecv
+	 *     - 发送数据信号 -> OnSent
+	 *     - 连接销毁信号 -> OnDestory
+	 *  5. 在网络线程中启动TCP服务器，监听指定端口
+	 *  6. 将TCP服务器添加到映射表
+	 *  7. 返回TCP服务器指针
+	 *  
+	 *  @param stream_id 流ID，用于标识流
+	 *  @param port 监听端口号
+	 *  @return 返回TCP服务器指针，失败返回nullptr
+	 *  @note 该方法必须在工作线程中调用
+	 *  @note 如果流ID已存在TCP服务器，返回nullptr
+	 *  @note TCP服务器监听0.0.0.0，接受所有网卡的连接
+	 */
 	libmedia_transfer_protocol::libnetwork::TcpServer * GbMediaService::OpenTcpServer(const std::string & stream_id, uint16_t port)
 	{
 		// workthread
@@ -170,10 +303,35 @@ namespace  gb_media_server
 			return nullptr;
 		 //return rtp_server_.insert(std::make_pair(stream_id, std::move(rtp_server)).second.get();
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 新连接回调（On New Connection）
+	 *  
+	 *  TCP服务器接收到新连接时的回调方法。
+	 *  
+	 *  @param conn 新建立的连接对象指针
+	 *  @note 该方法在网络线程中调用
+	 *  @note 当前实现仅记录日志
+	 */
 	void GbMediaService::OnNewConnection(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 连接销毁回调（On Destroy Connection）
+	 *  
+	 *  TCP连接被销毁时的回调方法。
+	 *  
+	 *  @param conn 被销毁的连接对象指针
+	 *  @note 该方法在网络线程中调用
+	 *  @note 当前实现仅记录日志
+	 *  @note 注释的代码用于清理连接上下文，已被禁用
+	 */
 	void GbMediaService::OnDestory(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -186,6 +344,25 @@ namespace  gb_media_server
 		//	//}
 		//	});
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 接收数据回调（On Receive Data）
+	 *  
+	 *  TCP连接接收到数据时的回调方法。
+	 *  
+	 *  处理流程：
+	 *  1. 将数据处理任务投递到工作线程
+	 *  2. 在工作线程中从连接获取ShareResource上下文
+	 *  3. 如果上下文存在，调用其OnRecv方法处理数据
+	 *  
+	 *  @param conn 接收数据的连接对象指针
+	 *  @param data 接收到的数据缓冲区
+	 *  @note 该方法在网络线程中调用
+	 *  @note 实际数据处理在工作线程中异步执行
+	 *  @note ShareResource可能是Producer，用于处理RTP/RTCP数据
+	 */
 	void GbMediaService::OnRecv(libmedia_transfer_protocol::libnetwork::Connection * conn, const rtc::CopyOnWriteBuffer & data)
 	{
 	//	GBMEDIASERVER_LOG(LS_INFO) << "";
@@ -198,10 +375,46 @@ namespace  gb_media_server
 		});
 		
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 发送数据回调（On Sent Data）
+	 *  
+	 *  TCP连接成功发送数据后的回调方法。
+	 *  
+	 *  @param conn 发送数据的连接对象指针
+	 *  @note 该方法在网络线程中调用
+	 *  @note 当前实现仅记录日志
+	 */
 	void GbMediaService::OnSent(libmedia_transfer_protocol::libnetwork::Connection * conn)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 初始化服务（Initialize Service）
+	 *  
+	 *  初始化GB媒体服务，加载配置文件并初始化各个组件。
+	 *  
+	 *  初始化流程：
+	 *  1. 加载YAML配置文件
+	 *  2. 如果加载失败，返回false
+	 *  3. 记录配置加载成功日志
+	 *  4. 初始化DTLS证书：
+	 *     - 从配置文件读取公钥和私钥路径
+	 *     - 初始化DtlsCerts单例
+	 *  5. 初始化SRTP库
+	 *  
+	 *  @param config_file 配置文件路径
+	 *  @return 如果初始化成功返回true，否则返回false
+	 *  @note 该方法必须在Start()之前调用
+	 *  @note 配置文件格式为YAML
+	 *  @note DTLS证书用于WebRTC的安全连接
+	 *  @note SRTP库用于RTP/RTCP的加密和解密
+	 */
 	bool GbMediaService::Init(const char* config_file)
 	{
 		bool init = YamlConfig::GetInstance().LoadFile(config_file);
@@ -221,6 +434,26 @@ namespace  gb_media_server
 		return init;
 		 
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 启动服务（Start Service）
+	 *  
+	 *  启动GB媒体服务，开始监听端口并接受连接。
+	 *  
+	 *  启动流程：
+	 *  1. 在网络线程中启动RTC服务器：
+	 *     - 监听0.0.0.0（所有网卡）
+	 *     - 使用配置文件中的UDP端口
+	 *  2. 启动Web服务：
+	 *     - 监听0.0.0.0（所有网卡）
+	 *     - 使用配置文件中的HTTP端口
+	 *  
+	 *  @note 该方法必须在Init()之后调用
+	 *  @note RTC服务器在网络线程中启动，使用Invoke同步等待
+	 *  @note Web服务在当前线程中启动
+	 */
 	void GbMediaService::Start(/*const char * ip, uint16_t port*/)
 	{
 		// start rtc server 
@@ -241,10 +474,34 @@ namespace  gb_media_server
 		
 	}
 
-	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 停止服务（Stop Service）
+	 *  
+	 *  停止GB媒体服务，停止监听端口并断开所有连接。
+	 *  
+	 *  @note 当前实现为空，待完善
+	 *  @note 建议添加停止RTC服务器和Web服务的代码
+	 */
 	void GbMediaService::Stop()
 	{
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 销毁服务（Destroy Service）
+	 *  
+	 *  销毁GB媒体服务，释放所有资源。
+	 *  
+	 *  销毁流程：
+	 *  1. 销毁DTLS证书资源
+	 *  2. 销毁SRTP库资源
+	 *  
+	 *  @note 该方法应该在服务不再使用时调用
+	 *  @note 销毁后需要重新调用Init()和Start()才能再次使用
+	 */
 	void GbMediaService::Destroy()
 	{
 		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Destroy();

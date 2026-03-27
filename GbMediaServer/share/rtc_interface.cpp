@@ -82,6 +82,15 @@ namespace gb_media_server
 
 
 	namespace {
+		/**
+		*  @brief 最大视频包缓存数量
+		*  
+		*  该常量定义了视频RTP包缓存的最大数量，用于NACK重传。
+		*  当缓存的RTP包数量超过该值时，会删除最旧的包。
+		*  
+		*  @note 1000个包约占用1-2MB内存（假设每个包1-2KB）
+		*  @note 缓存过多会占用内存，缓存过少会导致NACK重传失败
+		*/
 		static const uint32_t    kMaxVideoPacketSize = 1000;
 	}
  
@@ -203,6 +212,40 @@ namespace gb_media_server
 
 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RTC接口构造函数（RTC Interface Constructor）
+	*  
+	*  该构造函数用于初始化RTC接口的所有组件，包括DTLS、SRTP、RTP扩展、TWCC上下文等。
+	*  RTC接口是RTC生产者和RTC消费者的基类，提供WebRTC通信的核心功能。
+	*  
+	*  初始化流程：
+	*  1. 初始化DTLS对象，传入任务队列工厂
+	*  2. 初始化SRTP发送和接收会话为nullptr
+	*  3. 初始化RTP头部和扩展管理器
+	*  4. 初始化TWCC上下文，用于带宽估计
+	*  5. 生成本地ICE用户名片段（8字符）和密码（32字符）
+	*  6. 设置SDP的本地ICE用户名和密码
+	*  7. 注册RTP头部扩展：
+	*     - AbsoluteSendTime：绝对发送时间扩展
+	*     - TransportSequenceNumber：传输序列号扩展
+	*  8. 设置TWCC上下文的回调函数，用于发送TWCC反馈
+	*  
+	*  RTP头部扩展：
+	*  - AbsoluteSendTime：用于精确的时间同步，24位时间戳
+	*  - TransportSequenceNumber：用于带宽估计和拥塞控制，16位序列号
+	*  
+	*  TWCC（Transport Wide Congestion Control）：
+	*  - TWCC用于带宽估计和拥塞控制
+	*  - 通过传输序列号扩展标识RTP包的发送顺序
+	*  - 接收端记录RTP包的接收时间，生成TWCC反馈
+	*  - 发送端根据TWCC反馈调整发送码率
+	*  
+	*  @note ICE用户名和密码用于ICE连接检查的认证
+	*  @note RTP扩展必须在SDP交换前注册
+	*  @note TWCC回调函数会在接收到足够的RTP包后触发
+	*/
 	RtcInterface::RtcInterface()
 		: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
 		//, rtp_header_extension_map_() 
@@ -227,8 +270,35 @@ namespace gb_media_server
 		
 
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RTC接口析构函数（RTC Interface Destructor）
+	*  
+	*  该析构函数用于清理RTC接口的资源。
+	*  
+	*  @note SRTP会话、DTLS对象等资源由派生类负责清理
+	*/
 	RtcInterface::~RtcInterface() {}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 生成ICE用户名片段（Get UFrag）
+	*  
+	*  该方法用于生成随机的ICE用户名片段，用于ICE连接检查的认证。
+	*  
+	*  生成流程：
+	*  1. 定义字符表，包含数字、小写字母、大写字母
+	*  2. 使用随机数生成器生成随机索引
+	*  3. 从字符表中随机选择字符，组成指定长度的字符串
+	*  
+	*  @param size 生成的字符串长度
+	*  @return 随机生成的ICE用户名片段
+	*  @note ICE用户名片段长度通常为4-256个字符
+	*  @note 使用静态随机数生成器，避免重复初始化
+	*/
 	std::string RtcInterface::GetUFrag(int size) {
 		static std::string table = "1234567890abcdefgihjklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 		std::string frag;
@@ -244,6 +314,24 @@ namespace gb_media_server
 
 		return frag;
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 生成SSRC（Get SSRC）
+	*  
+	*  该方法用于生成随机的SSRC（Synchronization Source Identifier），
+	*  用于标识RTP流的源。
+	*  
+	*  生成流程：
+	*  1. 使用随机数生成器生成10000000-99999999之间的随机数
+	*  2. 返回生成的SSRC
+	*  
+	*  @param size 参数未使用，保留用于扩展
+	*  @return 随机生成的SSRC
+	*  @note SSRC必须唯一，避免与其他流冲突
+	*  @note SSRC为32位无符号整数
+	*/
 	uint32_t RtcInterface::GetSsrc(int size)
 	{
 		static std::mt19937 mt{ std::random_device{}() };
@@ -251,12 +339,50 @@ namespace gb_media_server
 
 		return rand(mt);
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 设置RTC远程地址（Set RTC Remote Address）
+	*  
+	*  该方法用于设置远程客户端的地址，用于发送RTP/RTCP包。
+	*  
+	*  @param addr 远程客户端的Socket地址（IP地址和端口）
+	*  @note 该地址在ICE连接建立后设置
+	*  @note 所有RTP/RTCP包都会发送到该地址
+	*/
 	void  RtcInterface::SetRtcRemoteAddress(const rtc::SocketAddress& addr)
 	{
 		rtc_remote_address_ = addr;
 	}
 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送SRTP RTP包（Send SRTP RTP）
+	*  
+	*  该方法用于加密RTP包并发送到远程客户端。
+	*  
+	*  处理流程：
+	*  1. 检查DTLS握手是否完成，未完成则返回false
+	*  2. 检查SRTP发送会话是否存在，不存在则返回false
+	*  3. 使用SRTP发送会话加密RTP包
+	*  4. 通过RTC服务器发送加密后的RTP包到远程地址
+	*  5. 返回true表示发送成功
+	*  
+	*  SRTP加密：
+	*  - SRTP（Secure Real-time Transport Protocol）是RTP的安全版本
+	*  - SRTP使用AES加密算法加密RTP Payload
+	*  - SRTP使用HMAC-SHA1算法生成认证标签
+	*  - SRTP密钥在DTLS握手成功后导出
+	*  
+	*  @param data RTP数据包缓冲区（未加密）
+	*  @param size 数据包大小
+	*  @return 发送成功返回true，失败返回false
+	*  @note 该方法会修改data指针和size值（加密后的数据）
+	*  @note DTLS握手必须先完成，否则无法加密
+	*/
 	bool RtcInterface::SendSrtpRtp(uint8_t* data, size_t  size)
 	{
 		if (!dtls_done_)
@@ -284,6 +410,32 @@ namespace gb_media_server
 
 		return true;
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送SRTP RTCP包（Send SRTP RTCP）
+	*  
+	*  该方法用于加密RTCP包并发送到远程客户端。
+	*  
+	*  处理流程：
+	*  1. 检查DTLS握手是否完成，未完成则返回false
+	*  2. 检查SRTP发送会话是否存在，不存在则返回false
+	*  3. 使用SRTP发送会话加密RTCP包
+	*  4. 通过RTC服务器发送加密后的RTCP包到远程地址
+	*  5. 返回true表示发送成功
+	*  
+	*  SRTCP加密：
+	*  - SRTCP（Secure RTCP）是RTCP的安全版本
+	*  - SRTCP使用与SRTP相同的加密算法和密钥
+	*  - SRTCP加密RTCP包的内容，保护控制信息的安全
+	*  
+	*  @param data RTCP数据包缓冲区（未加密）
+	*  @param size 数据包大小
+	*  @return 发送成功返回true，失败返回false
+	*  @note 该方法会修改data指针和size值（加密后的数据）
+	*  @note DTLS握手必须先完成，否则无法加密
+	*/
 	bool RtcInterface::SendSrtpRtcp(uint8_t* data, size_t size)
 	{
 
@@ -309,6 +461,30 @@ namespace gb_media_server
 		return true;
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送数据通道消息（Send Data Channel）
+	*  
+	*  该方法用于通过数据通道发送消息到远程客户端。
+	*  
+	*  处理流程：
+	*  1. 检查SCTP关联是否存在
+	*  2. 创建SCTP流参数，设置流ID
+	*  3. 调用SCTP关联的SendSctpMessage方法发送消息
+	*  
+	*  数据通道说明：
+	*  - WebRTC数据通道基于SCTP协议
+	*  - 数据通道可以传输任意二进制数据或文本数据
+	*  - 数据通道支持可靠传输和不可靠传输
+	*  
+	*  @param streamId SCTP流ID，标识数据通道
+	*  @param ppid Payload Protocol Identifier，标识数据类型
+	*  @param msg 消息数据缓冲区
+	*  @param len 消息长度
+	*  @note 该方法由上层应用调用，用于发送数据通道消息
+	*  @note SCTP关联必须先建立，否则无法发送
+	*/
 	void RtcInterface::SendDatachannel(uint16_t streamId, uint32_t ppid, const char* msg, size_t len)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -320,6 +496,38 @@ namespace gb_media_server
 		}
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送TWCC反馈（On Send TWCC）
+	*  
+	*  该方法是TWCC上下文的回调函数，用于发送TWCC反馈到远程客户端。
+	*  
+	*  处理流程：
+	*  1. 创建RTCP TWCC反馈包
+	*  2. 设置TWCC反馈包的SSRC和媒体SSRC
+	*  3. 将TWCC FCI（Feedback Control Information）数据复制到反馈包中
+	*  4. 调用SendSrtpRtcp方法发送TWCC反馈包
+	*  
+	*  TWCC反馈说明：
+	*  - TWCC（Transport Wide Congestion Control）用于带宽估计和拥塞控制
+	*  - TWCC反馈包包含接收到的RTP包的接收时间
+	*  - 发送端根据TWCC反馈计算往返时延和丢包率，调整发送码率
+	*  - TWCC反馈包的类型为RTCP RTPFB，子类型为15（Transport Feedback）
+	*  
+	*  TWCC FCI格式：
+	*  - Base Sequence Number：基准序列号（16位）
+	*  - Packet Status Count：包状态数量（16位）
+	*  - Reference Time：参考时间（24位）
+	*  - Feedback Packet Count：反馈包计数（8位）
+	*  - Packet Chunks：包状态块（可变长度）
+	*  - Receive Deltas：接收时间增量（可变长度）
+	*  
+	*  @param ssrc 媒体SSRC
+	*  @param twcc_fci TWCC FCI数据
+	*  @note 该方法由TWCC上下文在接收到足够的RTP包后自动调用
+	*  @note TWCC反馈包通常每隔100-200ms发送一次
+	*/
 	void RtcInterface::onSendTwcc(uint32_t ssrc, const std::string& twcc_fci)
 	{
 		auto rtcp = libmedia_transfer_protocol::librtcp:: RtcpFB::create(libmedia_transfer_protocol::librtcp::RTPFBType::RTCP_RTPFB_TWCC , twcc_fci.data(), twcc_fci.size());
@@ -341,17 +549,100 @@ namespace gb_media_server
 		//rtc::Buffer packet = compound.Build();
 		//SendSrtpRtcp(packet.data(), packet.size());
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 创建数据通道（Create Data Channel）
+	*  
+	*  该方法用于创建SCTP关联，建立数据通道。
+	*  
+	*  处理流程：
+	*  1. 创建SCTP关联对象，传入工作线程、回调接口、流数量、缓冲区大小等参数
+	*  2. 调用SCTP关联的TransportConnected方法，通知传输层已连接
+	*  
+	*  SCTP关联参数：
+	*  - 工作线程：用于处理SCTP消息的线程
+	*  - 回调接口：SCTP关联的回调接口（this）
+	*  - 输入流数量：128（最大支持128个输入流）
+	*  - 输出流数量：128（最大支持128个输出流）
+	*  - 缓冲区大小：262144字节（256KB）
+	*  - 是否为服务端：true（服务端模式）
+	*  
+	*  @note 该方法通常在DTLS握手成功后调用
+	*  @note SCTP关联建立后，可以创建多个数据通道
+	*/
 	void RtcInterface::CreateDataChannel()
 	{
 		sctp_ = std::make_shared<libmedia_transfer_protocol::librtc::SctpAssociationImp>(GbMediaService::GetInstance().worker_thread(), this, 128, 128, 262144, true);
 		sctp_->TransportConnected();
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 添加视频包到缓存（Add Video Packet）
+	*  
+	*  该方法用于将视频RTP包添加到缓存中，用于NACK重传。
+	*  
+	*  处理流程：
+	*  1. 将RTP包添加到缓存map中，以序列号为键
+	*  2. 计算需要保留的最小序列号（当前序列号 - kMaxVideoPacketSize）
+	*  3. 删除序列号小于最小序列号的RTP包，释放内存
+	*  
+	*  缓存策略：
+	*  - 使用map存储RTP包，以序列号为键，方便快速查找
+	*  - 最多缓存kMaxVideoPacketSize（1000）个RTP包
+	*  - 当缓存超过限制时，删除最旧的包
+	*  - 使用lower_bound查找需要删除的包，提高效率
+	*  
+	*  NACK重传：
+	*  - 当客户端检测到丢包时，会发送NACK请求
+	*  - 服务器根据NACK请求的序列号，从缓存中查找对应的RTP包
+	*  - 如果找到，则重新发送该RTP包
+	*  - 如果未找到（已被删除），则无法重传
+	*  
+	*  @param rtp_packet RTP包的共享指针
+	*  @note 该方法在发送视频RTP包后调用
+	*  @note 缓存大小限制为1000个包，约占用1-2MB内存
+	*/
 	void RtcInterface::AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet)
 	{
 		rtp_video_packets_[rtp_packet->SequenceNumber()] = rtp_packet;
 		auto it = rtp_video_packets_.lower_bound(rtp_packet->SequenceNumber() - kMaxVideoPacketSize);
 		rtp_video_packets_.erase(rtp_video_packets_.begin(), it);
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理NACK请求（Request NACK）
+	*  
+	*  该方法用于处理客户端发送的NACK请求，重传丢失的RTP包。
+	*  
+	*  处理流程：
+	*  1. 检查NACK请求的媒体SSRC是否匹配视频SSRC
+	*  2. 遍历NACK请求中的所有丢失包序列号
+	*  3. 从缓存中查找对应的RTP包
+	*  4. 如果找到，则修改RTP包的Payload Type、SSRC和序列号
+	*  5. 调用SendSrtpRtp方法重传RTP包
+	*  
+	*  RTX（Retransmission）重传：
+	*  - RTX使用单独的SSRC和Payload Type
+	*  - RTX包的Payload Type为视频Payload Type + 1（通常为97）
+	*  - RTX包的SSRC为视频SSRC + 1
+	*  - RTX包的序列号独立递增，不影响原始RTP包的序列号
+	*  - RTX包的Payload包含原始RTP包的序列号和Payload
+	*  
+	*  NACK请求格式：
+	*  - NACK请求是RTCP RTPFB包，子类型为1（Generic NACK）
+	*  - NACK请求包含一个或多个丢失包的序列号
+	*  - 每个NACK请求可以包含多个序列号，使用位图表示连续的丢失包
+	*  
+	*  @param nack NACK请求对象，包含丢失包的序列号列表
+	*  @note 该方法在接收到NACK请求时调用
+	*  @note 如果缓存中没有对应的RTP包，则无法重传
+	*  @note RTX序列号独立递增，避免与原始RTP包冲突
+	*/
 	void RtcInterface::RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO) << "media_ssrc:" << nack.media_ssrc();

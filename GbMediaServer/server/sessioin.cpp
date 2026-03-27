@@ -61,9 +61,48 @@ namespace  gb_media_server
 {
 	namespace
 	{
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 空消费者对象（Null Consumer）
+		 *  
+		 *  用于在创建消费者失败时返回的空对象。
+		 *  
+		 *  @note 使用静态对象避免重复创建
+		 *  @note 调用者应检查返回值是否为空
+		 */
 		static std::shared_ptr<Consumer> consumer_null;
+		
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 空生产者对象（Null Producer）
+		 *  
+		 *  用于在创建生产者失败时返回的空对象。
+		 *  
+		 *  @note 使用静态对象避免重复创建
+		 *  @note 调用者应检查返回值是否为空
+		 */
 		static std::shared_ptr<Producer> producer_null;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 构造函数（Constructor）
+	 *  
+	 *  初始化会话实例，创建流对象并设置初始状态。
+	 *  
+	 *  初始化流程：
+	 *  1. 初始化消费者集合为空
+	 *  2. 保存会话名称
+	 *  3. 创建Stream对象，传入会话引用和会话名称
+	 *  4. 设置播放器活跃时间为当前时间
+	 *  
+	 *  @param session_name 会话名称，格式为 "app/stream"
+	 *  @note Stream对象在构造时创建，确保会话始终有流对象
+	 *  @note 播放器活跃时间用于检测会话超时
+	 */
 	Session::Session(const std::string & session_name)
 		:consumers_()
 		, session_name_(session_name)
@@ -72,6 +111,20 @@ namespace  gb_media_server
 		player_live_time_ = rtc::TimeMillis();
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 析构函数（Destructor）
+	 *  
+	 *  清理会话资源，释放所有消费者。
+	 *  
+	 *  清理流程：
+	 *  1. 清空消费者集合
+	 *  2. 生产者和流对象由智能指针自动释放
+	 *  
+	 *  @note 消费者集合的clear会减少引用计数
+	 *  @note 如果消费者没有其他引用，会被自动销毁
+	 */
 	Session::~Session()
 	{
 		//if (pull_)
@@ -80,6 +133,31 @@ namespace  gb_media_server
 		//}
 		consumers_.clear();
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 创建生产者（Create Producer）
+	 *  
+	 *  根据指定的协议类型创建相应的生产者实例。
+	 *  
+	 *  创建流程：
+	 *  1. 验证会话名称是否匹配
+	 *  2. 解析会话名称，分割为app和stream
+	 *  3. 根据类型创建对应的生产者：
+	 *     - GB28181: 创建Gb28181Producer
+	 *     - RTC: 创建RtcProducer
+	 *     - RTSP: 创建RtspProducer
+	 *  4. 设置生产者的应用名称和流名称
+	 *  5. 设置生产者的附加参数
+	 *  
+	 *  @param session_name 会话名称，必须与当前会话名称匹配
+	 *  @param param 生产者的附加参数
+	 *  @param type 生产者类型
+	 *  @return 返回生产者对象的共享指针，失败返回空指针
+	 *  @note 如果会话名称不匹配，记录错误日志并返回空指针
+	 *  @note 如果类型不支持，返回空指针
+	 */
 	std::shared_ptr<Producer> Session::CreateProducer( 
 		const std::string &session_name,
 		const std::string &param,
@@ -126,6 +204,34 @@ namespace  gb_media_server
 		 
 		return producer;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 创建消费者（Create Consumer）
+	 *  
+	 *  根据指定的协议类型创建相应的消费者实例。
+	 *  
+	 *  创建流程：
+	 *  1. 验证会话名称是否匹配
+	 *  2. 解析会话名称，分割为app和stream
+	 *  3. 验证会话名称至少包含两个部分
+	 *  4. 根据类型创建对应的消费者：
+	 *     - RTC: 创建RtcConsumer
+	 *     - FLV: 创建FlvConsumer
+	 *     - RTSP: 创建RtspConsumer
+	 *  5. 设置消费者的应用名称和流名称
+	 *  6. 设置消费者的附加参数
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param session_name 会话名称，必须与当前会话名称匹配
+	 *  @param param 消费者的附加参数
+	 *  @param type 消费者类型
+	 *  @return 返回消费者对象的共享指针，失败返回空指针
+	 *  @note 如果会话名称不匹配，记录错误日志并返回空指针
+	 *  @note 如果会话名称格式不正确（少于2个部分），返回空指针
+	 *  @note 如果类型不支持，返回空指针
+	 */
 	std::shared_ptr<Consumer> Session::CreateConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::string &session_name,
 		const std::string &param,
@@ -167,6 +273,16 @@ namespace  gb_media_server
 		return consumer;
 	}
 	 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 激活所有播放器（Active All Players）
+	 *  
+	 *  激活会话中的所有消费者。
+	 *  
+	 *  @note 该方法线程安全，使用互斥锁保护
+	 *  @note 当前实现为空，功能已注释
+	 */
 	void Session::ActiveAllPlayers()
 	{
 		std::lock_guard<std::mutex> lk(lock_);
@@ -216,6 +332,25 @@ namespace  gb_media_server
 		  
 		 
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 设置生产者（Set Producer）
+	 *  
+	 *  设置会话的生产者，如果已有生产者则先释放旧的生产者。
+	 *  
+	 *  设置流程：
+	 *  1. 使用互斥锁保护生产者对象
+	 *  2. 检查新生产者是否与当前生产者相同
+	 *  3. 如果已有生产者，先重置（释放）旧的生产者
+	 *  4. 如果新生产者不为空，设置新的生产者
+	 *  
+	 *  @param producer 要设置的生产者对象的共享指针
+	 *  @note 该方法线程安全，使用互斥锁保护
+	 *  @note 如果新旧生产者相同，会记录警告日志
+	 *  @note 一个会话只能有一个生产者
+	 */
 	void Session::SetProducer(std::shared_ptr<Producer>  producer)
 	{
 		std::lock_guard<std::mutex> lk(lock_);
@@ -237,6 +372,26 @@ namespace  gb_media_server
 		
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 添加视频帧（Add Video Frame）
+	 *  
+	 *  接收来自生产者的视频帧，并异步分发给所有消费者。
+	 *  
+	 *  处理流程：
+	 *  1. 接收编码后的视频帧（使用移动语义）
+	 *  2. 可选：将视频帧保存到文件用于调试（通过宏控制）
+	 *  3. 将分发任务投递到工作线程
+	 *  4. 在工作线程中遍历所有消费者
+	 *  5. 将视频帧发送给每个消费者
+	 *  
+	 *  @param frame 编码后的视频帧，使用移动语义避免拷贝
+	 *  @note 该方法可能在生产者线程中调用
+	 *  @note 实际分发在工作线程中异步执行
+	 *  @note 支持调试模式，可以将视频帧保存到ps.h264文件
+	 *  @note 使用lambda捕获移动后的帧，确保数据安全传递
+	 */
 	void Session::AddVideoFrame(  libmedia_codec::EncodedImage &&frame)
 	{
 #if 0
@@ -256,6 +411,26 @@ namespace  gb_media_server
 		});
 		
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 添加音频帧（Add Audio Frame）
+	 *  
+	 *  接收来自生产者的音频帧，并异步分发给所有消费者。
+	 *  
+	 *  处理流程：
+	 *  1. 接收编码后的音频帧和时间戳（使用移动语义）
+	 *  2. 将分发任务投递到工作线程
+	 *  3. 在工作线程中遍历所有消费者
+	 *  4. 将音频帧发送给每个消费者
+	 *  
+	 *  @param frame 编码后的音频帧数据，使用移动语义避免拷贝
+	 *  @param pts 音频帧的显示时间戳
+	 *  @note 该方法可能在生产者线程中调用
+	 *  @note 实际分发在工作线程中异步执行
+	 *  @note 使用lambda捕获移动后的帧和pts，确保数据安全传递
+	 */
 	void  Session::AddAudioFrame(  rtc::CopyOnWriteBuffer&& frame, int64_t pts)
 	{
 		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, new_frame = std::move(frame), pts]() {
@@ -267,6 +442,29 @@ namespace  gb_media_server
 		 
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 添加数据通道消息（Add Data Channel）
+	 *  
+	 *  接收WebRTC DataChannel的数据消息，并异步分发给所有消费者和生产者。
+	 *  
+	 *  处理流程：
+	 *  1. 接收SCTP流参数、PPID和消息数据
+	 *  2. 将消息数据拷贝到rtc::Buffer中
+	 *  3. 将分发任务投递到工作线程
+	 *  4. 在工作线程中分发给所有消费者
+	 *  5. 如果有生产者，也分发给生产者
+	 *  
+	 *  @param params SCTP流参数
+	 *  @param ppid Payload Protocol Identifier
+	 *  @param msg 消息数据指针
+	 *  @param len 消息数据长度
+	 *  @note 该方法可能在WebRTC线程中调用
+	 *  @note 实际分发在工作线程中异步执行
+	 *  @note 消息数据会被拷贝，原始数据可以安全释放
+	 *  @note 支持双向数据通道，消费者和生产者都能收到消息
+	 */
 	void Session::AddDataChannel(
 		const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params, 
 		uint32_t ppid, const uint8_t* msg, size_t len)
@@ -286,6 +484,25 @@ namespace  gb_media_server
 		});
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 消费者请求关键帧（Consumer Request Key Frame）
+	 *  
+	 *  当消费者需要关键帧时，向生产者请求发送关键帧。
+	 *  
+	 *  处理流程：
+	 *  1. 检查是否有生产者
+	 *  2. 如果没有生产者，直接返回
+	 *  3. 将请求任务投递到工作线程
+	 *  4. 在工作线程中再次检查生产者是否存在
+	 *  5. 调用生产者的RequestKeyFrame方法
+	 *  
+	 *  @note 该方法可能在消费者线程中调用
+	 *  @note 实际请求在工作线程中异步执行
+	 *  @note 双重检查生产者是否存在，避免空指针访问
+	 *  @note 如果没有生产者，请求会被忽略
+	 */
 	void Session::ConsumerRequestKeyFrame()
 	{
 
@@ -304,19 +521,70 @@ namespace  gb_media_server
 		
 	}
 
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 获取流对象（Get Stream）
+	 *  
+	 *  返回会话关联的流对象。
+	 *  
+	 *  @return 返回流对象的共享指针
+	 *  @note 流对象在会话构造时创建，通常不会为空
+	 */
 	std::shared_ptr<Stream> Session::GetStream()
 	{
 		return stream_;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 获取会话名称（Session Name）
+	 *  
+	 *  返回会话的名称。
+	 *  
+	 *  @return 返回会话名称的常量引用
+	 *  @note 返回引用避免字符串拷贝
+	 */
 	const std::string &Session::SessionName()const
 	{
 		return session_name_;
 	}
 	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 检查是否有生产者（Is Producer）
+	 *  
+	 *  检查会话是否已经设置了生产者。
+	 *  
+	 *  @return 如果有生产者返回true，否则返回false
+	 *  @note 使用!!运算符将指针转换为bool值
+	 *  @note 该方法不需要加锁，因为只是读取指针值
+	 */
 	bool Session::IsProducer() const
 	{
 		return !!producer_;
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 清理会话资源（Clear）
+	 *  
+	 *  清理会话的所有资源，包括生产者和所有消费者。
+	 *  
+	 *  清理流程：
+	 *  1. 使用互斥锁保护资源
+	 *  2. 如果有生产者，重置生产者对象
+	 *  3. 遍历所有消费者，重置每个消费者对象
+	 *  4. 清空消费者集合
+	 *  
+	 *  @note 该方法线程安全，使用互斥锁保护
+	 *  @note 调用reset()会减少引用计数
+	 *  @note 如果没有其他引用，对象会被自动销毁
+	 *  @note 调用此方法后，会话将不再可用
+	 */
 	void Session::Clear()
 	{
 		std::lock_guard<std::mutex> lk(lock_);

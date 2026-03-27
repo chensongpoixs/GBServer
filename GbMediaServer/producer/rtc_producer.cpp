@@ -59,6 +59,44 @@
 namespace gb_media_server {
 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RTC生产者构造函数（RTC Producer Constructor）
+	*  
+	*  该构造函数用于创建RTC生产者实例，初始化WebRTC相关的组件，包括SDP、DTLS、接收缓冲区、NALU解析器等。
+	*  RTC生产者负责接收客户端推送的音视频流，解密RTP包，解析H264 NALU单元，并将媒体帧分发给Stream。
+	*  
+	*  初始化流程：
+	*  1. 调用基类RtcInterface和Producer的构造函数
+	*  2. 创建任务安全标志（task_safety_），用于异步任务的生命周期管理
+	*  3. 分配8MB的接收缓冲区（recv_buffer_），用于存储接收到的媒体数据
+	*  4. 创建NALU解析器（nal_parse_），用于解析H264 NALU单元
+	*  5. 创建RTCP接收上下文（rtcp_context_recv_），用于处理RTCP统计信息
+	*  6. 连接DTLS信号槽，用于处理DTLS握手事件
+	*  7. 设置SDP的本地DTLS指纹，用于DTLS握手验证
+	*  8. 设置SDP的服务器地址和端口，从配置文件中读取
+	*  9. 设置流名称，用于标识媒体流
+	*  10. 配置RTP头部扩展，启用绝对发送时间和传输序列号
+	*  
+	*  DTLS信号槽连接：
+	*  - SignalDtlsConnecting：DTLS连接中回调
+	*  - SignalDtlsConnected：DTLS连接成功回调
+	*  - SignalDtlsClose：DTLS连接关闭回调
+	*  - SignalDtlsFailed：DTLS连接失败回调
+	*  - SignalDtlsSendPakcet：DTLS发送数据包回调
+	*  - SignalDtlsApplicationDataReceived：DTLS应用数据接收回调
+	*  
+	*  RTP头部扩展：
+	*  - hasAbsoluteSendTime：绝对发送时间扩展，用于精确的时间同步
+	*  - hasTransportSequenceNumber：传输序列号扩展，用于带宽估计和拥塞控制
+	*  
+	*  @param stream 流对象的共享指针，用于分发媒体帧
+	*  @param s 会话对象的共享指针，用于管理会话状态
+	*  @note 接收缓冲区大小为8MB，足以容纳大多数视频帧
+	*  @note NALU解析器用于将RTP包中的H264 NALU单元组装为完整的视频帧
+	*  @note RTCP上下文用于统计RTP包的接收情况，生成RTCP接收者报告
+	*/
  
 	RtcProducer::RtcProducer(
 		const std::shared_ptr<Stream> & stream, 
@@ -121,6 +159,26 @@ namespace gb_media_server {
 		
 	
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief RTC生产者析构函数（RTC Producer Destructor）
+	*  
+	*  该析构函数用于清理RTC生产者实例，释放所有相关资源。
+	*  
+	*  清理流程：
+	*  1. 记录析构日志
+	*  2. 删除SRTP发送会话，释放加密资源
+	*  3. 删除SRTP接收会话，释放解密资源
+	*  4. 设置dtls_done_标志为false，表示DTLS连接已关闭
+	*  5. 从SRTP会话中移除视频和音频流（注意：此时srtp_send_session_已被删除，这里可能有bug）
+	*  6. 断开所有DTLS信号槽连接
+	*  7. 释放接收缓冲区（recv_buffer_）
+	*  
+	*  @note 必须先删除SRTP会话，再断开DTLS信号槽
+	*  @note 流对象和会话对象由智能指针管理，会自动释放
+	*  @note 代码中有潜在bug：在删除srtp_send_session_后又尝试调用其方法
+	*/
 	RtcProducer::~RtcProducer()
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -155,6 +213,31 @@ namespace gb_media_server {
 			recv_buffer_ = nullptr;
 		}
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 接收数据回调（On Receive）
+	*  
+	*  该方法用于处理从TCP连接接收到的数据。当前实现被注释掉（#if 0），
+	*  因为WebRTC通常使用UDP传输，TCP传输较少使用。
+	*  
+	*  TCP传输处理流程（注释掉的代码）：
+	*  1. 将接收到的数据追加到接收缓冲区
+	*  2. 解析TCP包头，提取payload大小（2字节大端序）
+	*  3. 检查缓冲区是否包含完整的包
+	*  4. 判断包类型（RTP或RTCP）
+	*  5. 解析RTP包或RTCP包
+	*  6. 处理完整的包后，移动缓冲区指针
+	*  7. 如果缓冲区还有剩余数据，继续解析
+	*  
+	*  TCP包格式：
+	*  - 2字节：Payload大小（大端序）
+	*  - N字节：Payload数据（RTP或RTCP包）
+	*  
+	*  @param buffer1 接收到的数据缓冲区
+	*  @note 当前实现被注释掉，WebRTC通常使用UDP传输
+	*  @note TCP传输需要处理粘包和拆包问题
+	*/
 	void RtcProducer::OnRecv(const rtc::CopyOnWriteBuffer&  buffer1)
 	{
 #if 0
@@ -237,6 +320,36 @@ namespace gb_media_server {
 
 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 定时器回调（On Timer）
+	*  
+	*  该方法用于定期发送RTCP接收者报告（RR），用于反馈接收质量。
+	*  
+	*  处理流程：
+	*  1. 使用任务安全标志（task_safety_）投递延迟任务到工作线程
+	*  2. 检查DTLS握手是否完成，未完成则直接返回
+	*  3. 使用RTCP上下文创建RTCP RR包
+	*  4. 调用SendSrtpRtcp方法发送RTCP RR包
+	*  5. 更新RTCP RR时间戳
+	*  6. 切换流状态（用于测试）
+	*  7. 递归调用OnTimer，实现定时循环（每5秒执行一次）
+	*  
+	*  RTCP RR说明：
+	*  - RR（Receiver Report）用于反馈接收质量
+	*  - RR包含丢包率、抖动、往返时延等统计信息
+	*  - RR通常每隔几秒发送一次
+	*  
+	*  任务安全标志：
+	*  - task_safety_用于管理异步任务的生命周期
+	*  - 当对象销毁时，未执行的任务会被自动取消
+	*  - 避免在对象销毁后执行回调导致崩溃
+	*  
+	*  @note 该方法会递归调用自己，实现定时循环
+	*  @note 定时间隔为5秒
+	*  @note 流状态切换用于测试，实际使用时可能需要移除
+	*/
 	void RtcProducer::OnTimer()
 	{
 		/*
@@ -280,24 +393,94 @@ namespace gb_media_server {
 
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理Offer SDP（Process Offer SDP）
+	*  
+	*  该方法用于处理客户端发送的SDP Offer，解析媒体能力、ICE候选、DTLS指纹等信息。
+	*  
+	*  @param rtc_sdp_type SDP类型（Offer或Answer）
+	*  @param sdp SDP字符串，包含完整的SDP描述
+	*  @return 解析成功返回true，失败返回false
+	*/
 	bool RtcProducer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) {
 		sdp_.SetSdpType(rtc_sdp_type);
 		return sdp_.Decode(sdp);
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 获取本地ICE用户名片段（Local UFrag）
+	*  
+	*  @return 本地ICE用户名片段
+	*/
 	const std::string& RtcProducer::LocalUFrag() const {
 		return sdp_.GetLocalUFrag();
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 获取本地ICE密码（Local Password）
+	*  
+	*  @return 本地ICE密码
+	*/
 	const std::string& RtcProducer::LocalPasswd() const {
 		return sdp_.GetLocalPasswd();
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 获取远程ICE用户名片段（Remote UFrag）
+	*  
+	*  @return 远程ICE用户名片段
+	*/
 	const std::string& RtcProducer::RemoteUFrag() const {
 		return sdp_.GetRemoteUFrag();
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 构建Answer SDP（Build Answer SDP）
+	*  
+	*  该方法用于生成本地的SDP Answer，包含本地的媒体能力、ICE候选、DTLS指纹等信息。
+	*  
+	*  @return SDP Answer字符串
+	*/
 	std::string RtcProducer::BuildAnswerSdp() {
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
 		return sdp_.Encode();
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 启动DTLS握手（May Run DTLS）
+	*  
+	*  该方法用于启动DTLS握手，根据SDP中的setup属性决定是作为客户端还是服务端。
+	*  
+	*  处理流程：
+	*  1. 设置DTLS的远程指纹，用于验证对端证书
+	*  2. 从SDP中获取远程角色（active、passive、actpass）
+	*  3. 根据远程角色决定本地角色：
+	*     - 远程为actpass或active：本地作为服务端（SERVER）
+	*     - 远程为passive：本地作为客户端（CLIENT），主动发起握手
+	*  4. 记录角色信息到日志
+	*  5. 调用DTLS的Run方法，启动握手
+	*  
+	*  DTLS角色说明：
+	*  - active：主动发起握手的一方（客户端）
+	*  - passive：被动等待握手的一方（服务端）
+	*  - actpass：可以作为客户端或服务端，由对端决定
+	*  - holdconn：暂不建立连接
+	*  
+	*  @note 该方法通常在ICE连接建立后调用
+	*  @note DTLS握手成功后会触发OnDtlsConnected回调
+	*/
 	void RtcProducer::MayRunDtls()
 	{
 		dtls_.SetRemoteFingerprint(sdp_.GetRemoteFingerprint());
@@ -324,10 +507,70 @@ namespace gb_media_server {
 		dtls_.Run(local_role);
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理接收到的DTLS数据（On DTLS Receive）
+	*  
+	*  该方法用于处理从网络接收到的DTLS数据包，将其传递给DTLS对象进行处理。
+	*  
+	*  @param buf DTLS数据包缓冲区
+	*  @param size 数据包大小
+	*  @note 该方法由RtcService在接收到DTLS包时调用
+	*/
 	void RtcProducer::OnDtlsRecv(const uint8_t* buf, size_t size)
 	{
 		dtls_.OnRecv(buf, size);
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理SRTP RTP包（On SRTP RTP）
+	*  
+	*  该方法用于处理从客户端接收到的SRTP RTP包，解密后解析RTP头部，提取媒体数据，
+	*  并将其分发给Stream。这是RTC生产者的核心方法，负责接收客户端推送的音视频流。
+	*  
+	*  处理流程：
+	*  1. 使用SRTP接收会话解密RTP包
+	*  2. 解析RTP包，提取RTP头部信息（序列号、时间戳、SSRC、Payload Type等）
+	*  3. 提取RTP头部扩展（传输序列号、绝对发送时间等）
+	*  4. 如果包含传输序列号扩展，更新TWCC上下文（用于带宽估计）
+	*  5. 根据Payload Type判断是音频还是视频：
+	*     - 音频：直接将RTP Payload传递给Stream的AddAudioFrame方法
+	*     - 视频：使用NALU解析器解析H264 NALU单元
+	*  6. 如果RTP包的Marker位为true，表示视频帧结束：
+	*     - 创建EncodedImage对象，包含完整的视频帧
+	*     - 将视频帧传递给Stream的AddVideoFrame方法
+	*     - 清空NALU解析器的缓冲区，准备接收下一帧
+	*  7. 更新RTCP接收上下文，用于生成RTCP接收者报告
+	*  
+	*  RTP包解析：
+	*  - RTP头部包含序列号、时间戳、SSRC、Payload Type等信息
+	*  - RTP扩展包含传输序列号、绝对发送时间等信息
+	*  - RTP Payload包含音频或视频编码数据
+	*  
+	*  H264 NALU解析：
+	*  - H264视频帧由多个NALU单元组成
+	*  - 每个RTP包可能包含一个完整的NALU、NALU的一部分（FU-A分片）或多个NALU（STAP-A聚合）
+	*  - NALU解析器负责将RTP包中的NALU单元组装为完整的视频帧
+	*  - Marker位为true时，表示视频帧的最后一个RTP包
+	*  
+	*  TWCC（Transport Wide Congestion Control）：
+	*  - TWCC用于带宽估计和拥塞控制
+	*  - 传输序列号扩展用于标识RTP包的发送顺序
+	*  - TWCC上下文记录RTP包的接收时间，用于计算往返时延和丢包率
+	*  
+	*  时间戳转换：
+	*  - 音频时间戳：RTP时间戳 / 90（转换为毫秒）
+	*  - 视频时间戳：RTP时间戳 / 90（转换为毫秒）
+	*  
+	*  @param data RTP数据包缓冲区（已加密）
+	*  @param size 数据包大小
+	*  @note 该方法由RtcService在接收到RTP包时调用
+	*  @note RTP包必须先通过SRTP解密才能处理
+	*  @note 视频帧会被缓存在NALU解析器中，直到Marker位为true才会分发
+	*  @note 注释掉的代码（#if 0）用于将视频帧保存到文件，用于调试
+	*/
 	void RtcProducer::OnSrtpRtp(  uint8_t* data, size_t size)
 	{
 		//GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -423,6 +666,47 @@ namespace gb_media_server {
 		}
 
 	}
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 处理SRTP RTCP包（On SRTP RTCP）
+	*  
+	*  该方法用于处理从客户端接收到的SRTP RTCP包，解密后解析控制信息。
+	*  
+	*  处理流程：
+	*  1. 使用SRTP接收会话解密RTCP包
+	*  2. 解析RTCP复合包，可能包含多个RTCP块
+	*  3. 遍历所有RTCP块，根据类型进行不同处理：
+	*     - SR（Sender Report）：发送者报告，更新RTCP接收上下文
+	*     - RR（Receiver Report）：接收者报告
+	*     - SDES（Source Description）：源描述信息，包含CNAME等
+	*     - BYE：会话结束通知
+	*     - APP：应用定义的RTCP包
+	*     - RTPFB（RTP Feedback）：RTP反馈（当前未处理）
+	*     - PSFB（Payload-Specific Feedback）：负载特定反馈（当前未处理）
+	*  4. 统计跳过的RTCP包数量
+	*  
+	*  RTCP包类型处理：
+	*  - SR（200）：发送者报告，包含发送统计信息，更新RTCP上下文
+	*  - RR（201）：接收者报告，包含接收统计信息
+	*  - SDES（202）：源描述信息，包含CNAME、NAME等
+	*  - BYE（203）：会话结束
+	*  - APP（204）：应用定义
+	*  - RTPFB（205）：RTP反馈（NACK、TMMBR等）
+	*  - PSFB（206）：负载特定反馈（PLI、FIR等）
+	*  
+	*  RTCP上下文更新：
+	*  - 接收到SR包时，更新RTCP接收上下文
+	*  - RTCP上下文用于生成RTCP接收者报告（RR）
+	*  - RTCP上下文记录发送者的NTP时间戳、RTP时间戳等信息
+	*  
+	*  @param data RTCP数据包缓冲区（已加密）
+	*  @param size 数据包大小
+	*  @note 该方法由RtcService在接收到RTCP包时调用
+	*  @note RTCP包必须先通过SRTP解密才能处理
+	*  @note 当前实现只处理SR和SDES包，其他类型的RTCP包被跳过
+	*  @note 注释掉的代码用于处理其他类型的RTCP包，可能在未来启用
+	*/
 	void RtcProducer::OnSrtpRtcp(  uint8_t* data, size_t size)
 	{
 		//GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -602,6 +886,41 @@ namespace gb_media_server {
 	}
 #endif // 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 请求关键帧（Request Key Frame）
+	*  
+	*  该方法用于向客户端请求发送关键帧（IDR帧）。当服务器需要快速恢复播放
+	*  或新的消费者加入时，会调用该方法请求关键帧。
+	*  
+	*  处理流程：
+	*  1. 检查距离上次请求关键帧的时间，如果小于3秒则直接返回（避免频繁请求）
+	*  2. 更新请求关键帧的时间戳，设置为当前时间 + 3秒
+	*  3. 创建RTCP PLI（Picture Loss Indication）包
+	*  4. 设置PLI包的发送者SSRC和媒体SSRC
+	*  5. 将PLI包添加到RTCP复合包中
+	*  6. 构建RTCP复合包
+	*  7. 调用SendSrtpRtcp方法发送RTCP PLI包
+	*  
+	*  关键帧请求方式：
+	*  - RTCP PLI（Picture Loss Indication）：图像丢失指示，请求关键帧
+	*  - RTCP FIR（Full Intra Request）：完整帧内请求，请求关键帧（注释掉的代码）
+	*  - SIP Info消息：通过SIP信令请求关键帧（未实现）
+	*  
+	*  PLI vs FIR：
+	*  - PLI：简单的关键帧请求，不包含序列号
+	*  - FIR：包含序列号的关键帧请求，可以跟踪请求状态
+	*  - PLI更常用，FIR较少使用
+	*  
+	*  请求频率限制：
+	*  - 为了避免频繁请求关键帧，设置了3秒的冷却时间
+	*  - 频繁请求关键帧会增加带宽消耗和编码器负担
+	*  
+	*  @note 该方法通常在新的消费者加入或网络恢复后调用
+	*  @note 请求频率限制为每3秒一次
+	*  @note 注释掉的代码用于发送FIR请求，可能在未来启用
+	*/
 	void RtcProducer::RequestKeyFrame()
 	{
 		if (request_key_frame_ > std::time(nullptr))
@@ -663,6 +982,34 @@ namespace gb_media_server {
 		}
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 设置流状态（Set Stream Status）
+	*  
+	*  该方法用于向客户端发送流状态通知，告知客户端流是否可用。
+	*  
+	*  处理流程：
+	*  1. 创建RTCP Stream状态包
+	*  2. 设置发送者SSRC
+	*  3. 设置流状态（true表示流可用，false表示流不可用）
+	*  4. 将Stream状态包添加到RTCP复合包中
+	*  5. 构建RTCP复合包
+	*  6. 调用SendSrtpRtcp方法发送RTCP Stream状态包
+	*  
+	*  流状态说明：
+	*  - true：流可用，客户端可以正常接收媒体数据
+	*  - false：流不可用，客户端应停止接收媒体数据
+	*  
+	*  使用场景：
+	*  - 流开始时，发送true通知客户端流已就绪
+	*  - 流暂停时，发送false通知客户端流已暂停
+	*  - 流恢复时，发送true通知客户端流已恢复
+	*  
+	*  @param status 流状态（true表示可用，false表示不可用）
+	*  @note 该方法用于通知客户端流的可用性
+	*  @note 客户端收到状态通知后，可以相应地调整播放策略
+	*/
 	void RtcProducer::SetStreamStatus(bool status)
 	{
 		std::unique_ptr< libmedia_transfer_protocol::rtcp::Stream> stream = std::make_unique< libmedia_transfer_protocol::rtcp::Stream>();
@@ -676,6 +1023,24 @@ namespace gb_media_server {
 		rtc::Buffer packet = compound.Build();
 		SendSrtpRtcp(packet.data(), packet.size());
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 数据通道消息发送（On Data Channel）
+	*  
+	*  该方法用于发送数据通道消息到客户端。
+	*  
+	*  处理流程：
+	*  1. 检查SCTP关联是否存在
+	*  2. 调用SCTP关联的SendSctpMessage方法发送消息
+	*  
+	*  @param params SCTP流参数，包含流ID、可靠性等信息
+	*  @param ppid Payload Protocol Identifier，标识数据类型
+	*  @param msg 消息数据缓冲区
+	*  @param len 消息长度
+	*  @note 该方法由Session在需要发送数据通道消息时调用
+	*/
 	void RtcProducer::OnDataChannel(
 		const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params,
 		uint32_t ppid, const uint8_t* msg, size_t len)
@@ -686,6 +1051,26 @@ namespace gb_media_server {
 		}
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief SCTP关联消息接收回调（On SCTP Association Message Received）
+	*  
+	*  该方法是SCTP关联接收到消息时的回调，用于处理数据通道消息。
+	*  
+	*  处理流程：
+	*  1. 记录接收到的消息日志（流ID、PPID、长度、内容）
+	*  2. 创建SCTP流参数，设置流ID
+	*  3. 调用Session的AddDataChannel方法，将消息分发给所有消费者
+	*  
+	*  @param sctpAssociation SCTP关联对象指针
+	*  @param streamId SCTP流ID，标识数据通道
+	*  @param ppid Payload Protocol Identifier，标识数据类型
+	*  @param msg 消息数据缓冲区
+	*  @param len 消息长度
+	*  @note 该方法由SCTP关联在接收到消息时调用
+	*  @note 消息会被分发给Session中的所有消费者
+	*/
 	void RtcProducer::OnSctpAssociationMessageReceived(
 		libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
 		uint16_t streamId,

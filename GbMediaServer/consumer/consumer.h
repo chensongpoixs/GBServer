@@ -57,8 +57,40 @@ purpose:		GOPMGR
 #include "libmedia_transfer_protocol/librtc/sctp_association.h"
 namespace gb_media_server
 {
-	 
-
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 消费者基类（Consumer Base Class）
+	*  
+	*  该类是所有媒体消费者的基类，负责接收媒体流（Stream）中的音视频数据，
+	*  并将其封装为特定协议格式（如 RTP、FLV、RTSP 等）发送给客户端。
+	*  
+	*  核心功能：
+	*  1. 视频帧处理：解析 H264 NALU 单元，提取 SPS/PPS，在 IDR 帧前附加参数集
+	*  2. 音频帧处理：接收音频编码数据，传递给具体的消费者实现
+	*  3. 媒体复用：使用 Muxer 进行媒体格式转换和复用
+	*  4. 信号槽机制：通过信号槽接收 Muxer 编码后的音视频数据
+	*  
+	*  继承关系：
+	*  - ShareResource：共享资源基类，管理 Stream 和 Session 的生命周期
+	*  - sigslot::has_slots<>：信号槽基类，支持信号槽机制
+	*  
+	*  派生类：
+	*  - RtcConsumer：WebRTC 消费者，将音视频封装为 RTP 包通过 WebRTC 发送
+	*  - FlvConsumer：FLV 消费者，将音视频封装为 FLV 格式通过 HTTP 发送
+	*  - RtspConsumer：RTSP 消费者，将音视频封装为 RTP 包通过 RTSP 发送
+	*  - RtmpConsumer：RTMP 消费者，将音视频封装为 RTMP 格式发送
+	*  
+	*  使用流程：
+	*  1. 创建具体的消费者对象（如 RtcConsumer）
+	*  2. 将消费者添加到 Session 中
+	*  3. Session 将音视频帧分发给所有消费者
+	*  4. 消费者处理音视频帧，封装为特定协议格式并发送
+	*  
+	*  @note 该类是抽象基类，OnVideoFrame 和 OnAudioFrame 方法需要由派生类实现
+	*  @note 视频帧处理会自动解析 H264 NALU 单元，并在 IDR 帧前附加 SPS/PPS
+	*  @note 音频帧处理相对简单，直接传递给派生类实现
+	*/
 		 
 		 
 		
@@ -216,13 +248,64 @@ namespace gb_media_server
 			//void Close();
 			
 		protected:
+			/**
+			*  @brief SPS（Sequence Parameter Set）缓冲区
+			*  
+			*  存储从视频帧中提取的 SPS 参数集，包含视频分辨率、帧率、色彩空间等信息。
+			*  SPS 会在 IDR 帧前附加，确保解码器能够正确解码视频。
+			*  
+			*  @note SPS 是 H264 编码的重要参数，必须在解码前发送给解码器
+			*  @note 使用 CopyOnWriteBuffer 避免不必要的内存拷贝
+			*/
 			rtc::CopyOnWriteBuffer                     sps_;
+
+			/**
+			*  @brief PPS（Picture Parameter Set）缓冲区
+			*  
+			*  存储从视频帧中提取的 PPS 参数集，包含熵编码模式、量化参数等信息。
+			*  PPS 会在 IDR 帧前附加，确保解码器能够正确解码视频。
+			*  
+			*  @note PPS 是 H264 编码的重要参数，必须在解码前发送给解码器
+			*  @note 使用 CopyOnWriteBuffer 避免不必要的内存拷贝
+			*/
 			rtc::CopyOnWriteBuffer						pps_;
 
+			/**
+			*  @brief SPS/PPS 发送标志
+			*  
+			*  标识是否已经发送过 SPS 和 PPS 参数集。
+			*  初始值为 false，当第一次发送 IDR 帧时设置为 true。
+			*  
+			*  @note 该标志用于控制 SPS/PPS 的发送时机
+			*  @note 当前实现中，每个 IDR 帧都会附加 SPS/PPS，该标志未被使用
+			*/
 			bool                                         send_sps_pps_;
+
+			/**
+			*  @brief 视频帧缓冲区
+			*  
+			*  用于存储处理后的视频帧数据，包括附加的 SPS/PPS 和所有 NALU 单元。
+			*  缓冲区大小为 8MB（1024 * 1024 * 8 字节），足以容纳大多数视频帧。
+			*  
+			*  @note 该缓冲区会在每次处理视频帧时清空并重新填充
+			*  @note 使用 rtc::Buffer 提供高效的内存管理
+			*/
 			rtc::Buffer                                video_buffer_frame_;
 
 
+			/**
+			*  @brief 媒体复用器（Muxer）
+			*  
+			*  用于媒体数据的复用和格式转换，例如将 H265 转码为 H264，或将原始 YUV 编码为 H264。
+			*  Muxer 通过信号槽机制通知消费者编码完成，消费者接收编码后的音视频数据并发送。
+			*  
+			*  信号槽连接：
+			*  - SignalAudioEncoderInfoFrame：音频编码完成信号，连接到 SendAudioEncode 方法
+			*  - SignalVideoEncodedImage：视频编码完成信号，连接到 SendVideoEncode 方法
+			*  
+			*  @note Muxer 对象在构造函数中创建，在析构函数中销毁
+			*  @note 必须先断开信号槽连接，再删除 Muxer 对象
+			*/
 			libmedia_transfer_protocol::Muxer    *      muxer_;
 		};
  

@@ -54,8 +54,50 @@
 namespace gb_media_server
 {
 
-
-
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理WebRTC推流请求（Handler RTC Producer）
+	 *  
+	 *  该方法实现WebRTC推流的完整处理流程，包括JSON解析、SDP协商、会话创建和DTLS握手。
+	 *  
+	 *  处理流程：
+	 *  1. 解析HTTP请求体中的JSON数据
+	 *  2. 验证必需字段（streamurl和sdp）
+	 *  3. 从streamurl提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 创建RTC生产者实例
+	 *  6. 处理客户端的SDP Offer
+	 *  7. 生成服务器的SDP Answer
+	 *  8. 启动DTLS握手
+	 *  9. 注册到RTC服务以处理STUN/TURN请求
+	 *  10. 返回JSON响应给客户端
+	 *  
+	 *  JSON请求格式：
+	 *  {
+	 *      "streamurl": "app/stream",
+	 *      "sdp": "v=0\r\no=...",
+	 *      "type": "offer"
+	 *  }
+	 *  
+	 *  JSON响应格式：
+	 *  {
+	 *      "code": 0,
+	 *      "server": "WebServer",
+	 *      "type": "answer",
+	 *      "sdp": "v=0\r\no=...",
+	 *      "sessionid": "remote_ufrag:local_ufrag"
+	 *  }
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象
+	 *  @param packet HTTP数据包对象，包含JSON请求体
+	 *  @param http_ctx HTTP上下文对象，用于发送响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note 如果JSON解析失败或缺少必需字段，返回错误响应
+	 *  @note 生产者会被注册到RTC服务以处理ICE连接
+	 *  @note sessionid由远程和本地的ICE ufrag组成，用于标识会话
+	 */
 	void WebService::HandlerRtcProducer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
@@ -198,7 +240,51 @@ namespace gb_media_server
 
 	}
 
-
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理WebRTC拉流请求（Handler RTC Consumer）
+	 *  
+	 *  该方法实现WebRTC拉流的完整处理流程，包括JSON解析、SDP协商、消费者创建和DTLS握手。
+	 *  
+	 *  处理流程：
+	 *  1. 解析HTTP请求体中的JSON数据
+	 *  2. 验证必需字段（streamurl和sdp）
+	 *  3. 从streamurl提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 创建RTC消费者实例
+	 *  6. 将消费者添加到会话中
+	 *  7. 处理客户端的SDP Offer
+	 *  8. 生成服务器的SDP Answer
+	 *  9. 启动DTLS握手
+	 *  10. 注册到RTC服务以处理STUN/TURN请求
+	 *  11. 返回JSON响应给客户端
+	 *  
+	 *  JSON请求格式：
+	 *  {
+	 *      "streamurl": "app/stream",
+	 *      "sdp": "v=0\r\no=...",
+	 *      "type": "offer"
+	 *  }
+	 *  
+	 *  JSON响应格式：
+	 *  {
+	 *      "code": 0,
+	 *      "server": "GbMediaServer",
+	 *      "type": "answer",
+	 *      "sdp": "v=0\r\no=...",
+	 *      "sessionid": "remote_ufrag:local_ufrag"
+	 *  }
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象
+	 *  @param packet HTTP数据包对象，包含JSON请求体
+	 *  @param http_ctx HTTP上下文对象，用于发送响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note 消费者添加到会话后会自动接收媒体流
+	 *  @note 消费者会被注册到RTC服务以处理ICE连接
+	 *  @note 如果会话不存在或没有生产者，消费者将等待直到有流可用
+	 */
 	void WebService::HandlerRtcConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
@@ -339,6 +425,39 @@ namespace gb_media_server
 
 	}
 	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理HTTP-FLV拉流请求（Handler FLV Consumer）
+	 *  
+	 *  该方法实现HTTP-FLV流媒体的处理流程，创建FLV消费者和编码器，建立HTTP-FLV推流通道。
+	 *  
+	 *  处理流程：
+	 *  1. 从请求路径中提取流URL
+	 *  2. 移除.flv扩展名，构造完整的流URL
+	 *  3. 从URL中提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 创建FLV消费者实例
+	 *  6. 设置消费者的远程地址
+	 *  7. 将消费者绑定到连接上下文
+	 *  8. 创建FLV编码器并绑定到连接
+	 *  9. 将消费者添加到会话中
+	 *  10. 消费者开始接收媒体流并通过FLV编码器发送
+	 *  
+	 *  URL处理示例：
+	 *  - 请求路径：/live/stream1.flv
+	 *  - 处理后：http://chensong.com/live/stream1
+	 *  - 会话名称：live/stream1
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象，包含FLV流的路径
+	 *  @param packet HTTP数据包对象
+	 *  @param http_ctx HTTP上下文对象
+	 *  @note 该方法在工作线程中执行
+	 *  @note FLV编码器会自动发送FLV头部和媒体数据
+	 *  @note 消费者和编码器都绑定到连接上下文，连接断开时自动清理
+	 *  @note 支持调试模式，可以将FLV流保存到文件（通过宏控制）
+	 */
 	void WebService::HandlerFlvConsumer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
@@ -401,6 +520,41 @@ namespace gb_media_server
 
 
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理HLS M3U8播放列表请求（Handler M3U8 Consumer）
+	 *  
+	 *  该方法实现HLS（HTTP Live Streaming）播放列表的处理流程，返回M3U8文件内容。
+	 *  
+	 *  处理流程：
+	 *  1. 从请求路径中提取流URL
+	 *  2. 移除.m3u8扩展名，构造完整的流URL
+	 *  3. 从URL中提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 从会话的Stream中获取播放列表内容
+	 *  6. 如果播放列表存在，返回M3U8文件
+	 *  7. 如果播放列表不存在，返回404错误
+	 *  
+	 *  URL处理示例：
+	 *  - 请求路径：/live/stream1.m3u8
+	 *  - 处理后：http://chensong.com/live/stream1
+	 *  - 会话名称：live/stream1
+	 *  
+	 *  M3U8响应头：
+	 *  - Content-Type: application/vnd.apple.mpegurl
+	 *  - Server: GbMediaServer
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象，包含M3U8文件路径
+	 *  @param packet HTTP数据包对象
+	 *  @param http_ctx HTTP上下文对象，用于发送M3U8响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note M3U8文件由Stream动态生成，包含最新的TS切片列表
+	 *  @note 客户端会定期请求M3U8文件以获取最新切片
+	 *  @note 响应在网络线程中发送，避免阻塞工作线程
+	 */
 	void WebService::HandlerM3u8Consumer(libmedia_transfer_protocol::libnetwork::Connection * conn, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
@@ -454,6 +608,41 @@ namespace gb_media_server
 			});
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理HLS TS切片请求（Handler TS Consumer）
+	 *  
+	 *  该方法实现HLS TS（Transport Stream）切片的处理流程，返回TS切片数据。
+	 *  
+	 *  处理流程：
+	 *  1. 从请求路径中提取流URL
+	 *  2. 移除.ts扩展名，构造完整的流URL
+	 *  3. 从URL中提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 从会话的Stream中获取TS切片（Fragment）
+	 *  6. 返回TS切片数据
+	 *  
+	 *  URL处理示例：
+	 *  - 请求路径：/live/stream-0.ts
+	 *  - 处理后：http://chensong.com/live/stream-0
+	 *  - 会话名称：live/stream-0
+	 *  
+	 *  TS响应头：
+	 *  - Content-Type: video/MP2T
+	 *  - Server: GbMediaServer
+	 *  - Content-Length: 切片大小
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象，包含TS切片文件路径
+	 *  @param packet HTTP数据包对象
+	 *  @param http_ctx HTTP上下文对象，用于发送TS切片响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note TS切片数据由Stream管理，包含固定时长的音视频数据
+	 *  @note 响应在网络线程中发送，避免阻塞工作线程
+	 *  @note TODO标记表示部分功能待完善（PostRequest方法调用）
+	 */
 	void WebService::HandlerTsConsumer(libmedia_transfer_protocol::libnetwork::Connection * conn, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req, 
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet, 
@@ -502,6 +691,50 @@ namespace gb_media_server
 			});
 		}
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理开启GB28181 RTP服务器请求（Handler Open RTP Server）
+	 *  
+	 *  该方法实现GB28181协议中开启RTP服务器的处理流程，用于接收GB28181设备推送的PS流。
+	 *  
+	 *  处理流程：
+	 *  1. 解析HTTP请求体中的JSON数据
+	 *  2. 提取端口号、TCP模式和流ID
+	 *  3. 构造GB28181流URL并提取会话名称
+	 *  4. 创建或获取会话实例
+	 *  5. 开启TCP服务器监听指定端口
+	 *  6. 创建GB28181生产者实例
+	 *  7. 将生产者设置到会话中
+	 *  8. 将生产者绑定到TCP服务器连接上下文
+	 *  9. 返回JSON响应，包含分配的端口号
+	 *  
+	 *  JSON请求格式：
+	 *  {
+	 *      "port": 10000,
+	 *      "tcpmode": 1,
+	 *      "streamid": "34020000001320000001"
+	 *  }
+	 *  
+	 *  JSON响应格式：
+	 *  {
+	 *      "code": 0,
+	 *      "tcpmode": 1,
+	 *      "streamid": "34020000001320000001",
+	 *      "port": 20000
+	 *  }
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象
+	 *  @param packet HTTP数据包对象，包含JSON请求体
+	 *  @param http_ctx HTTP上下文对象，用于发送响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note TCP端口从20000开始自动递增分配
+	 *  @note RTP服务器使用TCP协议接收PS流
+	 *  @note 生产者会自动解析PS流并提取音视频数据
+	 *  @note 如果会话或RTP服务器创建失败，返回404错误
+	 */
 	void WebService::HandlerOpenRtpServer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
@@ -611,6 +844,46 @@ namespace gb_media_server
 			});
 
 	}
+	
+	/***
+	 *  @author chensong
+	 *  @date 2025-10-18
+	 *  @brief 处理关闭GB28181 RTP服务器请求（Handler Close RTP Server）
+	 *  
+	 *  该方法实现GB28181协议中关闭RTP服务器的处理流程，停止接收PS流并释放资源。
+	 *  
+	 *  处理流程：
+	 *  1. 解析HTTP请求体中的JSON数据
+	 *  2. 提取流ID
+	 *  3. 构造GB28181流URL并提取会话名称
+	 *  4. 关闭对应的会话
+	 *  5. 会话关闭会自动：
+	 *     - 停止RTP服务器
+	 *     - 释放TCP端口
+	 *     - 清理生产者资源
+	 *     - 断开所有消费者
+	 *  6. 返回JSON响应
+	 *  
+	 *  JSON请求格式：
+	 *  {
+	 *      "streamid": "34020000001320000001"
+	 *  }
+	 *  
+	 *  JSON响应格式：
+	 *  {
+	 *      "code": 0,
+	 *      "streamid": "34020000001320000001"
+	 *  }
+	 *  
+	 *  @param conn 网络连接对象指针
+	 *  @param req HTTP请求对象
+	 *  @param packet HTTP数据包对象，包含JSON请求体
+	 *  @param http_ctx HTTP上下文对象，用于发送响应
+	 *  @note 该方法在工作线程中执行
+	 *  @note 如果会话不存在，返回404错误
+	 *  @note 关闭会话会自动清理所有相关资源
+	 *  @note 响应在网络线程中发送，避免阻塞工作线程
+	 */
 	void WebService::HandlerCloseRtpServer(libmedia_transfer_protocol::libnetwork::Connection* conn,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
 		const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,

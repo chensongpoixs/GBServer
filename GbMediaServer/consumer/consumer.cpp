@@ -42,6 +42,29 @@ purpose:		GOPMGR
 
 namespace gb_media_server
 { 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 消费者构造函数（Consumer Constructor）
+	*  
+	*  该构造函数用于初始化消费者对象，设置视频缓冲区、创建媒体复用器（Muxer），
+	*  并连接音视频编码信号槽，用于处理编码后的音视频数据。
+	*  
+	*  初始化流程：
+	*  1. 调用基类 ShareResource 的构造函数，传入 Stream 和 Session 对象
+	*  2. 初始化 SPS/PPS 缓冲区为空
+	*  3. 设置 send_sps_pps_ 标志为 false，表示尚未发送 SPS/PPS
+	*  4. 分配 8MB 的视频帧缓冲区（1024 * 1024 * 8 字节）
+	*  5. 创建 Muxer 对象，用于媒体数据的复用和转换
+	*  6. 连接 Muxer 的音频编码信号到 SendAudioEncode 方法
+	*  7. 连接 Muxer 的视频编码信号到 SendVideoEncode 方法
+	*  
+	*  @param stream 流对象的共享指针，用于管理媒体流的生命周期
+	*  @param s 会话对象的共享指针，用于管理会话的生命周期
+	*  @note 视频缓冲区大小为 8MB，足以容纳大多数视频帧
+	*  @note Muxer 用于将原始音视频数据转换为特定格式（如 FLV、HLS 等）
+	*  @note 信号槽机制用于异步处理编码后的音视频数据
+	*/
 	Consumer::Consumer(  const std::shared_ptr<Stream> & stream, const std::shared_ptr<Session> &s)
 			:ShareResource(stream, s)
 			, sps_()
@@ -57,6 +80,25 @@ namespace gb_media_server
 			muxer_->SignalVideoEncodedImage.connect(this, &Consumer::SendVideoEncode);
 		}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 消费者析构函数（Consumer Destructor）
+	*  
+	*  该析构函数用于清理消费者对象，断开所有信号槽连接，释放 Muxer 对象占用的资源。
+	*  
+	*  清理流程：
+	*  1. 记录析构日志
+	*  2. 检查 Muxer 对象是否存在
+	*  3. 断开音频编码信号槽的所有连接
+	*  4. 断开视频编码信号槽的所有连接
+	*  5. 删除 Muxer 对象，释放内存
+	*  6. 将 Muxer 指针设置为 nullptr，避免悬空指针
+	*  
+	*  @note 必须先断开信号槽连接，再删除 Muxer 对象，避免回调到已销毁的对象
+	*  @note 视频缓冲区（video_buffer_frame_）会自动释放，无需手动清理
+	*  @note SPS/PPS 缓冲区会自动释放，无需手动清理
+	*/
 	Consumer::~Consumer()
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
@@ -70,6 +112,40 @@ namespace gb_media_server
  
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 添加视频帧（Add Video Frame）
+	*  
+	*  该方法用于处理 H264 编码的视频帧，解析 NALU 单元，提取 SPS/PPS 参数，
+	*  并在 IDR 帧前附加 SPS/PPS，确保解码器能够正确解码视频。
+	*  
+	*  处理流程：
+	*  1. 使用 H264::FindNaluIndices 解析视频帧，识别所有 NALU 单元
+	*  2. 清空视频缓冲区，准备存储处理后的视频帧
+	*  3. 遍历所有 NALU 单元，根据类型进行不同处理：
+	*     - SPS（Sequence Parameter Set）：提取并缓存到 sps_ 成员变量
+	*     - PPS（Picture Parameter Set）：提取并缓存到 pps_ 成员变量
+	*     - IDR 帧：在帧前附加 SPS 和 PPS，确保解码器能够快速恢复
+	*     - Slice 帧：直接添加到视频缓冲区
+	*     - 其他 NALU 类型（AUD、SEI、Filler 等）：直接添加到视频缓冲区
+	*  4. 设置 send_sps_pps_ 标志为 true，表示已发送 SPS/PPS
+	*  5. 创建新的 EncodedImage 对象，包含处理后的视频帧
+	*  6. 调用 OnVideoFrame 方法，将视频帧传递给具体的消费者实现
+	*  
+	*  NALU 类型说明：
+	*  - SPS（7）：序列参数集，包含视频分辨率、帧率、色彩空间等信息
+	*  - PPS（8）：图像参数集，包含熵编码模式、量化参数等信息
+	*  - IDR（5）：即时解码刷新帧，关键帧，可以独立解码
+	*  - Slice（1）：非关键帧，依赖前面的帧进行解码
+	*  - AUD（9）：访问单元分隔符，用于标识帧边界
+	*  - SEI（6）：补充增强信息，包含额外的元数据
+	*  
+	*  @param frame 编码后的视频帧，包含 H264 编码数据和元信息
+	*  @note 该方法会解析 H264 NALU 单元，并在 IDR 帧前自动附加 SPS 和 PPS
+	*  @note 如果视频缓冲区为空，则不会调用 OnVideoFrame 方法
+	*  @note 视频缓冲区大小为 8MB，足以容纳大多数视频帧
+	*/
 	void Consumer::AddVideoFrame(const libmedia_codec::EncodedImage & frame)
 	{
 		std::vector<webrtc::H264::NaluIndex> nalus = webrtc::H264::FindNaluIndices(
@@ -174,11 +250,57 @@ namespace gb_media_server
 		OnVideoFrame(std::move(enocded_image));
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 添加音频帧（Add Audio Frame）
+	*  
+	*  该方法用于处理音频帧，直接将音频编码数据和 PTS 时间戳传递给 OnAudioFrame 方法。
+	*  音频帧的处理相对简单，不需要像视频帧那样解析 NALU 单元或附加参数集。
+	*  
+	*  处理流程：
+	*  1. 接收音频编码数据缓冲区和 PTS 时间戳
+	*  2. 直接调用 OnAudioFrame 方法，将音频帧传递给具体的消费者实现
+	*  3. 由具体的消费者实现类（如 RtcConsumer、FlvConsumer 等）处理音频帧的封装和发送
+	*  
+	*  音频数据说明：
+	*  - 音频帧通常包含一个或多个音频采样周期的编码数据
+	*  - 音频编码格式可能为 AAC、OPUS 等，由具体的消费者实现决定
+	*  - PTS 用于同步音频和视频的播放时间
+	*  
+	*  @param frame 音频编码数据缓冲区，包含压缩后的音频数据
+	*  @param pts 呈现时间戳（Presentation Time Stamp），单位通常为毫秒或采样周期
+	*  @note 音频帧处理不需要像视频帧那样附加 SPS/PPS 等参数
+	*  @note 该方法会调用 OnAudioFrame 方法将音频帧传递给具体的消费者实现
+	*/
 	void Consumer::AddAudioFrame(const rtc::CopyOnWriteBuffer & frame, int64_t pts)
 	{
 		OnAudioFrame(frame, pts);
 	}
  
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送视频编码帧（Send Video Encode）
+	*  
+	*  该方法是 Muxer 的信号槽回调，当 Muxer 完成视频编码后触发。
+	*  该方法接收编码后的视频帧，并将其传递给 OnVideoFrame 方法进行发送。
+	*  
+	*  处理流程：
+	*  1. 接收 Muxer 编码后的视频帧（EncodedImage 智能指针）
+	*  2. 解引用智能指针，获取 EncodedImage 对象
+	*  3. 调用 OnVideoFrame 方法，将视频帧传递给具体的消费者实现
+	*  4. 由具体的消费者实现类（如 RtcConsumer、FlvConsumer 等）处理视频帧的封装和发送
+	*  
+	*  使用场景：
+	*  - 当使用 Muxer 进行视频转码或格式转换时，该方法会被自动调用
+	*  - 例如：将 H265 转码为 H264，或将原始 YUV 编码为 H264
+	*  
+	*  @param encoded_image 编码后的视频帧智能指针，包含 H264 编码数据和元信息
+	*  @note 该方法由 Muxer 的信号槽机制自动调用，不需要手动调用
+	*  @note 智能指针会自动管理内存，无需手动释放
+	*  @note 注释掉的代码用于调试，可以将视频帧保存到缓冲区
+	*/
 	void Consumer::SendVideoEncode(std::shared_ptr<libmedia_codec::EncodedImage> encoded_image)
 	{
 		// rtc::CopyOnWriteBuffer  buffer;
@@ -193,6 +315,31 @@ namespace gb_media_server
 	}
 
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief 发送音频编码帧（Send Audio Encode）
+	*  
+	*  该方法是 Muxer 的信号槽回调，当 Muxer 完成音频编码后触发。
+	*  该方法接收编码后的音频帧，并将其封装为 RTP 包通过 SRTP 发送。
+	*  
+	*  处理流程（注释掉的代码）：
+	*  1. 在工作线程中异步处理音频帧
+	*  2. 检查 DTLS 握手是否完成，未完成则直接返回
+	*  3. 计算 RTP 时间戳（音频时间戳 * 90）
+	*  4. 检查 SRTP 发送会话是否存在，不存在则记录警告并返回
+	*  5. 创建 RTP 包，设置 Payload Type、时间戳、SSRC 等参数
+	*  6. 分配 RTP 包的 Payload 空间，并复制音频编码数据
+	*  7. 设置 RTP 包的序列号，并标记为音频包
+	*  8. 使用 SRTP 会话加密 RTP 包
+	*  9. 通过 RTC 服务器发送加密后的 RTP 包到远程地址
+	*  
+	*  @param audio_frame 编码后的音频帧智能指针，包含音频编码数据和元信息
+	*  @note 该方法由 Muxer 的信号槽机制自动调用，不需要手动调用
+	*  @note 当前实现被注释掉（#if 0），可能是因为音频发送逻辑已移至其他地方
+	*  @note RTP 时间戳计算公式：音频时间戳 * 90（90kHz 时钟频率）
+	*  @note SRTP 用于加密 RTP 包，确保音频数据的安全传输
+	*/
 	void Consumer::SendAudioEncode(std::shared_ptr<libmedia_codec::AudioEncoder::EncodedInfoLeaf> audio_frame)
 	{
 #if 0

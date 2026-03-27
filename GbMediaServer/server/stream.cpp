@@ -112,18 +112,83 @@ purpose:		GOPMGR
 namespace gb_media_server
 {
 	 
-
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 构造函数（Constructor）
+		 *  
+		 *  初始化Stream实例，设置会话引用和会话名称，创建HLS Muxer。
+		 *  
+		 *  初始化流程：
+		 *  1. 保存会话引用
+		 *  2. 保存会话名称
+		 *  3. 创建HLS Muxer实例，使用会话名称作为标识
+		 *  
+		 *  @param s 所属的会话引用，用于访问会话功能和分发数据
+		 *  @param session_name 会话名称，用于唯一标识该流
+		 *  @note 会话对象的生命周期必须长于Stream对象
+		 *  @note HLS Muxer在构造时创建，准备接收音视频数据
+		 */
 		Stream::Stream( Session &s, const std::string & session_name)
 			:session_(s), session_name_(session_name) , hls_muxer_(session_name)
 		{
 			 
 		}
+		
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 添加视频帧（Add Video Frame）
+		 *  
+		 *  接收并处理来自生产者的编码后的视频帧，将其分发给所有消费者。
+		 *  
+		 *  处理流程：
+		 *  1. 接收编码后的视频帧（使用移动语义）
+		 *  2. TODO: 将视频帧传递给HLS Muxer进行TS封装
+		 *  3. 将视频帧转发给会话，由会话分发给所有消费者
+		 *  
+		 *  视频帧类型：
+		 *  - 关键帧（IDR帧）：包含完整的图像信息，可独立解码
+		 *  - 非关键帧（P帧/B帧）：依赖其他帧解码
+		 *  
+		 *  @param frame 编码后的视频帧，包含编码数据、时间戳、帧类型等信息
+		 *  @note 使用std::move避免数据拷贝，提高性能
+		 *  @note 该方法会在生产者线程中调用
+		 *  @note TODO: 需要实现HLS协议的视频帧处理
+		 *  @note 视频帧会被转发到会话，由会话分发给所有消费者
+		 */
 		void Stream::AddVideoFrame(  libmedia_codec::EncodedImage&& frame)
 		{ 
 			// TODO@chensong 2025-11-17 实现 HLS的协议
 			//hls_muxer_.OnPacket(packet);
 			session_.AddVideoFrame(std::move(frame));
 		}
+		
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 添加音频帧（Add Audio Frame）
+		 *  
+		 *  接收并处理来自生产者的编码后的音频帧，将其分发给所有消费者。
+		 *  
+		 *  处理流程：
+		 *  1. 接收编码后的音频帧和时间戳（使用移动语义）
+		 *  2. TODO: 将音频帧传递给HLS Muxer进行TS封装
+		 *  3. 将音频帧转发给会话，由会话分发给所有消费者
+		 *  
+		 *  音频帧特点：
+		 *  - 音频帧通常较小（几百字节到几KB）
+		 *  - 音频帧频率较高（如AAC每帧约23ms）
+		 *  - 音频没有关键帧概念，每帧都可独立解码
+		 *  - 音频时间戳用于音视频同步
+		 *  
+		 *  @param frame 编码后的音频帧数据（AAC/Opus等格式）
+		 *  @param pts 音频帧的显示时间戳（Presentation Timestamp），单位通常为毫秒
+		 *  @note 使用std::move避免数据拷贝，提高性能
+		 *  @note 该方法会在生产者线程中调用
+		 *  @note TODO: 需要实现HLS协议的音频帧处理
+		 *  @note 音频帧会被转发到会话，由会话分发给所有消费者
+		 */
 		void Stream::AddAudioFrame(  rtc::CopyOnWriteBuffer&&frame, int64_t  pts)
 		{
 			// TODO@chensong 2025-11-17 实现 HLS的协议
@@ -131,7 +196,17 @@ namespace gb_media_server
 			session_.AddAudioFrame(std::move(frame), pts);
 		}
 		 
-		// 流信息函数
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 获取会话名称（Session Name）
+		 *  
+		 *  返回该流所属的会话名称。
+		 *  
+		 *  @return const std::string& 会话名称的常量引用
+		 *  @note 返回引用避免字符串拷贝，提高性能
+		 *  @note 会话名称在Stream创建时设置，之后不可更改
+		 */
 		const std::string & Stream::SessionName() const
 		{
 			return session_name_;
