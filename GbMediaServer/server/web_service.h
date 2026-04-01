@@ -560,6 +560,82 @@ namespace  gb_media_server
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
 			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
 
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 获取Producer统计信息（Get Producer Statistics）
+		 *  
+		 *  该方法用于处理获取Producer统计信息的HTTP请求。
+		 *  
+		 *  请求格式：
+		 *  - URL: GET /api/stats/producer/{session}
+		 *  
+		 *  响应格式：
+		 *  - Content-Type: application/json
+		 *  - Body: {"code": 0, "msg": "success", "data": {...}}
+		 */
+		void HandlerGetProducerStats(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 获取Consumer统计信息（Get Consumer Statistics）
+		 *  
+		 *  该方法用于处理获取Consumer统计信息的HTTP请求。
+		 *  
+		 *  请求格式：
+		 *  - URL: GET /api/stats/consumer/{consumer_id}
+		 *  
+		 *  响应格式：
+		 *  - Content-Type: application/json
+		 *  - Body: {"code": 0, "msg": "success", "data": {...}}
+		 */
+		void HandlerGetConsumerStats(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 获取会话统计信息（Get Session Statistics）
+		 *  
+		 *  该方法用于处理获取会话统计信息的HTTP请求，包括Producer和所有Consumer的统计。
+		 *  
+		 *  请求格式：
+		 *  - URL: GET /api/stats/session/{session}
+		 *  
+		 *  响应格式：
+		 *  - Content-Type: application/json
+		 *  - Body: {"code": 0, "msg": "success", "data": {...}}
+		 */
+		void HandlerGetSessionStats(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
+		 *  @brief 获取所有会话统计信息（Get All Sessions Statistics）
+		 *  
+		 *  该方法用于处理获取所有会话统计信息的HTTP请求。
+		 *  
+		 *  请求格式：
+		 *  - URL: GET /api/stats/sessions
+		 *  
+		 *  响应格式：
+		 *  - Content-Type: application/json
+		 *  - Body: {"code": 0, "msg": "success", "data": {...}}
+		 */
+		void HandlerGetAllSessionsStats(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
 		// RTSP 相关接口
 	/*	void HandlerRtspProducer(libmedia_transfer_protocol::libnetwork::Connection * conn,
 			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,

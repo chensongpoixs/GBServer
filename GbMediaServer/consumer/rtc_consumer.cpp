@@ -67,6 +67,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/tmmbr.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/tmmb_item.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rapid_resync_request.h"
+#include "share/statistics_manager.h"
 
 namespace gb_media_server
 {
@@ -147,6 +148,28 @@ namespace gb_media_server
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 
+		// 创建统计对象并注册到统计管理器（Create statistics object and register to manager）
+		// @date 2025-10-18
+		std::string consumer_id = s->SessionName() + "_consumer_" + std::to_string(audio_ssrc);
+		statistics_ = std::make_shared<ConsumerStatistics>(
+			consumer_id,
+			s->SessionName(),
+			s->SessionName(),
+			"rtc"
+		);
+		StatisticsManager::GetInstance().RegisterConsumer(consumer_id, statistics_);
+		statistics_->SetState("created");
+
+		// 设置媒体信息（Set media info）
+		// @date 2025-10-18
+		statistics_->SetVideoInfo(
+			video_ssrc,
+			video_ssrc + 1, // RTX SSRC
+			0, // width未知
+			0, // height未知
+			"H264"
+		);
+		statistics_->SetAudioInfo(audio_ssrc, "OPUS");
 	
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
@@ -177,6 +200,12 @@ namespace gb_media_server
 	*/
 	RtcConsumer:: ~RtcConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+
+		// 从统计管理器注销（Unregister from statistics manager）
+		// @date 2025-10-18
+		if (statistics_) {
+			StatisticsManager::GetInstance().UnregisterConsumer(statistics_->GetConsumerId());
+		}
 		
 		//dtls_.SignalDtlsSendPakcet.disconnect(this);
 		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
@@ -558,6 +587,13 @@ namespace gb_media_server
 							 // ++num_skipped_packets_;
 							  continue;
 						  }
+
+						  // 统计NACK发送（Statistics NACK sent）
+						  // @date 2025-10-18
+						  if (statistics_) {
+							  statistics_->OnNackSent(nack.packet_ids().size());
+						  }
+
 						  RequestNack(nack);
 						  break;
 					  }
@@ -588,11 +624,25 @@ namespace gb_media_server
 					  case libmedia_transfer_protocol::rtcp::Pli::kFeedbackMessageType:
 						  RTC_LOG(LS_INFO) << "recvice psfb  pli  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
 						 // HandlePli(rtcp_block, packet_information);
+
+						  // 统计PLI发送（Statistics PLI sent）
+						  // @date 2025-10-18
+						  if (statistics_) {
+							  statistics_->OnPliSent();
+						  }
+
 						  RequestKeyFrame();
 						  break;
 					  case libmedia_transfer_protocol::rtcp::Fir::kFeedbackMessageType:
 						  RTC_LOG(LS_INFO) << "recvice psfb  fir  RTCP TYPE = " << rtcp_block.type() << ", sub_type = " << rtcp_block.fmt();
 						  //HandleFir(rtcp_block, packet_information);
+
+						  // 统计FIR发送（Statistics FIR sent）
+						  // @date 2025-10-18
+						  if (statistics_) {
+							  statistics_->OnFirSent();
+						  }
+
 						  RequestKeyFrame();
 						  break;
 					  case libmedia_transfer_protocol::rtcp::Psfb::kAfbMessageType:
@@ -725,9 +775,27 @@ namespace gb_media_server
 #else
 				  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
 
+				  // 统计RTP包发送（Statistics RTP packet sent）
+				  // @date 2025-10-18
+				  if (statistics_) {
+					  statistics_->OnRtpPacketSent(true, single_packet->size());
+				  }
+
 #endif  
 				  AddVideoPacket(single_packet);
 			  }
+		  }
+
+		  // 统计视频帧发送（Statistics video frame sent）
+		  // @date 2025-10-18
+		  if (statistics_) {
+			  // 简单判断是否为关键帧（通过检查NALU类型）
+			  bool is_key_frame = false;
+			  if (frame.size() > 4) {
+				  uint8_t nal_type = frame.data()[4] & 0x1F;
+				  is_key_frame = (nal_type == 5); // IDR帧
+			  }
+			  statistics_->OnFrameSent(true, is_key_frame);
 		  }
 	  }
 	/**
@@ -802,6 +870,12 @@ namespace gb_media_server
 #else 
 
 		  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
+
+		  // 统计RTP包发送（Statistics RTP packet sent）
+		  // @date 2025-10-18
+		  if (statistics_) {
+			  statistics_->OnRtpPacketSent(false, single_packet->size());
+		  }
 #endif //
 	  }
 

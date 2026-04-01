@@ -74,6 +74,13 @@ namespace gb_media_server
 	 void RtcProducer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
+
+		// 统计DTLS握手开始（Statistics DTLS handshake start）
+		// @date 2025-10-18
+		if (statistics_) {
+			statistics_->OnDtlsHandshakeStart();
+			statistics_->SetState("connecting");
+		}
 	}
 	
 	/**
@@ -155,6 +162,32 @@ namespace gb_media_server
 		
 		// 设置DTLS完成标志
 		dtls_done_ = true;
+
+		// 统计DTLS握手完成（Statistics DTLS handshake complete）
+		// @date 2025-10-18
+		if (statistics_) {
+			std::string dtls_cipher = "DTLS_SRTP";
+			std::string srtp_cipher;
+			switch (srtpCryptoSuite) {
+				case libmedia_transfer_protocol::libsrtp::CryptoSuite::AES_CM_128_HMAC_SHA1_80:
+					srtp_cipher = "AES_CM_128_HMAC_SHA1_80";
+					break;
+				case libmedia_transfer_protocol::libsrtp::CryptoSuite::AES_CM_128_HMAC_SHA1_32:
+					srtp_cipher = "AES_CM_128_HMAC_SHA1_32";
+					break;
+				case libmedia_transfer_protocol::libsrtp::CryptoSuite::AEAD_AES_256_GCM:
+					srtp_cipher = "AEAD_AES_256_GCM";
+					break;
+				case libmedia_transfer_protocol::libsrtp::CryptoSuite::AEAD_AES_128_GCM:
+					srtp_cipher = "AEAD_AES_128_GCM";
+					break;
+				default:
+					srtp_cipher = "UNKNOWN";
+					break;
+			}
+			statistics_->OnDtlsHandshakeComplete(dtls_cipher, srtp_cipher);
+			statistics_->SetState("connected");
+		}
 		
 		// 如果SDP包含DataChannel，创建SCTP关联
 		if (sdp_.GetDataChannelParams().application)
@@ -288,6 +321,13 @@ namespace gb_media_server
 	{
 		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS failed";
 		dtls_done_ = false;
+
+		// 统计DTLS握手失败（Statistics DTLS handshake failed）
+		// @date 2025-10-18
+		if (statistics_) {
+			statistics_->OnDtlsHandshakeFailed();
+			statistics_->SetState("failed");
+		}
 
 		// 获取会话名称
 		std::string session_name = GetSession()->SessionName();

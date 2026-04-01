@@ -55,6 +55,8 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "consumer/rtc_consumer.h"
 #include "share/rtc_interface.h"
+#include "consumer/consumer_statistics.h"
+
 namespace gb_media_server {
 	/**
 	*  @author chensong
@@ -686,7 +688,10 @@ namespace gb_media_server {
 		// uint32_t      video_seq_ = 100;
 		//  libmedia_transfer_protocol::RtpHeaderExtensionMap     rtp_header_extension_map_;
 
-		
+		// 统计数据对象（Statistics Object）
+		// 用于收集和管理Consumer的统计数据
+		// @date 2025-10-18
+		std::shared_ptr<ConsumerStatistics> statistics_;
 		
 
 	};

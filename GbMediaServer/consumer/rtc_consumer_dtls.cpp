@@ -61,6 +61,12 @@ namespace gb_media_server
 	 void RtcConsumer::OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO) << "DTLS connecting" ;
+
+		// 统计DTLS握手开始（Statistics DTLS handshake start）
+		// @date 2025-10-18
+		if (statistics_) {
+			statistics_->SetState("connecting");
+		}
 	}
 	
 	/**
@@ -135,6 +141,13 @@ namespace gb_media_server
 		}
 		//GBMEDIASERVER_LOG(LS_INFO) << "dtls handshake done.";
 		dtls_done_ = true;
+
+		// 统计DTLS握手完成（Statistics DTLS handshake complete）
+		// @date 2025-10-18
+		if (statistics_) {
+			statistics_->SetState("connected");
+		}
+
 		//srtp_session_.Init(dtls_.RecvKey(), dtls_.SendKey());
 		// return;
 		 // 完成验证后进行发送

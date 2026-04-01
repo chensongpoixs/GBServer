@@ -55,6 +55,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/stream.h"
+#include "share/statistics_manager.h"
 
 namespace gb_media_server {
 
@@ -156,7 +157,15 @@ namespace gb_media_server {
 		rtp_header_.extension.hasTransportSequenceNumber = true;
 
 
-		
+		// 创建统计对象并注册到统计管理器（Create statistics object and register to manager）
+		// @date 2025-10-18
+		statistics_ = std::make_shared<ProducerStatistics>(
+			s->SessionName(),
+			s->SessionName(),
+			"rtc"
+		);
+		StatisticsManager::GetInstance().RegisterProducer(s->SessionName(), statistics_);
+		statistics_->SetState("created");
 	
 	}
 	/**
@@ -182,6 +191,12 @@ namespace gb_media_server {
 	RtcProducer::~RtcProducer()
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+
+		// 从统计管理器注销（Unregister from statistics manager）
+		// @date 2025-10-18
+		if (statistics_) {
+			StatisticsManager::GetInstance().UnregisterProducer(GetSession()->SessionName());
+		}
 
 		//dtls_.SignalDtlsSendPakcet.disconnect(this);
 		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
@@ -375,11 +390,23 @@ namespace gb_media_server {
 					GBMEDIASERVER_LOG(LS_INFO) << "Send RR";
 					SendSrtpRtcp(buffer.data(), buffer.size());
 					rtcp_rr_timestamp_ = rtc::SystemTimeMillis();
+
+					// 统计RTCP RR发送（Statistics RTCP RR sent）
+					// @date 2025-10-18
+					if (statistics_) {
+						statistics_->OnRtcpRRSent();
+					}
 				}
 				{
 				
 					stream_status_ = stream_status_? false:true;
 				//	SetStreamStatus(stream_status_);
+				}
+
+				// 定期更新统计数据（Update statistics periodically）
+				// @date 2025-10-18
+				if (statistics_) {
+					statistics_->Update();
 				}
  
 			OnTimer();
@@ -406,7 +433,29 @@ namespace gb_media_server {
 	*/
 	bool RtcProducer::ProcessOfferSdp(libmedia_transfer_protocol::librtc::RtcSdpType  rtc_sdp_type, const std::string& sdp) {
 		sdp_.SetSdpType(rtc_sdp_type);
-		return sdp_.Decode(sdp);
+		bool result = sdp_.Decode(sdp);
+
+		// 设置媒体信息到统计对象（Set media info to statistics）
+		// @date 2025-10-18
+		if (result && statistics_) {
+			// 设置视频信息
+			statistics_->SetVideoInfo(
+				sdp_.VideoSsrc(),
+				0, // width未知
+				0, // height未知
+				"H264" // 假设为H264编解码器
+			);
+
+			// 设置音频信息
+			statistics_->SetAudioInfo(
+				sdp_.AudioSsrc(),
+				48000, // 假设采样率为48kHz
+				2, // 假设为立体声
+				"OPUS" // 假设为OPUS编解码器
+			);
+		}
+
+		return result;
 	}
 
 	/**
@@ -600,6 +649,17 @@ namespace gb_media_server {
 					rtp_header_.extension.transportSequenceNumber, 
 					rtc::SystemTimeMillis());
 			}
+
+			// 判断是视频还是音频包（Determine if video or audio packet）
+			// @date 2025-10-18
+			bool is_video = (rtp_packet_received.PayloadType() == sdp_.GetVideoPayloadType());
+
+			// 统计RTP包接收（Statistics RTP packet received）
+			// @date 2025-10-18
+			if (statistics_) {
+				statistics_->OnRtpPacketReceived(is_video, size);
+			}
+
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{
 				
@@ -659,6 +719,19 @@ namespace gb_media_server {
 
 #endif 
 				//decoder_->Decode(encode_image, true, 1);
+
+				// 统计视频帧接收（Statistics video frame received）
+				// @date 2025-10-18
+				if (statistics_) {
+					// 简单判断是否为关键帧（通过检查NALU类型）
+					bool is_key_frame = false;
+					if (nal_parse_->buffer_index_ > 4) {
+						uint8_t nal_type = nal_parse_->buffer_stream_[4] & 0x1F;
+						is_key_frame = (nal_type == 5); // IDR帧
+					}
+					statistics_->OnFrameReceived(true, is_key_frame);
+				}
+
 				GetStream()->AddVideoFrame(std::move(encode_image));
 				nal_parse_->buffer_index_ = 0;
 				//decoder_->Decode();
@@ -760,6 +833,13 @@ namespace gb_media_server {
 
 				RTC_LOG_F(LS_INFO) << "recvice SR RTCP TYPE = " << rtcp_block.type() 
 					<< ", ssrc:" << sender_report.sender_ssrc();
+
+				// 统计RTCP SR接收（Statistics RTCP SR received）
+				// @date 2025-10-18
+				if (statistics_) {
+					statistics_->OnRtcpSRReceived();
+				}
+
 				if (rtcp_context_recv_ && sender_report.sender_ssrc() == sdp_.VideoSsrc())
 				{
 					rtcp_context_recv_->onRtcp(&sender_report);

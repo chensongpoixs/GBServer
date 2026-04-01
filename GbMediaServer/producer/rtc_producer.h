@@ -59,6 +59,7 @@
 #include "libmedia_transfer_protocol/librtcp/rtcp_context_recv.h"
 
 #include "libmedia_codec/video_codecs/nal_parse_factory.h"
+#include "producer/producer_statistics.h"
 
 namespace gb_media_server {
 
@@ -503,6 +504,11 @@ namespace gb_media_server {
 
 
 		bool       stream_status_ = true;
+
+		// 统计数据对象（Statistics Object）
+		// 用于收集和管理Producer的统计数据
+		// @date 2025-10-18
+		std::shared_ptr<ProducerStatistics> statistics_;
 	};
 }
 
