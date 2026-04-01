@@ -622,26 +622,37 @@ namespace gb_media_server
 	*  处理流程：
 	*  1. 检查NACK请求的媒体SSRC是否匹配视频SSRC
 	*  2. 遍历NACK请求中的所有丢失包序列号
-	*  3. 从缓存中查找对应的RTP包
-	*  4. 如果找到，则修改RTP包的Payload Type、SSRC和序列号
-	*  5. 调用SendSrtpRtp方法重传RTP包
+	*  3. 从缓存中查找对应的原始RTP包
+	*  4. 创建新的RTX包对象（深拷贝），避免修改缓存中的原始包
+	*  5. 复制原始包的头部信息
+	*  6. 设置RTX包的Payload Type、SSRC和序列号
+	*  7. 构建RTX Payload：原始序列号（2字节，大端序）+ 原始Payload
+	*  8. 调用SendSrtpRtp方法发送RTX包
 	*  
-	*  RTX（Retransmission）重传：
+	*  RTX（Retransmission）重传说明：
 	*  - RTX使用单独的SSRC和Payload Type
-	*  - RTX包的Payload Type为视频Payload Type + 1（通常为97）
+	*  - RTX包的Payload Type通常为视频Payload Type + 1（如97）
 	*  - RTX包的SSRC为视频SSRC + 1
 	*  - RTX包的序列号独立递增，不影响原始RTP包的序列号
-	*  - RTX包的Payload包含原始RTP包的序列号和Payload
+	*  - RTX包的Payload格式：[原始序列号(2字节)] + [原始Payload]
+	*  - 符合RFC 4588标准
 	*  
 	*  NACK请求格式：
 	*  - NACK请求是RTCP RTPFB包，子类型为1（Generic NACK）
 	*  - NACK请求包含一个或多个丢失包的序列号
 	*  - 每个NACK请求可以包含多个序列号，使用位图表示连续的丢失包
 	*  
+	*  重要修复说明：
+	*  - 本方法已修复原有的严重bug：直接修改缓存中的原始RTP包
+	*  - 现在使用深拷贝创建新的RTX包，确保原始包不被修改
+	*  - 支持同一个包被多次NACK重传
+	*  - RTX包格式符合RFC 4588标准
+	*  
 	*  @param nack NACK请求对象，包含丢失包的序列号列表
 	*  @note 该方法在接收到NACK请求时调用
 	*  @note 如果缓存中没有对应的RTP包，则无法重传
 	*  @note RTX序列号独立递增，避免与原始RTP包冲突
+	*  @note 原始包在缓存中保持不变，可以被多次重传
 	*/
 	void RtcInterface::RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack)
 	{
@@ -654,20 +665,77 @@ namespace gb_media_server
 
 		for (const auto& packetid : nack.packet_ids())
 		{
+			//GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid
+				//<< ", original_seq:" << original_seq
+			//	<< ", rtx_seq:" << video_rtx_seq_;
+				//<< ", original_pt:" << (int)original_packet->PayloadType()
+				//<< ", original_ssrc:" << original_packet->Ssrc();
+#if 1
 			auto iter =  rtp_video_packets_.find(packetid);
 			if (iter != rtp_video_packets_.end())
 			{
 				if (iter->second)
 				{
-					GBMEDIASERVER_LOG(LS_INFO) << "rtx packet seq : " << packetid << ", rtx packet_id : " << video_rtx_seq_;
-					auto rtx_packet = iter->second;
+					// 获取原始RTP包（不修改它）
+					auto original_packet = iter->second;
+					uint16_t original_seq = original_packet->SequenceNumber();
+					
+					GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid 
+					                           << ", original_seq:" << original_seq
+					                           << ", rtx_seq:" << video_rtx_seq_
+					                           << ", original_pt:" << (int)original_packet->PayloadType()
+					                           << ", original_ssrc:" << original_packet->Ssrc();
+					
+					// 创建新的RTX包对象（深拷贝）
+					auto rtx_packet = std::make_shared<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
+					
+					// 复制原始包的头部信息（不包括Payload）
+					rtx_packet->CopyHeaderFrom(*original_packet);
+					
+					// 设置RTX包的头部字段
 					rtx_packet->SetPayloadType(sdp_.GetVideoPayloadRtxType());
 					rtx_packet->SetSsrc(sdp_.VideoRtxSsrc());
 					rtx_packet->SetSequenceNumber(video_rtx_seq_++);
-					SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
 					
+					// 构建RTX Payload：原始序列号（2字节，大端序）+ 原始Payload
+					size_t original_payload_size = original_packet->payload_size();
+					uint8_t* rtx_payload = rtx_packet->AllocatePayload(2 + original_payload_size);
+					
+					if (rtx_payload)
+					{
+						// 写入原始序列号（大端序，网络字节序）
+						rtx_payload[0] = (original_seq >> 8) & 0xFF;
+						rtx_payload[1] = original_seq & 0xFF;
+						
+						// 复制原始Payload数据
+						if (original_payload_size > 0)
+						{
+							memcpy(rtx_payload + 2, 
+							       original_packet->payload().data(), 
+							       original_payload_size);
+						}
+						
+						GBMEDIASERVER_LOG(LS_INFO) << "RTX packet created: rtx_seq:" << (video_rtx_seq_ - 1)
+						                           << ", rtx_pt:" << (int)rtx_packet->PayloadType()
+						                           << ", rtx_ssrc:" << rtx_packet->Ssrc()
+						                           << ", rtx_payload_size:" << rtx_packet->payload_size()
+						                           << ", original_seq_in_payload:" << original_seq;
+						
+						// 发送RTX包
+						SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
+					}
+					else
+					{
+						GBMEDIASERVER_LOG(LS_ERROR) << "Failed to allocate RTX payload for seq:" << packetid;
+					}
 				}
 			}
+			else
+			{
+				GBMEDIASERVER_LOG(LS_WARNING) << "NACK request for seq:" << packetid 
+				                              << " but packet not found in cache";
+			}
+#endif 
 		}
 
 	}

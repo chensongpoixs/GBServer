@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 
 
 	const char* config_file = "gbmedia_server.yaml";
-	if (argc > 2)
+	if (argc > 0)
 	{
 		config_file = argv[1];
 	}

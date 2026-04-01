@@ -472,11 +472,11 @@ namespace  gb_media_server
 		rtc::Buffer dataChannel(msg, len);
 		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, 
 			[this, params, ppid, dataChannel_ = std::move(dataChannel)]() {
-			for (auto consumer : consumers_)
+			/*for (auto consumer : consumers_)
 			{
 				consumer->OnDataChannel(params, ppid, 
 					dataChannel_.data(), dataChannel_.size());
-			}
+			}*/
 			if (producer_)
 			{
 				producer_->OnDataChannel(params, ppid, dataChannel_.data(), dataChannel_.size());
