@@ -67,6 +67,24 @@ public:
     // 获取Consumer ID
     const std::string& GetConsumerId() const { return consumer_id_; }
     
+    // 获取会话名称
+    const std::string& GetSessionName() const { return session_name_; }
+    
+    // 获取统计数据的getter方法（Getter methods for statistics data）
+    // @author chensong
+    // @date 2025-10-18
+    uint64_t GetVideoBytesSent() const { return video_stats_.bytes_sent.load(); }
+    uint64_t GetAudioBytesSent() const { return audio_stats_.bytes_sent.load(); }
+    uint64_t GetVideoPacketsSent() const { return video_stats_.packets_sent.load(); }
+    uint64_t GetAudioPacketsSent() const { return audio_stats_.packets_sent.load(); }
+    uint32_t GetVideoFramesSent() const { return video_stats_.frames_sent.load(); }
+    uint32_t GetNackCount() const { return video_stats_.nack_count.load(); }
+    uint32_t GetPliCount() const { return video_stats_.pli_count.load(); }
+    double GetVideoBitrate() const { return video_stats_.bitrate; }
+    double GetAudioBitrate() const { return audio_stats_.bitrate; }
+    double GetVideoPacketLossRate() const { return video_stats_.packet_loss_rate; }
+    double GetRtt() const { return rtcp_stats_.rtt; }
+    
 private:
     void CalculateBitrate();
     void CalculatePacketLossRate();

@@ -66,6 +66,26 @@ public:
     // 定期更新（计算派生指标）
     void Update();
     
+    // 获取会话名称
+    const std::string& GetSessionName() const { return session_name_; }
+    
+    // 获取统计数据的getter方法（Getter methods for statistics data）
+    // @author chensong
+    // @date 2025-10-18
+    uint64_t GetVideoBytesReceived() const { return video_stats_.bytes_received.load(); }
+    uint64_t GetAudioBytesReceived() const { return audio_stats_.bytes_received.load(); }
+    uint64_t GetVideoPacketsReceived() const { return video_stats_.packets_received.load(); }
+    uint64_t GetAudioPacketsReceived() const { return audio_stats_.packets_received.load(); }
+    uint32_t GetVideoFramesReceived() const { return video_stats_.frames_received.load(); }
+    uint32_t GetNackCount() const { return rtcp_stats_.nack_count.load(); }
+    uint32_t GetPliCount() const { return rtcp_stats_.pli_count.load(); }
+    double GetVideoBitrate() const { return video_stats_.bitrate; }
+    double GetAudioBitrate() const { return audio_stats_.bitrate; }
+    double GetVideoPacketLossRate() const { return video_stats_.packet_loss_rate; }
+    double GetRtt() const { return rtcp_stats_.rtt; }
+    double GetVideoJitter() const { return video_stats_.jitter; }
+    double GetVideoFps() const { return video_stats_.fps; }
+    
 private:
     // 计算码率
     void CalculateBitrate();

@@ -563,6 +563,25 @@ namespace  gb_media_server
 		/***
 		 *  @author chensong
 		 *  @date 2025-10-18
+		 *  @brief 获取系统统计信息（Get System Statistics）
+		 *  
+		 *  该方法用于处理获取系统级统计信息的HTTP请求。
+		 *  
+		 *  请求格式：
+		 *  - URL: GET /api/stats/system
+		 *  
+		 *  响应格式：
+		 *  - Content-Type: application/json
+		 *  - Body: {"code": 0, "msg": "success", "data": {...}}
+		 */
+		void HandlerGetSystemStats(libmedia_transfer_protocol::libnetwork::Connection * conn,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+			const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+			std::shared_ptr < libmedia_transfer_protocol::libhttp::HttpContext> ctx);
+
+		/***
+		 *  @author chensong
+		 *  @date 2025-10-18
 		 *  @brief 获取Producer统计信息（Get Producer Statistics）
 		 *  
 		 *  该方法用于处理获取Producer统计信息的HTTP请求。

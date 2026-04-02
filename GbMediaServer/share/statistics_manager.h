@@ -116,6 +116,22 @@ public:
      */
     std::string GetSystemStatsJson();
     
+    /**
+     * @brief 启动统计更新定时器
+     * 
+     * @author chensong
+     * @date 2025-10-18
+     */
+    void StartUpdateTimer();
+    
+    /**
+     * @brief 停止统计更新定时器
+     * 
+     * @author chensong
+     * @date 2025-10-18
+     */
+    void StopUpdateTimer();
+    
 private:
     StatisticsManager();
     ~StatisticsManager();
@@ -123,6 +139,22 @@ private:
     // 禁止拷贝和赋值
     StatisticsManager(const StatisticsManager&) = delete;
     StatisticsManager& operator=(const StatisticsManager&) = delete;
+    
+    /**
+     * @brief 更新所有统计对象
+     * 
+     * @author chensong
+     * @date 2025-10-18
+     */
+    void UpdateAllStatistics();
+    
+    /**
+     * @brief 定时器回调
+     * 
+     * @author chensong
+     * @date 2025-10-18
+     */
+    void OnUpdateTimer();
     
 private:
     std::mutex mutex_;
@@ -135,6 +167,11 @@ private:
     
     // session_name -> consumer_ids
     std::map<std::string, std::vector<std::string>> session_consumers_;
+    
+    // 定时器运行标志（Timer running flag）
+    // @author chensong
+    // @date 2025-10-18
+    bool timer_running_ = false;
 };
 
 } // namespace gb_media_server

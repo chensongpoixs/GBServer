@@ -93,10 +93,11 @@ namespace  gb_media_server
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
 		
-		// 统计接口
-		http_event_callback_map_["/api/stats/producer"] = &WebService::HandlerGetProducerStats;
-		http_event_callback_map_["/api/stats/consumer"] = &WebService::HandlerGetConsumerStats;
-		http_event_callback_map_["/api/stats/session"] = &WebService::HandlerGetSessionStats;
+		// 统计接口 - 修改为支持路径前缀匹配
+		http_event_callback_map_["/api/stats/system"] = &WebService::HandlerGetSystemStats;
+		http_event_callback_map_["/api/stats/producer/"] = &WebService::HandlerGetProducerStats;
+		http_event_callback_map_["/api/stats/consumer/"] = &WebService::HandlerGetConsumerStats;
+		http_event_callback_map_["/api/stats/session/"] = &WebService::HandlerGetSessionStats;
 		http_event_callback_map_["/api/stats/sessions"] = &WebService::HandlerGetAllSessionsStats;
 		
 		// RTSP
@@ -225,29 +226,39 @@ namespace  gb_media_server
 			}
 			GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [=]() {
 
+				// 首先尝试完整路径匹配
 				auto event_iter = http_event_callback_map_.find(req->Path());
 				if (event_iter != http_event_callback_map_.end())
 				{
 					(this->*(event_iter->second))(conn, req, packet, http_ctx);
-				} 
-				else
+					return;
+				}
+				
+				// 尝试路径前缀匹配（用于带参数的API路径）
+				for (const auto& pair : http_event_callback_map_)
 				{
-					std::string ext = string_utils::FileExt(req->Path());
-					GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
-					event_iter = http_event_callback_map_.find(ext);
-					if (event_iter != http_event_callback_map_.end())
+					const std::string& pattern = pair.first;
+					// 如果pattern以/结尾，表示需要前缀匹配
+					if (!pattern.empty() && pattern.back() == '/' && 
+						req->Path().find(pattern) == 0)
 					{
-						(this->*(event_iter->second))(conn, req, packet, http_ctx);
-					}
-					else
-					{
-						RTC_LOG(LS_WARNING) << "http  event callback path:" << req->Path();
+						(this->*(pair.second))(conn, req, packet, http_ctx);
+						return;
 					}
 				}
-
-					
- 
-
+				
+				// 尝试文件扩展名匹配
+				std::string ext = string_utils::FileExt(req->Path());
+				GBMEDIASERVER_LOG(LS_INFO) << "ext:" << ext;
+				event_iter = http_event_callback_map_.find(ext);
+				if (event_iter != http_event_callback_map_.end())
+				{
+					(this->*(event_iter->second))(conn, req, packet, http_ctx);
+					return;
+				}
+				
+				// 没有匹配的路由
+				RTC_LOG(LS_WARNING) << "http event callback path:" << req->Path();
 			}); 
 		}
 	}

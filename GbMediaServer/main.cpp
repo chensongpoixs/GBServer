@@ -37,7 +37,7 @@
 
 
 #include <iostream>
-#include "rtc_base/logging.h" 
+#include "rtc_base/logging.h"
 #include "server/gb_media_service.h"
 #include "libmedia_transfer_protocol/libsip/sip_server.h"
 #include "server/rtc_service.h"
@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 
 
 	const char* config_file = "gbmedia_server.yaml";
-	if (argc > 0)
+	if (argc > 1)
 	{
 		config_file = argv[1];
 	}

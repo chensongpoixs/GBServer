@@ -15,6 +15,34 @@
 
 namespace gb_media_server {
 
+void WebService::HandlerGetSystemStats(
+    libmedia_transfer_protocol::libnetwork::Connection* conn,
+    const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
+    const std::shared_ptr<libmedia_transfer_protocol::libhttp::Packet> packet,
+    std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpContext> ctx)
+{
+    GBMEDIASERVER_LOG(LS_INFO) << "HandlerGetSystemStats";
+    
+    // 获取系统统计
+    std::string stats_json = StatisticsManager::GetInstance().GetSystemStatsJson();
+    
+    http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+        auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+        res->SetStatusCode(200);
+        res->AddHeader("server", "GbMediaServer");
+        res->AddHeader("content-length", std::to_string(stats_json.size()));
+        res->AddHeader("content-type", "application/json");
+        res->AddHeader("Access-Control-Allow-Origin", "*");
+        res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+        res->AddHeader("Allow", "POST, GET, OPTIONS");
+        res->AddHeader("Access-Control-Allow-Headers", "content-type");
+        res->AddHeader("Connection", "close");
+        res->SetBody(stats_json);
+        ctx->PostRequest(res);
+        ctx->WriteComplete(conn);
+    });
+}
+
 void WebService::HandlerGetProducerStats(
     libmedia_transfer_protocol::libnetwork::Connection* conn,
     const std::shared_ptr<libmedia_transfer_protocol::libhttp::HttpRequest> req,
