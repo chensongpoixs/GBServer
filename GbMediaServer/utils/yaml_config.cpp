@@ -51,6 +51,7 @@ namespace  gb_media_server
 	*  1. 初始化http_server_config_为默认值（ip="127.0.0.1", port=8001）
 	*  2. 初始化rtc_server_config_为默认值（ips=["127.0.0.1"], udp_port=10001等）
 	*  3. 初始化rtp_port_config_为默认值（udp_min_port=40000等）
+	*  4. 初始化websocket_stats_config_为默认值（enabled=true, port=9998等）
 	*  
 	*  @note 构造函数是私有的，只能通过GetInstance方法获取实例（单例模式）
 	*  @note 默认值在结构体定义中指定，构造函数只需调用默认构造函数
@@ -59,6 +60,7 @@ namespace  gb_media_server
 		: http_server_config_()   // 使用默认构造函数初始化HTTP服务器配置
 		, rtc_server_config_()    // 使用默认构造函数初始化RTC服务器配置
 		, rtp_port_config_()      // 使用默认构造函数初始化RTP端口配置
+		, websocket_stats_config_()  // 使用默认构造函数初始化WebSocket统计服务配置
 	{
 		// 所有配置项都已通过成员初始化列表初始化为默认值
 		// 实际配置将在LoadFile方法中从YAML文件加载
@@ -199,6 +201,27 @@ namespace  gb_media_server
 					<< "][max_port:" << rtp_port_config_.udp_max_port << "]\n"
 					<< "tcp [min_port:" << rtp_port_config_.tcp_min_port << "][max_port:" << rtp_port_config_.tcp_max_port <<"]";
 
+			}
+			
+			// 读取WebSocket统计服务配置
+			if (node["websocket_stats"])
+			{
+				websocket_stats_config_.enabled = node["websocket_stats"]["enabled"].as<bool>();
+				websocket_stats_config_.ip = node["websocket_stats"]["ip"].as<std::string>();
+				websocket_stats_config_.port = node["websocket_stats"]["port"].as<uint16_t>();
+				websocket_stats_config_.push_interval = node["websocket_stats"]["push_interval"].as<int64_t>();
+				websocket_stats_config_.max_connections = node["websocket_stats"]["max_connections"].as<int>();
+				websocket_stats_config_.ping_interval = node["websocket_stats"]["ping_interval"].as<int64_t>();
+				websocket_stats_config_.ping_timeout = node["websocket_stats"]["ping_timeout"].as<int64_t>();
+				
+				GBMEDIASERVER_LOG(LS_INFO) << "websocket_stats config info:\n"
+					<< "enabled: " << (websocket_stats_config_.enabled ? "true" : "false") << "\n"
+					<< "ip: " << websocket_stats_config_.ip << "\n"
+					<< "port: " << websocket_stats_config_.port << "\n"
+					<< "push_interval: " << websocket_stats_config_.push_interval << "ms\n"
+					<< "max_connections: " << websocket_stats_config_.max_connections << "\n"
+					<< "ping_interval: " << websocket_stats_config_.ping_interval << "ms\n"
+					<< "ping_timeout: " << websocket_stats_config_.ping_timeout << "ms";
 			}
 		}
 		catch (const YAML::Exception& e) {

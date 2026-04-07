@@ -158,6 +158,53 @@ namespace  gb_media_server
 	
 	/**
 	*  @author chensong
+	*  @date 2025-10-18
+	*  @brief WebSocket统计服务配置结构体（WebSocket Stats Service Configuration）
+	*  
+	*  该结构体用于存储WebSocket统计服务的配置信息，包括监听IP、端口和推送参数。
+	*  WebSocket服务用于实时推送统计数据到前端，替代HTTP轮询方式。
+	*  
+	*  配置项说明：
+	*  - enabled: 是否启用WebSocket统计服务，默认为true
+	*  - ip: WebSocket服务器监听的IP地址，默认为"0.0.0.0"（监听所有网卡）
+	*  - port: WebSocket服务器监听的端口号，默认为9998
+	*  - push_interval: 数据推送间隔（毫秒），默认为1000ms（1秒）
+	*  - max_connections: 最大并发连接数，默认为100
+	*  - ping_interval: Ping心跳间隔（毫秒），默认为30000ms（30秒）
+	*  - ping_timeout: Ping超时时间（毫秒），默认为10000ms（10秒）
+	*  
+	*  WebSocket服务说明：
+	*  - 使用WebSocket协议实现服务器主动推送
+	*  - 支持多客户端同时连接
+	*  - 支持订阅不同类型的统计数据
+	*  - 自动心跳保活机制
+	*  
+	*  @note 端口号范围为1-65535，建议使用1024以上的端口
+	*  @note push_interval越小，数据更新越实时，但服务器负载越高
+	*  @note max_connections应根据服务器性能合理设置
+	*  
+	*  使用示例：
+	*  @code
+	*  WebSocketStatsConfig config;
+	*  config.enabled = true;
+	*  config.ip = "0.0.0.0";
+	*  config.port = 9998;
+	*  config.push_interval = 1000;  // 每秒推送一次
+	*  @endcode
+	*/
+	struct WebSocketStatsConfig
+	{
+		bool enabled{true};                    // 是否启用WebSocket服务
+		std::string ip{"0.0.0.0"};            // 监听IP地址
+		uint16_t port{9998};                  // 监听端口
+		int64_t push_interval{1000};          // 推送间隔（毫秒）
+		int max_connections{100};             // 最大连接数
+		int64_t ping_interval{30000};         // Ping间隔（毫秒）
+		int64_t ping_timeout{10000};          // Ping超时（毫秒）
+	};
+	
+	/**
+	*  @author chensong
 	*  @date 2025-10-17
 	*  @brief YAML配置管理类（YAML Configuration Manager）
 	*  
@@ -301,11 +348,24 @@ namespace  gb_media_server
 		*  @note 返回的是常量引用，不能修改配置
 		*/
 		const RtpPortConfig& GetRtpPortConfig() const { return rtp_port_config_; }
+		
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 获取WebSocket统计服务配置（Get WebSocket Stats Service Configuration）
+		*  
+		*  该方法用于获取WebSocket统计服务的配置信息。
+		*  
+		*  @return 返回WebSocketStatsConfig结构体的常量引用
+		*  @note 返回的是常量引用，不能修改配置
+		*/
+		const WebSocketStatsConfig& GetWebSocketStatsConfig() const { return websocket_stats_config_; }
 
 	public:
 		HttpServerConfig     http_server_config_;   // HTTP服务器配置
 		RtcServerConfig      rtc_server_config_;    // RTC服务器配置
 		RtpPortConfig       rtp_port_config_;       // RTP端口配置
+		WebSocketStatsConfig websocket_stats_config_;  // WebSocket统计服务配置
 		
 	 };
 }

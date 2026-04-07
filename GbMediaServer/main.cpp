@@ -42,6 +42,7 @@
 #include "libmedia_transfer_protocol/libsip/sip_server.h"
 #include "server/rtc_service.h"
 #include "server/web_service.h"
+#include "server/ws_stats_service.h"
 #include "libmedia_codec/audio_codec/adts_header.h"
 
 	
@@ -154,11 +155,16 @@ int main(int argc, char *argv[])
 	{
 		gb_media_server::GbMediaService::GetInstance().Start();
 
+		
+
 		while (!stoped)
 		{
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 	}
+	
+	
+	
 	gb_media_server::GbMediaService::GetInstance().Destroy();
 	 
 	 

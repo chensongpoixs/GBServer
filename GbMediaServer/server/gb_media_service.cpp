@@ -48,6 +48,7 @@
 #include "libmedia_transfer_protocol/libnetwork/connection.h"
 #include "utils/yaml_config.h"
 #include "gb_media_server_log.h"
+#include "server/ws_stats_service.h"
 namespace  gb_media_server
 {
 	namespace
@@ -470,7 +471,14 @@ namespace  gb_media_server
 			YamlConfig::GetInstance().GetHttpServerConfig().port);
 
 		 
-		
+		// 启动WebSocket统计服务
+		GBMEDIASERVER_LOG(LS_INFO) << "Starting WebSocket stats service...";
+		if (!gb_media_server::WebSocketStatsService::GetInstance().Start()) {
+			GBMEDIASERVER_LOG(LS_WARNING) << "WebSocket stats service failed to start (may be disabled or missing dependencies)";
+		}
+		else {
+			GBMEDIASERVER_LOG(LS_INFO) << "WebSocket stats service started successfully";
+		}
 		
 	}
 
@@ -486,6 +494,10 @@ namespace  gb_media_server
 	 */
 	void GbMediaService::Stop()
 	{
+		// 停止WebSocket统计服务
+		GBMEDIASERVER_LOG(LS_INFO) << "Stopping WebSocket stats service...";
+		gb_media_server::WebSocketStatsService::GetInstance().Stop();
+		GBMEDIASERVER_LOG(LS_INFO) << "Stopping WebSocket stats service OK !!!";
 	}
 	
 	/***

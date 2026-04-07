@@ -1,7 +1,5 @@
-﻿
-
+﻿cmake_minimum_required(VERSION 3.5)
 project(GbMediaServer)
-cmake_minimum_required(VERSION 2.8)
 MESSAGE(STATUS  "####################################")
 MESSAGE(STATUS  "#############${PROJECT_NAME}###############")
 MESSAGE(STATUS  "####################################")
@@ -46,8 +44,248 @@ add_definitions(
 )
 
 
- include_directories(
+# ============================================================================
+# WebSocket统计服务依赖库自动下载配置
+# 作者: chensong
+# 日期: 2025-10-18
+# ============================================================================
+
+# 设置第三方库下载目录
+set(THIRD_PARTY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party)
+file(MAKE_DIRECTORY ${THIRD_PARTY_DIR})
+
+# ============================================================================
+# 自动下载脚本调用
+# ============================================================================
+# 检查是否需要下载库
+set(NEED_DOWNLOAD FALSE)
+
+# 使用绝对路径检查
+set(WEBSOCKETPP_CHECK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/websocketpp/websocketpp/server.hpp")
+set(JSON_CHECK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/include/nlohmann/json.hpp")
+set(ASIO_CHECK_PATH "${CMAKE_CURRENT_SOURCE_DIR}/third_party/asio/asio/include/asio.hpp")
+
+if(NOT EXISTS "${WEBSOCKETPP_CHECK_PATH}")
+    set(NEED_DOWNLOAD TRUE)
+    message(STATUS "websocketpp not found")
+endif()
+
+if(NOT EXISTS "${JSON_CHECK_PATH}")
+    set(NEED_DOWNLOAD TRUE)
+    message(STATUS "nlohmann/json not found")
+endif()
+
+if(NOT EXISTS "${ASIO_CHECK_PATH}")
+    set(NEED_DOWNLOAD TRUE)
+    message(STATUS "ASIO not found")
+endif()
+
+# 如果需要下载，自动调用下载脚本
+if(NEED_DOWNLOAD)
+    message(STATUS "========================================")
+    message(STATUS "WebSocket依赖库缺失，正在自动下载...")
+    message(STATUS "========================================")
+    
+    # 根据操作系统选择脚本
+    if(WIN32)
+        # Windows: 使用PowerShell脚本
+        set(DOWNLOAD_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/download_websocket_libs.ps1")
+        if(EXISTS ${DOWNLOAD_SCRIPT})
+            message(STATUS "执行下载脚本: ${DOWNLOAD_SCRIPT}")
+            execute_process(
+                COMMAND powershell -ExecutionPolicy Bypass -File ${DOWNLOAD_SCRIPT}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                RESULT_VARIABLE DOWNLOAD_RESULT
+                OUTPUT_VARIABLE DOWNLOAD_OUTPUT
+                ERROR_VARIABLE DOWNLOAD_ERROR
+                # 实时显示输出
+                ECHO_OUTPUT_VARIABLE
+                ECHO_ERROR_VARIABLE
+            )
+            
+            if(DOWNLOAD_RESULT EQUAL 0)
+                message(STATUS "下载脚本执行成功")
+            else()
+                message(WARNING "下载脚本执行失败")
+                if(DOWNLOAD_ERROR)
+                    message(WARNING "错误信息: ${DOWNLOAD_ERROR}")
+                endif()
+                message(WARNING "请手动运行: .\\download_websocket_libs.ps1")
+            endif()
+        else()
+            message(WARNING "下载脚本不存在: ${DOWNLOAD_SCRIPT}")
+        endif()
+    else()
+        # Linux/Unix: 使用Bash脚本
+        set(DOWNLOAD_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/download_websocket_libs.sh")
+        if(EXISTS ${DOWNLOAD_SCRIPT})
+            message(STATUS "执行下载脚本: ${DOWNLOAD_SCRIPT}")
+            
+            # 确保脚本有执行权限
+            execute_process(
+                COMMAND chmod +x ${DOWNLOAD_SCRIPT}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            )
+            
+            # 执行下载脚本
+            execute_process(
+                COMMAND bash ${DOWNLOAD_SCRIPT}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                RESULT_VARIABLE DOWNLOAD_RESULT
+                OUTPUT_VARIABLE DOWNLOAD_OUTPUT
+                ERROR_VARIABLE DOWNLOAD_ERROR
+                # 实时显示输出
+                ECHO_OUTPUT_VARIABLE
+                ECHO_ERROR_VARIABLE
+            )
+            
+            if(DOWNLOAD_RESULT EQUAL 0)
+                message(STATUS "下载脚本执行成功")
+            else()
+                message(WARNING "下载脚本执行失败")
+                if(DOWNLOAD_ERROR)
+                    message(WARNING "错误信息: ${DOWNLOAD_ERROR}")
+                endif()
+                message(WARNING "请手动运行: ./download_websocket_libs.sh")
+            endif()
+        else()
+            message(WARNING "下载脚本不存在: ${DOWNLOAD_SCRIPT}")
+        endif()
+    endif()
+    
+    message(STATUS "========================================")
+endif()
+
+# ============================================================================
+# 1. websocketpp库（header-only）
+# ============================================================================
+message(STATUS "Checking websocketpp...")
+
+# 使用绝对路径检查
+set(WEBSOCKETPP_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/websocketpp/websocketpp/server.hpp")
+message(STATUS "Looking for: ${WEBSOCKETPP_HEADER}")
+
+if(EXISTS "${WEBSOCKETPP_HEADER}")
+    set(WEBSOCKETPP_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/websocketpp")
+    message(STATUS "Found local websocketpp: ${WEBSOCKETPP_INCLUDE_DIR}")
+else()
+    message(WARNING "websocketpp still not found after download attempt")
+    message(WARNING "Expected at: ${WEBSOCKETPP_HEADER}")
+    message(WARNING "WebSocket功能将被禁用")
+    message(WARNING "请手动下载或运行下载脚本:")
+    if(WIN32)
+        message(WARNING "  .\\download_websocket_libs.ps1")
+    else()
+        message(WARNING "  ./download_websocket_libs.sh")
+    endif()
+    set(WEBSOCKETPP_INCLUDE_DIR "")
+endif()
+
+# ============================================================================
+# 2. nlohmann/json库（header-only）
+# ============================================================================
+message(STATUS "Checking nlohmann/json...")
+
+# 使用绝对路径检查
+set(NLOHMANN_JSON_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/include/nlohmann/json.hpp")
+message(STATUS "Looking for: ${NLOHMANN_JSON_HEADER}")
+
+if(EXISTS "${NLOHMANN_JSON_HEADER}")
+    set(NLOHMANN_JSON_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/json/include")
+    message(STATUS "Found local nlohmann/json: ${NLOHMANN_JSON_INCLUDE_DIR}")
+else()
+    message(WARNING "nlohmann/json still not found after download attempt")
+    message(WARNING "Expected at: ${NLOHMANN_JSON_HEADER}")
+    message(WARNING "WebSocket功能将被禁用")
+    message(WARNING "请手动下载或运行下载脚本:")
+    if(WIN32)
+        message(WARNING "  .\\download_websocket_libs.ps1")
+    else()
+        message(WARNING "  ./download_websocket_libs.sh")
+    endif()
+    set(NLOHMANN_JSON_INCLUDE_DIR "")
+endif()
+
+# ============================================================================
+# 3. ASIO库（header-only, standalone）
+# ============================================================================
+message(STATUS "Checking ASIO...")
+
+# 使用绝对路径检查
+set(ASIO_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/third_party/asio/asio/include/asio.hpp")
+message(STATUS "Looking for: ${ASIO_HEADER}")
+
+if(EXISTS "${ASIO_HEADER}")
+    set(ASIO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/asio/asio/include")
+    message(STATUS "Found local ASIO: ${ASIO_INCLUDE_DIR}")
+else()
+    message(WARNING "ASIO still not found after download attempt")
+    message(WARNING "Expected at: ${ASIO_HEADER}")
+    message(WARNING "WebSocket功能将被禁用")
+    message(WARNING "请手动下载或运行下载脚本:")
+    if(WIN32)
+        message(WARNING "  .\\download_websocket_libs.ps1")
+    else()
+        message(WARNING "  ./download_websocket_libs.sh")
+    endif()
+    set(ASIO_INCLUDE_DIR "")
+endif()
+
+# ============================================================================
+# 检查是否可以启用WebSocket功能
+# ============================================================================
+if(WEBSOCKETPP_INCLUDE_DIR AND NLOHMANN_JSON_INCLUDE_DIR AND ASIO_INCLUDE_DIR)
+    message(STATUS "========================================")
+    message(STATUS "WebSocket依赖库已就绪")
+    message(STATUS "WebSocket包含路径:")
+    message(STATUS "  websocketpp: ${WEBSOCKETPP_INCLUDE_DIR}")
+    message(STATUS "  nlohmann/json: ${NLOHMANN_JSON_INCLUDE_DIR}")
+    message(STATUS "  ASIO: ${ASIO_INCLUDE_DIR}")
+    message(STATUS "========================================")
+    message(STATUS "如需启用WebSocket功能:")
+    message(STATUS "1. 修改 server/ws_stats_service.h")
+    message(STATUS "   将 #define ENABLE_WEBSOCKET 0 改为 1")
+    message(STATUS "2. 重新运行 cmake")
+    message(STATUS "========================================")
+    
+    # 设置编译定义，表示WebSocket库可用
+    add_definitions(-DWEBSOCKET_LIBS_AVAILABLE=1)
+else()
+    message(STATUS "========================================")
+    message(STATUS "WebSocket依赖库未就绪")
+    message(STATUS "WebSocket功能已禁用 (ENABLE_WEBSOCKET=0)")
+    message(STATUS "========================================")
+    
+    # 清空变量，避免添加空路径
+    set(WEBSOCKETPP_INCLUDE_DIR "")
+    set(NLOHMANN_JSON_INCLUDE_DIR "")
+    set(ASIO_INCLUDE_DIR "")
+    add_definitions(-DWEBSOCKET_LIBS_AVAILABLE=0)
+endif()
+# ============================================================================
+# 添加包含目录
+# ============================================================================
+include_directories(
 	. 
+)
+
+# 条件添加WebSocket库的包含路径
+if(WEBSOCKETPP_INCLUDE_DIR)
+    include_directories(${WEBSOCKETPP_INCLUDE_DIR})
+    message(STATUS "添加websocketpp包含路径: ${WEBSOCKETPP_INCLUDE_DIR}")
+endif()
+
+if(NLOHMANN_JSON_INCLUDE_DIR)
+    include_directories(${NLOHMANN_JSON_INCLUDE_DIR})
+    message(STATUS "添加nlohmann/json包含路径: ${NLOHMANN_JSON_INCLUDE_DIR}")
+endif()
+
+if(ASIO_INCLUDE_DIR)
+    include_directories(${ASIO_INCLUDE_DIR})
+    message(STATUS "添加ASIO包含路径: ${ASIO_INCLUDE_DIR}")
+endif()
+
+include_directories(
 	#./swagger
 	#../libswagger
 	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0
@@ -58,7 +296,8 @@ add_definitions(
 	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
 	#${DEPS_DIR}/oatpp/include/oatpp-1.4.0/oatpp-sqlite
 	 
-)
+) 
+#)
 link_directories( 
 
 #${DEPS_DIR}/oatpp/lib/oatpp-1.4.0
