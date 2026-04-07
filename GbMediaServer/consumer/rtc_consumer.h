@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -32,8 +32,8 @@
  ******************************************************************************/
 
 
-#ifndef _C_GB_MEDIA_SERVER_RTC_PLAY_USER_H_
-#define _C_GB_MEDIA_SERVER_RTC_PLAY_USER_H_
+#ifndef _C_GB_MEDIA_SERVER_RTC_CONSUMER_H_
+#define _C_GB_MEDIA_SERVER_RTC_CONSUMER_H_
 
 #include <algorithm>
 
@@ -56,6 +56,8 @@
 #include "consumer/rtc_consumer.h"
 #include "share/rtc_interface.h"
 #include "consumer/consumer_statistics.h"
+#include "consumer/jitter_buffer.h"
+#include "consumer/bandwidth_estimation.h"
 
 namespace gb_media_server {
 	/**
@@ -693,7 +695,38 @@ namespace gb_media_server {
 		// @date 2025-10-18
 		std::shared_ptr<ConsumerStatistics> statistics_;
 		
+		// SR发送相关
+		uint32_t sr_rtp_timestamp_ = 0;
+		uint32_t sr_packet_count_ = 0;
+		uint32_t sr_octet_count_ = 0;
+		int64_t last_sr_send_time_ms_ = 0;
 
+		// 发送RTCP SR
+		void SendSenderReport();
+
+		// 带宽探测
+		void StartBandwidthProbe(int target_bitrate_bps);
+
+		// 定时器回调
+		void OnTimer();
+
+		// JitterBuffer for video frames
+		JitterBuffer video_jitter_buffer_;
+
+		// 定时器相关
+		rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> task_safety_;
+
+		// 带宽估计
+		BandwidthEstimation bandwidth_estimation_;
+		
+		// 当前目标码率
+		int32_t current_target_bitrate_bps_;
+		
+		// 初始化带宽估计
+		void InitBandwidthEstimation();
+		
+		// 处理带宽估计更新
+		void OnBandwidthEstimationUpdate(int32_t bitrate_bps);
 	};
 }
 

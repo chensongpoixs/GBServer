@@ -16,6 +16,7 @@
 #include "producer/producer_statistics.h"
 #include "consumer/consumer_statistics.h"
 #include <vector>
+#include <unordered_map>
 namespace gb_media_server {
 
 /**
@@ -160,13 +161,13 @@ private:
     std::mutex mutex_;
     
     // session_name -> ProducerStatistics
-    std::map<std::string, std::shared_ptr<ProducerStatistics>> producer_stats_;
+    std::unordered_map<std::string, std::shared_ptr<ProducerStatistics>> producer_stats_;
     
     // consumer_id -> ConsumerStatistics
-    std::map<std::string, std::shared_ptr<ConsumerStatistics>> consumer_stats_;
+    std::unordered_map<std::string, std::shared_ptr<ConsumerStatistics>> consumer_stats_;
     
     // session_name -> consumer_ids
-    std::map<std::string, std::vector<std::string>> session_consumers_;
+    std::unordered_map<std::string, std::vector<std::string>> session_consumers_;
     
     // 定时器运行标志（Timer running flag）
     // @author chensong

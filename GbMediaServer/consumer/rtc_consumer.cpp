@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -108,8 +108,9 @@ namespace gb_media_server
 	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream, const  std::shared_ptr<Session> &s)
 	: RtcInterface ()
 	, Consumer(stream, s)
-		
-		
+	, task_safety_(webrtc::PendingTaskSafetyFlag::Create())
+	, current_target_bitrate_bps_(0)
+	
 	{
 	
 		
@@ -443,6 +444,7 @@ namespace gb_media_server
 	*/
 	  void RtcConsumer::OnSrtpRtp(  uint8_t * data, size_t size)
 	  {
+		  GBMEDIASERVER_LOG_T_F(LS_INFO) << "";
 	  }
 	/**
 	*  @author chensong
@@ -550,6 +552,31 @@ namespace gb_media_server
 			  case libmedia_transfer_protocol::rtcp::ReceiverReport::kPacketType:
 				  RTC_LOG_F(LS_INFO) << "recvice RR RTCP TYPE = " << rtcp_block.type();
 				  //HandleReceiverReport(rtcp_block, packet_information);
+				  {
+					  libmedia_transfer_protocol::rtcp::ReceiverReport rr;
+					  if (rr.Parse(rtcp_block)) {
+						  // 遍历所有Report Block
+						  for (const auto& block : rr.report_blocks()) {
+							  if (block.source_ssrc() == sdp_.VideoSsrc()) {
+								  // 更新丢包信息
+								  int64_t packets_lost = block.cumulative_lost();
+								  int64_t packets_expected = block.extended_high_seq_num() - video_seq_ + 1;
+								  
+								  bandwidth_estimation_.UpdatePacketsLost(packets_lost, packets_expected);
+								  
+								  // 更新RTT（如果有DLSR信息）
+								  if (block.last_sr() > 0 && block.delay_since_last_sr() > 0) {
+									  uint32_t delay_ms = (block.delay_since_last_sr() * 1000) / 65536;
+									  bandwidth_estimation_.UpdateRtt(static_cast<int32_t>(delay_ms));
+								  }
+								  
+								  GBMEDIASERVER_LOG(LS_INFO) << "RR received: lost=" << packets_lost 
+															  << ", fraction=" << (int)block.fraction_lost()
+															  << ", jitter=" << block.jitter();
+							  }
+						  }
+					  }
+				  }
 				  break;
 			  case libmedia_transfer_protocol::rtcp::Sdes::kPacketType:
 				  RTC_LOG(LS_INFO) << "recvice SDES RTCP TYPE = " << rtcp_block.type();
@@ -722,6 +749,11 @@ namespace gb_media_server
 			  return;
 		  }
 
+		  // 更新SR统计
+		  sr_rtp_timestamp_ = rtp_timestamp;
+		  sr_packet_count_ += 1;
+		  sr_octet_count_ += static_cast<uint32_t>(frame.size());
+
 		  libmedia_transfer_protocol::RtpPacketizer::PayloadSizeLimits   limits;
 		  libmedia_transfer_protocol::RTPVideoHeader   rtp_video_hreader;
 		 
@@ -835,13 +867,15 @@ namespace gb_media_server
 #if 0
 		  // TODO@chensong  2025-10-24  AAC 转OPUS暂时不支持 后期支持
 		  muxer_->EncodeAudio(frame);
-#endif //
+#endif // 
 
 		  auto  single_packet =
 			  std::make_unique<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
 		  //GBMEDIASERVER_LOG(LS_INFO) << "audio size:" << frame.size() << ", pts: " << pts;
 		  single_packet->SetPayloadType(sdp_.GetAudioPayloadType());
-		  single_packet->SetTimestamp(pts);
+		  // 修复音频时间戳：毫秒转90kHz
+		  // RTP timestamp = pts(ms) * 90kHz / 1000 = pts * 90 / 1000
+		  single_packet->SetTimestamp(static_cast<uint32_t>(pts * 90));
 		  single_packet->SetSsrc(sdp_.AudioSsrc());
 		  single_packet->ReserveExtension<libmedia_transfer_protocol::TransportSequenceNumber>();
 		  single_packet->SetMarker(true);
@@ -943,6 +977,103 @@ namespace gb_media_server
 		  libmedia_transfer_protocol::librtc::SctpStreamParameters params;
 		  params.streamId = streamId;
 		  GetSession()->AddDataChannel(params, ppid, msg, len);
+	  }
+
+	  void RtcConsumer::SendSenderReport()
+	  {
+		  if (!dtls_done_) {
+			  return;
+		  }
+
+		  // 创建SR包
+		  auto sr = std::make_unique<libmedia_transfer_protocol::rtcp::SenderReport>();
+		  sr->SetSenderSsrc(sdp_.VideoSsrc());
+		  
+		  // 设置NTP时间戳
+		  webrtc::NtpTime ntp_time = webrtc::Clock::GetRealTimeClock()->CurrentNtpTime();
+		  sr->SetNtp(ntp_time);
+		  
+		  // 设置RTP时间戳、发送统计
+		  sr->SetRtpTimestamp(sr_rtp_timestamp_);
+		  sr->SetPacketCount(sr_packet_count_);
+		  sr->SetOctetCount(sr_octet_count_);
+		  
+		  // 记录发送时间
+		  last_sr_send_time_ms_ = rtc::SystemTimeMillis();
+
+		  rtc::Buffer buffer = sr->Build();
+		  
+		  // 通过SRTP发送
+		  SendSrtpRtcp(buffer.data(), buffer.size());
+		  
+		  GBMEDIASERVER_LOG(LS_INFO) << "SR sent: ssrc=" << sdp_.VideoSsrc() 
+			  << ", packets=" << sr_packet_count_ 
+			  << ", octets=" << sr_octet_count_;
+	  }
+
+	  void RtcConsumer::StartBandwidthProbe(int target_bitrate_bps)
+	  {
+		  if (!dtls_done_) {
+			  return;
+		  }
+		  
+		  // 探测码率 = 目标码率 * 1.5
+		  int probe_bitrate_bps = static_cast<int>(target_bitrate_bps * 1.5);
+		  
+		  GBMEDIASERVER_LOG(LS_INFO) << "Starting bandwidth probe: target=" 
+			  << target_bitrate_bps << " bps, probe=" << probe_bitrate_bps << " bps";
+		  
+		  // 注意：完整的带宽探测实现需要集成PacingController
+		  // 当前为占位函数，待后续集成PacingController后完善
+	  }
+
+	  void RtcConsumer::OnTimer()
+	  {
+		  GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
+			  [this]() {
+				  if (!dtls_done_) {
+					  return;
+				  }
+
+				  // 发送Sender Report
+				  SendSenderReport();
+
+				  // 获取当前目标码率
+				  int32_t target_bps = bandwidth_estimation_.GetTargetBitrate();
+				  
+				  if (target_bps != current_target_bitrate_bps_ && target_bps > 0) {
+					  current_target_bitrate_bps_ = target_bps;
+					  OnBandwidthEstimationUpdate(target_bps);
+				  }
+
+				  // 定期更新统计数据
+				  if (statistics_) {
+					  statistics_->Update();
+				  }
+
+				  // 递归调用实现定时循环（每5秒）
+				  OnTimer();
+			  }), 5000);
+	  }
+
+	  void RtcConsumer::InitBandwidthEstimation()
+	  {
+		  bandwidth_estimation_.SetBitrates(100000, 10000000, 500000);
+		  current_target_bitrate_bps_ = 500000;
+		  GBMEDIASERVER_LOG(LS_INFO) << "Bandwidth estimation initialized with 500kbps";
+	  }
+
+	  void RtcConsumer::OnBandwidthEstimationUpdate(int32_t bitrate_bps)
+	  {
+		  GBMEDIASERVER_LOG(LS_INFO) << "Bandwidth estimate updated: " << bitrate_bps / 1000 << " kbps";
+		  
+		  // 更新统计信息
+		  if (statistics_) {
+			 // statistics_->SetTargetBitrate(bitrate_bps);
+		  }
+		  
+		  // 这里可以通知编码器调整码率
+		  // GetSession()->SetTargetBitrate(bitrate_bps);
 	  }
 
 }

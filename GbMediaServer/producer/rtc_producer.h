@@ -32,8 +32,8 @@
  ******************************************************************************/
 
 
-#ifndef _C_GB_MEDIA_SERVER_RTC_Producer_H_
-#define _C_GB_MEDIA_SERVER_RTC_Producer_H_
+#ifndef _C_GB_MEDIA_SERVER_RTC_PRODUCER_H_
+#define _C_GB_MEDIA_SERVER_RTC_PRODUCER_H_
 
 #include <algorithm>
 

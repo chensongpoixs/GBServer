@@ -9,7 +9,7 @@
 #include <algorithm>
 #include "consumer/consumer_statistics.h"
 #include "share/statistics_base.h"
-
+#include "gb_media_server_log.h"
 
 namespace gb_media_server {
 
@@ -492,6 +492,7 @@ void StatisticsManager::UpdateAllStatistics() {
         } catch (const std::exception& e) {
             // 记录错误但继续处理其他对象
             // LOG_ERROR("更新Producer统计失败: " << e.what());
+            GBMEDIASERVER_LOG(LS_ERROR) << "update producer staticstics  failed !!! :"  << e.what();
         }
     }
     
@@ -504,6 +505,7 @@ void StatisticsManager::UpdateAllStatistics() {
         } catch (const std::exception& e) {
             // 记录错误但继续处理其他对象
             // LOG_ERROR("更新Consumer统计失败: " << e.what());
+            GBMEDIASERVER_LOG(LS_ERROR) << "update consumer staticstics  failed !!! :" << e.what();
         }
     }
 }

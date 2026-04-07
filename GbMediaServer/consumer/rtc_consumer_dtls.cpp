@@ -157,6 +157,12 @@ namespace gb_media_server
 		}
 		
 		//StartCapture();
+
+		// 初始化带宽估计
+		InitBandwidthEstimation();
+
+		// 启动定时器，开始发送Sender Report
+		OnTimer();
 	}
 	
 	/**

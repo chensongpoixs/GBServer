@@ -1,4 +1,4 @@
-﻿/******************************************************************************
+/******************************************************************************
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -450,6 +450,29 @@ namespace gb_media_server
 			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "srtp_send_session_ == null failed !!!";
 			return false;
 		}
+
+#if 0
+		// 检查并修复RTCP包头格式 (RFC 3550)
+		// RTCP头第一个字节应该是 0x8X (版本2)
+		// 如果是0x7X或其他错误格式，修正版本位
+
+		if (size >= 1) {
+			uint8_t first_byte = data[0];
+			// 提取RC/FMT部分 (低5位)
+			uint8_t rc_fmt = first_byte & 0x1F;
+			// 提取版本位 (bit 6-7)
+			uint8_t version = (first_byte >> 6) & 0x03;
+			// 提取P位 (bit 5)
+			uint8_t padding = (first_byte >> 5) & 0x01;
+			
+			// 如果版本不是2，修正它
+			if (version != 2) {
+				GBMEDIASERVER_LOG_T_F(LS_WARNING) << "Fixing invalid RTCP version " 
+					<< (int)version << " to 2, original byte: 0x"    << (int)first_byte/16;
+				data[0] = 0x80 | (padding << 5) | rc_fmt;  // 设置版本=2, P=0
+			}
+		}
+#endif // 
 		if (!srtp_send_session_->EncryptRtcp((const uint8_t **)&data, &size))
 		{
 			return false;
