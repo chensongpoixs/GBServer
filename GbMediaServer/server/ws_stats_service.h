@@ -155,7 +155,7 @@ private:
     
     // 工具方法
     std::string GenerateConnectionId();
-    int64_t GetCurrentTimeMs();
+    //int64_t GetCurrentTimeMs();
     
 private:
     // 连接管理

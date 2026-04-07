@@ -3,7 +3,7 @@
  ******************************************************************************/
 
 #include "share/statistics_base.h"
-
+#include "rtc_base/time_utils.h"
 namespace gb_media_server {
 
 StatisticsBase::StatisticsBase() {
@@ -30,9 +30,10 @@ int64_t StatisticsBase::GetDuration() const {
 }
 
 int64_t StatisticsBase::GetCurrentTimeMs() {
-    auto now = std::chrono::system_clock::now();
+   /* auto now = std::chrono::system_clock::now();
     auto duration = now.time_since_epoch();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();*/
+    return rtc::TimeMillis();
 }
 
 } // namespace gb_media_server

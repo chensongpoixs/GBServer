@@ -204,17 +204,17 @@ namespace  gb_media_server
 			}
 			
 			// 读取WebSocket统计服务配置
-			if (node["websocket_stats"])
+			if (node["websocket"])
 			{
-				websocket_stats_config_.enabled = node["websocket_stats"]["enabled"].as<bool>();
-				websocket_stats_config_.ip = node["websocket_stats"]["ip"].as<std::string>();
-				websocket_stats_config_.port = node["websocket_stats"]["port"].as<uint16_t>();
-				websocket_stats_config_.push_interval = node["websocket_stats"]["push_interval"].as<int64_t>();
-				websocket_stats_config_.max_connections = node["websocket_stats"]["max_connections"].as<int>();
-				websocket_stats_config_.ping_interval = node["websocket_stats"]["ping_interval"].as<int64_t>();
-				websocket_stats_config_.ping_timeout = node["websocket_stats"]["ping_timeout"].as<int64_t>();
+				websocket_stats_config_.enabled = node["websocket"]["enabled"].as<bool>();
+				websocket_stats_config_.ip = node["websocket"]["ip"].as<std::string>();
+				websocket_stats_config_.port = node["websocket"]["port"].as<uint16_t>();
+				websocket_stats_config_.push_interval = node["websocket"]["push_interval"].as<int64_t>();
+				websocket_stats_config_.max_connections = node["websocket"]["max_connections"].as<int>();
+				websocket_stats_config_.ping_interval = node["websocket"]["ping_interval"].as<int64_t>();
+				websocket_stats_config_.ping_timeout = node["websocket"]["ping_timeout"].as<int64_t>();
 				
-				GBMEDIASERVER_LOG(LS_INFO) << "websocket_stats config info:\n"
+				GBMEDIASERVER_LOG(LS_INFO) << "websocket： config info:\n"
 					<< "enabled: " << (websocket_stats_config_.enabled ? "true" : "false") << "\n"
 					<< "ip: " << websocket_stats_config_.ip << "\n"
 					<< "port: " << websocket_stats_config_.port << "\n"

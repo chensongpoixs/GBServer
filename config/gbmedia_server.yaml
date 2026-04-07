@@ -41,3 +41,12 @@ rtp:
     udp:
         min_port: 20000
         max_port: 30000
+ 
+websocket:
+    enabled: true
+    ip: 0.0.0.0
+    port: 9998
+    push_interval: 1000
+    max_connections: 100
+    ping_interval: 30000
+    ping_timeout: 10000

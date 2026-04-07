@@ -107,6 +107,19 @@ namespace gb_media_server {
             id_to_hdl_[conn_id] = hdl;
             OnOpen(conn_id);
             });
+        ws_server_->set_close_handler([this](websocketpp::connection_hdl hdl) {
+            std::lock_guard<std::mutex> lock(hdl_map_mutex_);
+            auto iter = hdl_to_id_.find(hdl);
+            if (iter == hdl_to_id_.end())
+            {
+                GBMEDIASERVER_LOG(LS_WARNING) << "not find hdl failed !!!";
+                return;
+            }
+            GBMEDIASERVER_LOG(LS_INFO) << "hdl_to_id_ close connection_id:" << iter->second << " websocket close OK!!!";
+           // hdl_to_id_.erase(hdl);
+            OnClose(iter->second);
+            });
+        
         websocketpp::lib::error_code  ec ;
         ws_server_->listen(config.port, ec);
         ws_server_->start_accept();
@@ -136,7 +149,7 @@ namespace gb_media_server {
 
                 // 检查所有连接的Ping超时
                 std::lock_guard<std::mutex> lock(connections_mutex_);
-                int64_t current_time = GetCurrentTimeMs();
+                int64_t current_time = rtc::TimeMillis();// GetCurrentTimeMs();
 
                 for (auto& pair : connections_) {
                     auto& conn_info = pair.second;
@@ -256,7 +269,7 @@ namespace gb_media_server {
 
         ConnectionInfo conn_info;
         conn_info.connection_id = connection_id;
-        conn_info.last_ping_time = GetCurrentTimeMs();
+        conn_info.last_ping_time = rtc::TimeMillis();
         conn_info.authenticated = false;
         conn_info.user_data = nullptr;
 
@@ -378,15 +391,18 @@ namespace gb_media_server {
                 }
             }
             // ... 其他类型
-            auto* conn_info = GetConnectionInfo(connection_id);
-            if (conn_info) {
-                // 添加订阅
-                Subscription sub;
-                sub.target = target;
-                sub.id = id;
-                sub.interval = interval;
-                sub.last_push_time = 0;
-                conn_info->subscriptions.push_back(sub);
+            {
+                std::lock_guard<std::mutex> lock(connections_mutex_);
+                auto* conn_info = GetConnectionInfo(connection_id);
+                if (conn_info) {
+                    // 添加订阅
+                    Subscription sub;
+                    sub.target = target;
+                    sub.id = id;
+                    sub.interval = interval;
+                    sub.last_push_time = 0;
+                    conn_info->subscriptions.push_back(sub);
+                }
             }
             // 发送确认
             nlohmann::json response;
@@ -450,11 +466,11 @@ void WebSocketStatsService::HandlePing(const std::string& connection_id) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto* conn_info = GetConnectionInfo(connection_id);
     if (conn_info) {
-        conn_info->last_ping_time = GetCurrentTimeMs();
+        conn_info->last_ping_time = rtc::TimeMillis();
         
         // 发送Pong响应
         std::string pong_message = "{\"type\":\"pong\",\"timestamp\":" + 
-                                   std::to_string(GetCurrentTimeMs()) + "}";
+                                   std::to_string(rtc::TimeMillis()) + "}";
         SendClientMessage(connection_id, pong_message);
     }
 }
@@ -469,7 +485,7 @@ void WebSocketStatsService::HandlePing(const std::string& connection_id) {
 void WebSocketStatsService::PushStatsTimer() {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     
-    int64_t current_time = GetCurrentTimeMs();
+    int64_t current_time = rtc::TimeMillis();
     
     for (auto& pair : connections_) {
         const std::string& connection_id = pair.first;
@@ -517,7 +533,7 @@ void WebSocketStatsService::PushSystemStats(const std::string& connection_id) {
         // 构造响应消息
         std::ostringstream oss;
         oss << "{\"type\":\"stats\",\"target\":\"system\",\"timestamp\":" 
-            << GetCurrentTimeMs() << ",\"data\":" << stats_json << "}";
+            << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
         
         SendClientMessage(connection_id, oss.str());
         
@@ -540,7 +556,7 @@ void WebSocketStatsService::PushSessionsStats(const std::string& connection_id) 
         
         std::ostringstream oss;
         oss << "{\"type\":\"stats\",\"target\":\"sessions\",\"timestamp\":" 
-            << GetCurrentTimeMs() << ",\"data\":" << stats_json << "}";
+            << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
         
         SendClientMessage(connection_id, oss.str());
         
@@ -564,7 +580,7 @@ void WebSocketStatsService::PushSessionStats(const std::string& connection_id, c
         
         std::ostringstream oss;
         oss << "{\"type\":\"stats\",\"target\":\"session\",\"id\":\"" << session_name 
-            << "\",\"timestamp\":" << GetCurrentTimeMs() << ",\"data\":" << stats_json << "}";
+            << "\",\"timestamp\":" << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
         
         SendClientMessage(connection_id, oss.str());
         
@@ -677,20 +693,20 @@ void WebSocketStatsService::RemoveConnection(const std::string& connection_id) {
  */
 std::string WebSocketStatsService::GenerateConnectionId() {
     static std::atomic<int64_t> counter(0);
-    return "conn_" + std::to_string(GetCurrentTimeMs()) + "_" + std::to_string(counter++);
+    return "conn_" + std::to_string(rtc::TimeMillis()) + "_" + std::to_string(counter++);
 }
 
-/**
- * @author chensong
- * @date 2025-10-18
- * @brief 获取当前时间（毫秒）
- * 
- * @return 当前时间戳（毫秒）
- */
-int64_t WebSocketStatsService::GetCurrentTimeMs() {
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        std::chrono::system_clock::now().time_since_epoch()
-    ).count();
-}
+///**
+// * @author chensong
+// * @date 2025-10-18
+// * @brief 获取当前时间（毫秒）
+// * 
+// * @return 当前时间戳（毫秒）
+// */
+//int64_t WebSocketStatsService::GetCurrentTimeMs() {
+//    return std::chrono::duration_cast<std::chrono::milliseconds>(
+//        std::chrono::system_clock::now().time_since_epoch()
+//    ).count();
+//}
 
 } // namespace gb_media_server
