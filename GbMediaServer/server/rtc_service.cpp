@@ -70,6 +70,7 @@ namespace  gb_media_server
 	 */
 	RtcService::RtcService()
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
+		, name_rtc_ufrag_()
 	{
 		
 	}
@@ -108,12 +109,17 @@ namespace  gb_media_server
 	  */
 	 void RtcService::RegisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
-		 std::lock_guard<std::mutex> lk(lock_);
-		 // TODO@chensong 2025-11-23 
-		 // 如果多个连接使用相同的 `LocalUFrag`（虽然概率低），会导致冲突
-		 //-后创建的连接会覆盖先创建的连接
-		//	 - STUN 消息可能路由到错误的接口
-		 name_rtc_interface_.emplace(rtc_interface->LocalUFrag(), rtc_interface);
+		 std::string ufrag_name = rtc_interface->LocalUFrag();// +":" + rtc_interface->LocalPasswd();
+		 {
+			 std::lock_guard<std::mutex> lk(lock_);
+			 // TODO@chensong 2025-11-23 
+			 // 如果多个连接使用相同的 `LocalUFrag`（虽然概率低），会导致冲突
+			 //-后创建的连接会覆盖先创建的连接
+			//	 - STUN 消息可能路由到错误的接口
+			 name_rtc_interface_.emplace(ufrag_name, rtc_interface);
+		 }
+		 name_rtc_ufrag_.emplace(ufrag_name);
+		 GBMEDIASERVER_LOG(LS_INFO) << "add rtc ufrag_name = " << ufrag_name ;
 	 }
 
 	 /***
@@ -135,14 +141,40 @@ namespace  gb_media_server
 	  */
 	 void RtcService::UnregisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface)
 	 {
-		 std::lock_guard<std::mutex> lk(lock_);
-		 name_rtc_interface_.erase(rtc_interface->LocalUFrag());
- 
 		 std::string key = rtc_interface->RtcRemoteAddress().ipaddr().ToString() + ":" + std::to_string(rtc_interface->RtcRemoteAddress().port());
-		 rtc_interfaces_.erase(key);
+		 std::string ufrag_name = rtc_interface->LocalUFrag();// +":" + rtc_interface->LocalPasswd();
+		 {
+			 std::lock_guard<std::mutex> lk(lock_);
+			 name_rtc_interface_.erase(ufrag_name);
+
+
+			 rtc_interfaces_.erase(key);
+		 }
+		 name_rtc_ufrag_.erase(ufrag_name);
+		 GBMEDIASERVER_LOG(LS_INFO) << "remove rtc ufrag_name = "<< ufrag_name << ", key = " << key;
  
 	 }
+	 void RtcService::UnregisterRtcInterface(const std::string& ufrag_name, const std::string& key)
+	 {
+		 {
+			 std::lock_guard<std::mutex> lk(lock_);
+			 name_rtc_interface_.erase(ufrag_name);
 
+
+			 rtc_interfaces_.erase(key);
+		 }
+		 name_rtc_ufrag_.erase(ufrag_name);
+		 GBMEDIASERVER_LOG(LS_INFO) << "remove rtc ufrag_name = " << ufrag_name << ", key = " << key;
+	 }
+	 bool RtcService::FindUfragName(const std::string& ufrag_name)
+	 {
+		 auto iter =  name_rtc_ufrag_.find(ufrag_name);
+		 if (iter != name_rtc_ufrag_.end())
+		 {
+			 return true;
+		 }
+		 return false;
+	 }
 	 /***
 	  *  @author chensong
 	  *  @date 2025-10-18
@@ -197,13 +229,15 @@ namespace  gb_media_server
 			return;
 		}
 		std::shared_ptr< RtcInterface>  rtc_interface;
+		std::string ufrag_name = stun.LocalUFrag();// +":" + stun.PassWord();;
 		std::lock_guard<std::mutex> lk(lock_);
-		auto iter = name_rtc_interface_.find(stun.LocalUFrag());
+		auto iter = name_rtc_interface_.find(ufrag_name);
 		if (iter != name_rtc_interface_.end())
 		{
 			rtc_interface = iter->second;
 			stun.SetPassword(rtc_interface->LocalPasswd());
 			rtc_interface->SetRtcRemoteAddress(addr);
+
 			stun.SetMessageType(libmedia_transfer_protocol::librtc::kStunMsgBindingResponse);
 			uint32_t  mapped_addr = 0;
 
@@ -212,13 +246,13 @@ namespace  gb_media_server
 			stun.SetMappedPort(addr.port());
 
 			rtc::Buffer packet = stun.Encode();
-			  
+			rtc_interface->SetStunTime();
 			 socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
 			 
 		}
 		else
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: "<< stun.LocalUFrag();
+			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: "<< ufrag_name;
 			//return;
 		}
 
@@ -399,8 +433,9 @@ namespace  gb_media_server
 			return;
 		}
 		std::shared_ptr< RtcInterface>  rtc_interface;
+		std::string ufrag_name = stun.LocalUFrag();// +":" + stun.PassWord();;
 		std::lock_guard<std::mutex> lk(lock_);
-		auto iter = name_rtc_interface_.find(stun.LocalUFrag());
+		auto iter = name_rtc_interface_.find(ufrag_name);
 		if (iter != name_rtc_interface_.end())
 		{
 			rtc_interface = iter->second;
@@ -420,7 +455,7 @@ namespace  gb_media_server
 		}
 		else
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: " << stun.LocalUFrag();
+			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: " << ufrag_name;
 			//return;
 		}
 

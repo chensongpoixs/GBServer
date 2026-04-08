@@ -106,7 +106,7 @@ namespace gb_media_server
 	*  @note DTLS指纹在程序启动时生成，所有连接共享同一个证书
 	*/
 	RtcConsumer::RtcConsumer(     std::shared_ptr<Stream> &stream, const  std::shared_ptr<Session> &s)
-	: RtcInterface ()
+	: RtcInterface (s)
 	, Consumer(stream, s)
 	, task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 	, current_target_bitrate_bps_(0)

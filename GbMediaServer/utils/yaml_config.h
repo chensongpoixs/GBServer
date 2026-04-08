@@ -115,6 +115,7 @@ namespace  gb_media_server
 		uint16_t        tcp_port{10001};              // TCP监听端口，用于TCP传输模式
 		std::string     cert_public_key{""};          // DTLS证书公钥文件路径
 		std::string     cert_private_key{ "" };       // DTLS证书私钥文件路径
+		int64_t		timeout_ms{15}; // 
 	};
 	
 	/**

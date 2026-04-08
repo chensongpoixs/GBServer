@@ -193,7 +193,10 @@ namespace  gb_media_server
 		*  @endcode
 		*/
 		void UnregisterRtcInterface(std::shared_ptr<RtcInterface> rtc_interface);
+		void UnregisterRtcInterface(const std::string & ufarg_name, const std::string & key);
 
+
+		bool FindUfragName(const std::string& ufrag_name);
 		/**
 		*  @author chensong
 		*  @date 2025-10-14
@@ -522,7 +525,7 @@ namespace  gb_media_server
 		*  @note 使用会话名称作为键，便于根据URL路由数据包
 		*/
 		std::unordered_map<std::string, std::shared_ptr<RtcInterface>> name_rtc_interface_;
-
+		std::unordered_set<std::string>								name_rtc_ufrag_;
 		/**
 		*  @author chensong
 		*  @date 2025-10-14

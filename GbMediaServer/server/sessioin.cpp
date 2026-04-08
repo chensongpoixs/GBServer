@@ -354,20 +354,22 @@ namespace  gb_media_server
 	void Session::SetProducer(std::shared_ptr<Producer>  producer)
 	{
 		std::lock_guard<std::mutex> lk(lock_);
-		if (producer_ == producer)
+		if (producer_ == producer && producer_)
 		{
-			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "SetProducer  producer_ == producer   !!!";
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "SetProducer  producer_ == producer   !!! app_name =" << producer_->AppName() << ", stream_name = " << producer_->StreamName();
 			//return;
 		}
 		if (producer_  )
 		{ 
 			//producer_->Close();
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << " Producer reset app_name =" << producer_->AppName() << ", stream_name = " << producer_->StreamName();
 			producer_.reset();
 			
 		}
 		if (producer)
 		{
 			producer_ = (producer);
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "add new  Producer   app_name =" << producer->AppName() << ", stream_name = " << producer->StreamName();
 		}
 		
 	}
@@ -588,13 +590,17 @@ namespace  gb_media_server
 	void Session::Clear()
 	{
 		std::lock_guard<std::mutex> lk(lock_);
+		GBMEDIASERVER_LOG(LS_INFO) << " session_name = " << session_name_ << "clear !!!";
 		if (producer_)
 		{ 
+			GBMEDIASERVER_LOG(LS_INFO) << " session_name = " << session_name_ << "clear !!!Producer   app_name =" << producer_->AppName() << ", stream_name = " << producer_->StreamName();
 			producer_.reset();
+			
 		}
 		for (  auto     p : consumers_)
 		{ 
 			p.reset();
+			GBMEDIASERVER_LOG(LS_INFO) << " session_name = " << session_name_ << "clear !!! consumer   app_name =" << p->AppName() << ", stream_name = " << p->StreamName();
 		}
 		consumers_.clear();
 	}

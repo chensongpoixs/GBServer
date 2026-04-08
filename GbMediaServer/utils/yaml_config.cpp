@@ -177,7 +177,7 @@ namespace  gb_media_server
 				rtc_server_config_.tcp_port = node["rtc"]["tcp"]["port"].as<uint16_t>();
 				rtc_server_config_.cert_public_key = node["rtc"]["cert"] .as<std::string>();;
 				rtc_server_config_.cert_private_key = node["rtc"]["key"].as<std::string>();;
-			
+				rtc_server_config_.timeout_ms = node["rtc"]["timeout_ms"].as<int64_t>();;
 				std::ostringstream cmd;
 				cmd << " ips:[";
 				for (const auto& ip : rtc_server_config_.ips)
@@ -189,6 +189,7 @@ namespace  gb_media_server
 				cmd << ", tcp_port:" << rtc_server_config_.tcp_port;
 				cmd << ", public key:" << rtc_server_config_.cert_public_key;
 				cmd << ", private key:" << rtc_server_config_.cert_private_key;
+				cmd << ", timeout_ms:" << rtc_server_config_.timeout_ms;
 
 				GBMEDIASERVER_LOG(LS_INFO) << " rtc server config : \n " << cmd.str();
 			}

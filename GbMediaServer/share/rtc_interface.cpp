@@ -74,7 +74,44 @@
 #include <utility>  // std::make_pair()
 
 
+#include "consumer/rtc_consumer.h"
+#include "server/session.h"
 
+#include "gb_media_server_log.h"
+#include "rtc_base/buffer.h"
+#include "server/gb_media_service.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_format_h264.h"
+#include "server/gb_media_service.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_packet_to_send.h"
+#include <vector>
+#include "libmedia_transfer_protocol/rtp_rtcp/rtp_format.h"
+#include <memory>
+#include "server/rtc_service.h"
+#include "common_video/h264/h264_common.h"
+#include "server/stream.h"
+#include "utils/yaml_config.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/receiver_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/psfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sender_report.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/sdes.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/extended_reports.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/bye.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rtpfb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/common_header.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/fir.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/nack.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/remb.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/transport_feedback.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/tmmbn.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/tmmbr.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/tmmb_item.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/rapid_resync_request.h"
+#include "share/statistics_manager.h"
+#include "gb_media_server_log.h"
+#include "producer/rtc_producer.h"
 
 
 namespace gb_media_server
@@ -246,7 +283,7 @@ namespace gb_media_server
 	*  @note RTP扩展必须在SDP交换前注册
 	*  @note TWCC回调函数会在接收到足够的RTP包后触发
 	*/
-	RtcInterface::RtcInterface()
+	RtcInterface::RtcInterface(const std::shared_ptr<Session>& s)
 		: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
 		//, rtp_header_extension_map_() 
 		, srtp_send_session_(nullptr)
@@ -254,9 +291,19 @@ namespace gb_media_server
 		, rtp_header_()
 		, extension_manager_()
 		, twcc_context_()
+		, rtc_task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 		//, sctp_(nullptr)
+		, session_(s)
 	{
+		
 		local_ufrag_ = GetUFrag(8);
+		int32_t count = 0;
+		//防止突出的
+		while (RtcService::GetInstance().FindUfragName(local_ufrag_) && ++count<=10)
+		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "random local ufrag count = " << count;
+			local_ufrag_ = GetUFrag(8);
+		}
 		local_passwd_ = GetUFrag(32);
 		sdp_.SetLocalUFrag(local_ufrag_);
 		sdp_.SetLocalPasswd(local_passwd_);
@@ -267,7 +314,7 @@ namespace gb_media_server
 
 
 
-		
+		CheckTimeOut();
 
 	}
 
@@ -338,6 +385,98 @@ namespace gb_media_server
 		static std::uniform_int_distribution<> rand(10000000, 99999999);
 
 		return rand(mt);
+	}
+
+	void RtcInterface::SetStunTime()
+	{
+		rtc_stun_timestamp_ = rtc::TimeMillis();
+	}
+
+	void RtcInterface::CheckTimeOut()
+	{
+		GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(rtc_task_safety_,
+			[this]() {
+				 
+
+				 
+				if (rtc::TimeMillis() - rtc_stun_timestamp_ > (YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms * 1))
+				{
+
+					// 删除当前rtc 
+					GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! diff ms :"<< (rtc::TimeMillis() - rtc_stun_timestamp_) << ",   config ms : " << YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
+					RemoveGlobalData();
+					//GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+						//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+						//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+						//	http_ctx->PostRequest(res);
+						//	http_ctx->WriteComplete(conn);
+						//	});
+
+					//auto s = GbMediaService::GetInstance().CreateSession(session_name);
+					//if (!s)
+					//{
+					//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+					//	//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+					//	//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+					//	//	http_ctx->PostRequest(res);
+					//	//	http_ctx->WriteComplete(conn);
+					//	//	});
+
+					//	return;
+					//}
+					return;
+
+				}
+				 
+
+				// 递归调用实现定时循环（每5秒）
+				CheckTimeOut();
+			}), 5000);
+	}
+	void RtcInterface::RemoveGlobalData()
+	{
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this]() {
+
+
+
+			std::string key =  RtcRemoteAddress().ipaddr().ToString() + ":" + std::to_string( RtcRemoteAddress().port());
+			std::string ufrag_name = LocalUFrag();// +":" + LocalPasswd();
+
+			// 
+			// global un
+		//	RtcService::GetInstance().UnregisterRtcInterface(std::dynamic_pointer_cast<RtcInterface>(shared_from_this()));
+			RtcService::GetInstance().UnregisterRtcInterface(ufrag_name, key);
+
+			if (sdp_.GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPlay)
+			{
+				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove consumer stream_name = " << session_->GetStream()->SessionName();
+				//std::shared_ptr<RtcConsumer> consumer = std::dynamic_pointer_cast<RtcConsumer>
+				session_->RemoveConsumer(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
+			}
+			else if (sdp_.GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPush)
+			{
+				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove producer stream_name = " << session_->GetStream()->SessionName();
+				session_->SetProducer(nullptr/*std::dynamic_pointer_cast<RtcProducer>(shared_from_this())*/);
+			}
+			else
+			{
+				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! not find sdp type !!! stream_name = " << session_->GetStream()->SessionName();
+			}
+
+
+			//session_
+			 //auto s = GbMediaService::GetInstance().CreateSession(session_name);
+			//if (!s)
+			//{
+			//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+				//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				//	http_ctx->PostRequest(res);
+				//	http_ctx->WriteComplete(conn);
+				//	});
+
+
+			});
 	}
 
 	/**

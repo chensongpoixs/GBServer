@@ -30,6 +30,7 @@ rtc:
      
     cert: fullchain.pem
     key:  privkey.pem
+    timeout_ms: 15000
 
 
 

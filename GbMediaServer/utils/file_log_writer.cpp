@@ -200,8 +200,8 @@ std::string FileLogWriter::NowLocalDateTimeKeyString() {
   std::ostringstream oss;
   oss << std::setfill('0') << std::setw(4) << (lt.tm_year + 1900)
       << std::setw(2) << (lt.tm_mon + 1)  << std::setw(2) << lt.tm_mday
-      << std::setw(2) << lt.tm_hour  << std::setw(2) << lt.tm_min 
-      << std::setw(2) << lt.tm_sec;
+      << std::setw(2) /*<< lt.tm_hour  << std::setw(2) << lt.tm_min 
+      << std::setw(2) << lt.tm_sec*/;
   return oss.str();
 }
 

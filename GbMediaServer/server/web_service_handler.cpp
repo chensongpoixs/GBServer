@@ -128,17 +128,21 @@ namespace gb_media_server
 			 
 			auto content = result.toStyledString();
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-				res->SetStatusCode(200);
-				res->AddHeader("server", "GbMediaServer");
-				res->AddHeader("content-length", std::to_string(content.size()));
+				//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				//res->SetStatusCode(200);
+				//res->AddHeader("server", "GbMediaServer");
+				//res->AddHeader("content-length", std::to_string(content.size()));
+				//res->AddHeader("content-type", "application/json");
+				//res->AddHeader("Access-Control-Allow-Origin", "*");
+				//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+				//res->AddHeader("Allow", "POST, GET, OPTIONS");
+				//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+				//res->AddHeader("Connection", "close");
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
+				
 				res->AddHeader("content-type", "application/json");
-				res->AddHeader("Access-Control-Allow-Origin", "*");
-				res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-				res->AddHeader("Allow", "POST, GET, OPTIONS");
-				res->AddHeader("Access-Control-Allow-Headers", "content-type");
-				res->AddHeader("Connection", "close");
 				res->SetBody(content);
+				res->AddHeader("content-length", std::to_string(content.size()));
 				http_ctx->PostRequest(res);
 
 				http_ctx->WriteComplete(conn);
@@ -216,17 +220,22 @@ namespace gb_media_server
 
 		auto content = result.toStyledString();
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-			res->SetStatusCode(200);
-			res->AddHeader("server", "WebServer");
-			res->AddHeader("content-length", std::to_string(content.size()));
+			//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+			//res->SetStatusCode(200);
+			//res->AddHeader("server", "WebServer");
+			//res->AddHeader("content-length", std::to_string(content.size()));
+			//res->AddHeader("content-type", "application/json");
+			//res->AddHeader("Access-Control-Allow-Origin", "*");
+			//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+			//res->AddHeader("Allow", "POST, GET, OPTIONS");
+			//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+			//res->AddHeader("Connection", "close");
+			//res->SetBody(content);
+			auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
+
 			res->AddHeader("content-type", "application/json");
-			res->AddHeader("Access-Control-Allow-Origin", "*");
-			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-			res->AddHeader("Allow", "POST, GET, OPTIONS");
-			res->AddHeader("Access-Control-Allow-Headers", "content-type");
-			res->AddHeader("Connection", "close");
 			res->SetBody(content);
+			res->AddHeader("content-length", std::to_string(content.size()));
 			http_ctx->PostRequest(res);
 
 			http_ctx->WriteComplete(conn);
@@ -314,17 +323,22 @@ namespace gb_media_server
 
 			auto content = result.toStyledString();
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-				res->SetStatusCode(200);
-				res->AddHeader("server", "GbMediaServer");
-				res->AddHeader("content-length", std::to_string(content.size()));
+				//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				//res->SetStatusCode(200);
+				//res->AddHeader("server", "GbMediaServer");
+				//res->AddHeader("content-length", std::to_string(content.size()));
+				//res->AddHeader("content-type", "application/json");
+				//res->AddHeader("Access-Control-Allow-Origin", "*");
+				//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+				//res->AddHeader("Allow", "POST, GET, OPTIONS");
+				//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+				//res->AddHeader("Connection", "close");
+				//res->SetBody(content);
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
+
 				res->AddHeader("content-type", "application/json");
-				res->AddHeader("Access-Control-Allow-Origin", "*");
-				res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-				res->AddHeader("Allow", "POST, GET, OPTIONS");
-				res->AddHeader("Access-Control-Allow-Headers", "content-type");
-				res->AddHeader("Connection", "close");
 				res->SetBody(content);
+				res->AddHeader("content-length", std::to_string(content.size()));
 				http_ctx->PostRequest(res);
 
 				http_ctx->WriteComplete(conn);
@@ -398,17 +412,22 @@ namespace gb_media_server
 
 		auto content = result.toStyledString();
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-			res->SetStatusCode(200);
-			res->AddHeader("server", "GbMediaServer");
-			res->AddHeader("content-length", std::to_string(content.size()));
+			//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+			//res->SetStatusCode(200);
+			//res->AddHeader("server", "GbMediaServer");
+			//res->AddHeader("content-length", std::to_string(content.size()));
+			//res->AddHeader("content-type", "application/json");
+			//res->AddHeader("Access-Control-Allow-Origin", "*");
+			//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+			//res->AddHeader("Allow", "POST, GET, OPTIONS");
+			//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+			//res->AddHeader("Connection", "close");
+			//res->SetBody(content);
+			auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
+
 			res->AddHeader("content-type", "application/json");
-			res->AddHeader("Access-Control-Allow-Origin", "*");
-			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-			res->AddHeader("Allow", "POST, GET, OPTIONS");
-			res->AddHeader("Access-Control-Allow-Headers", "content-type");
-			res->AddHeader("Connection", "close");
 			res->SetBody(content);
+			res->AddHeader("content-length", std::to_string(content.size()));
 			http_ctx->PostRequest(res);
 
 			http_ctx->WriteComplete(conn);
@@ -589,13 +608,18 @@ namespace gb_media_server
 		if (!paylist.empty())
 		{
 			http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-				auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-				res->AddHeader("server", "GbMediaServer");
-				res->AddHeader("content-length", std::to_string(paylist.size()));
-				res->AddHeader("content-type", "application/vnd.apple.mpegurl");
+				//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+				//res->AddHeader("server", "GbMediaServer");
+				//res->AddHeader("content-length", std::to_string(paylist.size()));
+				//res->AddHeader("content-type", "application/vnd.apple.mpegurl");
+				//
+				//res->SetStatusCode(200);
+				//res->SetBody(paylist);
+				auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
 
-				res->SetStatusCode(200);
+				res->AddHeader("content-type", "application/json");
 				res->SetBody(paylist);
+				res->AddHeader("content-length", std::to_string(paylist.size()));
 				http_ctx->PostRequest(res);
 			});
 		}
@@ -826,17 +850,22 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << " open rtp server info :" << content;
 
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-			res->SetStatusCode(200);
-			res->AddHeader("server", "GbMediaServer");
-			res->AddHeader("content-length", std::to_string(content.size()));
+			//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+			//res->SetStatusCode(200);
+			//res->AddHeader("server", "GbMediaServer");
+			//res->AddHeader("content-length", std::to_string(content.size()));
+			//res->AddHeader("content-type", "application/json; charset=UTF-8");
+			//res->AddHeader("Access-Control-Allow-Origin", "*");
+			//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+			//res->AddHeader("Allow", "POST, GET, OPTIONS");
+			//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+			//res->AddHeader("Connection", "close");
+			//res->SetBody(content);
+
+			auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
 			res->AddHeader("content-type", "application/json; charset=UTF-8");
-			res->AddHeader("Access-Control-Allow-Origin", "*");
-			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-			res->AddHeader("Allow", "POST, GET, OPTIONS");
-			res->AddHeader("Access-Control-Allow-Headers", "content-type");
-			res->AddHeader("Connection", "close");
 			res->SetBody(content);
+			res->AddHeader("content-length", std::to_string(content.size()));
 			http_ctx->PostRequest(res);
 
 			http_ctx->WriteComplete(conn);
@@ -935,20 +964,27 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << " close rtp server info :" << content;
 
 		http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-			auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
-			res->SetStatusCode(200);
-			res->AddHeader("server", "GbMediaServer");
-			res->AddHeader("content-length", std::to_string(content.size()));
-			res->AddHeader("content-type", "application/json");
-			res->AddHeader("Access-Control-Allow-Origin", "*");
-			res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-			res->AddHeader("Allow", "POST, GET, OPTIONS");
-			res->AddHeader("Access-Control-Allow-Headers", "content-type");
-			res->AddHeader("Connection", "close");
+			//auto res = std::make_shared<libmedia_transfer_protocol::libhttp::HttpRequest>(false);
+			//res->SetStatusCode(200);
+			//res->AddHeader("server", "GbMediaServer");
+			//res->AddHeader("content-length", std::to_string(content.size()));
+			//res->AddHeader("content-type", "application/json");
+			//res->AddHeader("Access-Control-Allow-Origin", "*");
+			//res->AddHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+			//res->AddHeader("Allow", "POST, GET, OPTIONS");
+			//res->AddHeader("Access-Control-Allow-Headers", "content-type");
+			//res->AddHeader("Connection", "close");
+			//res->SetBody(content);
+			//http_ctx->PostRequest(res);
+
+			//http_ctx->WriteComplete(conn);
+			auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp200Response();
+			res->AddHeader("content-type", "application/json; charset=UTF-8");
 			res->SetBody(content);
+			res->AddHeader("content-length", std::to_string(content.size()));
 			http_ctx->PostRequest(res);
 
-		http_ctx->WriteComplete(conn);
+			http_ctx->WriteComplete(conn);
 		});
 	}
 

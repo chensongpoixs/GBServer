@@ -102,7 +102,7 @@ namespace gb_media_server {
 	RtcProducer::RtcProducer(
 		const std::shared_ptr<Stream> & stream, 
 		const std::shared_ptr<Session> &s)
-		: RtcInterface()
+		: RtcInterface(s)
 		, Producer(  stream, s), 
 		task_safety_(webrtc::PendingTaskSafetyFlag::CreateDetachedInactive()),
 
