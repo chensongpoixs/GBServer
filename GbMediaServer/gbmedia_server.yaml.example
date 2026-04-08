@@ -2,6 +2,17 @@
 # 作者: chensong
 # 日期: 2025-10-18
 
+# 文件日志（RTC 日志回调写入磁盘；命名 gbmedia_server_YYYY-MM-DD_HH-MM-SS_NN.log，NN 为同段内按行滚动序号）
+# 本地自然日 0 点切换新日期文件；单文件行数超过 max_lines_per_file 时序号 +1 同日内滚动
+# retention_days：按文件名中的日期删除早于「今天 0 点往前推 N 天」的日志（需 C++17 filesystem）
+file_log:
+  enabled: true
+  directory: "logs"
+  max_lines_per_file: 100000
+  retention_days: 7
+  echo_to_stdout: true       # 控制台输出由后台写线程完成，主线程只入队
+  max_queued_messages: 100000 # 队列上限，超出丢弃最旧；0 表示不限制
+
 # HTTP服务器配置
 http:
   port: 8001  # HTTP API端口

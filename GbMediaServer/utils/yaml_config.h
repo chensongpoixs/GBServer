@@ -202,6 +202,19 @@ namespace  gb_media_server
 		int64_t ping_interval{30000};         // Ping间隔（毫秒）
 		int64_t ping_timeout{10000};          // Ping超时（毫秒）
 	};
+
+	/** 文件日志：gbmedia_server_YYYY-MM-DD_HH-MM-SS_NN.log（NN 同段按行滚动），按本地自然日切分，过期清理 */
+	struct FileLogConfig
+	{
+		bool enabled{true};
+		std::string directory{"logs"};
+		int max_lines_per_file{100000};
+		int retention_days{7};
+		/** 由后台线程写控制台，主线程只入队 */
+		bool echo_to_stdout{true};
+		/** 队列上限条数，超出则丢弃最旧；0 表示不限制 */
+		size_t max_queued_messages{100000};
+	};
 	
 	/**
 	*  @author chensong
@@ -361,12 +374,15 @@ namespace  gb_media_server
 		*/
 		const WebSocketStatsConfig& GetWebSocketStatsConfig() const { return websocket_stats_config_; }
 
+		const FileLogConfig& GetFileLogConfig() const { return file_log_config_; }
+
 	public:
 		HttpServerConfig     http_server_config_;   // HTTP服务器配置
 		RtcServerConfig      rtc_server_config_;    // RTC服务器配置
 		RtpPortConfig       rtp_port_config_;       // RTP端口配置
 		WebSocketStatsConfig websocket_stats_config_;  // WebSocket统计服务配置
-		
+		FileLogConfig        file_log_config_;
+
 	 };
 }
 

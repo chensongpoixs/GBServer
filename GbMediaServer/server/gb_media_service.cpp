@@ -49,6 +49,10 @@
 #include "utils/yaml_config.h"
 #include "gb_media_server_log.h"
 #include "server/ws_stats_service.h"
+
+#include "utils/file_log_writer.h"
+
+
 namespace  gb_media_server
 {
 	namespace
@@ -64,6 +68,15 @@ namespace  gb_media_server
 		 *  @note 调用者应检查返回值是否为空
 		 */
 		static std::shared_ptr < Session> session_null;
+
+
+		static gb_media_server::FileLogWriter g_file_logger;
+
+		static void RtcLogCallback(const char* message)
+		{
+			g_file_logger.Write(message);
+
+		}
 	}
 	
 	/***
@@ -392,6 +405,7 @@ namespace  gb_media_server
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 	}
+
 	
 	/***
 	 *  @author chensong
@@ -418,12 +432,19 @@ namespace  gb_media_server
 	 */
 	bool GbMediaService::Init(const char* config_file)
 	{
+		rtc::SetRtcLogOutCallback(&RtcLogCallback);
 		bool init = YamlConfig::GetInstance().LoadFile(config_file);
+		//gb_media_server::YamlConfig::GetInstance().LoadFile(config_file);
+		//g_file_logger.Configure(gb_media_server::YamlConfig::GetInstance().GetFileLogConfig());
 		if (!init)
 		{
 			return init;
 		}
 		GBMEDIASERVER_LOG(LS_INFO) << "YamlConfig OK !!!";
+		//gb_media_server::YamlConfig::GetInstance().LoadFile(config_file);
+		g_file_logger.Configure(gb_media_server::YamlConfig::GetInstance().GetFileLogConfig());
+
+		
 		// init rtc
 		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(
 			YamlConfig::GetInstance().GetRtcServerConfig().cert_public_key.c_str(),

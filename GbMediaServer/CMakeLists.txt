@@ -374,6 +374,10 @@ file(GLOB GbMediaServer_source
 #add_subdirectory(libsip)
  
 add_executable(${PROJECT_NAME}     ${GbMediaServer_source}  ${Media_source}   )
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.8 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/utils/file_log_writer.cpp")
+	set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/utils/file_log_writer.cpp"
+		PROPERTIES COMPILE_FEATURES cxx_std_17)
+endif()
 add_dependencies(${PROJECT_NAME} libmedia_codec)
 add_dependencies(${PROJECT_NAME} libmedia_transfer_protocol)
 #add_dependencies(${PROJECT_NAME}   libswagger)
@@ -548,6 +552,9 @@ target_link_libraries(${PROJECT_NAME}   ${ALL_LIB}
 	${WIN_LIB}
 	${LINUX_LIB}
 )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9.0")
+	target_link_libraries(${PROJECT_NAME} PRIVATE stdc++fs)
+endif()
 
 #set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /SAFESEH:NO")
 			# Console (/SUBSYSTEM:CONSOLE)

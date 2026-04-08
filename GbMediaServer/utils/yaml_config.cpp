@@ -61,6 +61,7 @@ namespace  gb_media_server
 		, rtc_server_config_()    // 使用默认构造函数初始化RTC服务器配置
 		, rtp_port_config_()      // 使用默认构造函数初始化RTP端口配置
 		, websocket_stats_config_()  // 使用默认构造函数初始化WebSocket统计服务配置
+		, file_log_config_()
 	{
 		// 所有配置项都已通过成员初始化列表初始化为默认值
 		// 实际配置将在LoadFile方法中从YAML文件加载
@@ -222,6 +223,34 @@ namespace  gb_media_server
 					<< "max_connections: " << websocket_stats_config_.max_connections << "\n"
 					<< "ping_interval: " << websocket_stats_config_.ping_interval << "ms\n"
 					<< "ping_timeout: " << websocket_stats_config_.ping_timeout << "ms";
+			}
+
+			if (node["file_log"]) {
+				const YAML::Node& fl = node["file_log"];
+				if (fl["enabled"]) {
+					file_log_config_.enabled = fl["enabled"].as<bool>();
+				}
+				if (fl["directory"]) {
+					file_log_config_.directory = fl["directory"].as<std::string>();
+				}
+				if (fl["max_lines_per_file"]) {
+					file_log_config_.max_lines_per_file = fl["max_lines_per_file"].as<int>();
+				}
+				if (fl["retention_days"]) {
+					file_log_config_.retention_days = fl["retention_days"].as<int>();
+				}
+				if (fl["echo_to_stdout"]) {
+					file_log_config_.echo_to_stdout = fl["echo_to_stdout"].as<bool>();
+				}
+				if (fl["max_queued_messages"]) {
+					file_log_config_.max_queued_messages = fl["max_queued_messages"].as<size_t>();
+				}
+				GBMEDIASERVER_LOG(LS_INFO) << "file_log: enabled=" << (file_log_config_.enabled ? "true" : "false")
+					<< ", directory=" << file_log_config_.directory
+					<< ", max_lines_per_file=" << file_log_config_.max_lines_per_file
+					<< ", retention_days=" << file_log_config_.retention_days
+					<< ", echo_to_stdout=" << (file_log_config_.echo_to_stdout ? "true" : "false")
+					<< ", max_queued_messages=" << file_log_config_.max_queued_messages;
 			}
 		}
 		catch (const YAML::Exception& e) {

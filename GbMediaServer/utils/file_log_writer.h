@@ -1,4 +1,4 @@
-﻿/*
+/*
  *  Copyright (c) 2025 The CRTC project authors . All Rights Reserved.
  *
  *  Please visit https://chensongpoixs.github.io for detail
@@ -11,7 +11,7 @@
  */
  /*****************************************************************************
 				   Author: chensong
-				   date:  2025-10-13
+				   date:  2025-10-14
 
 输赢不重要，答案对你们有什么意义才重要。
 
@@ -31,123 +31,65 @@
 
 
  ******************************************************************************/
+#ifndef GB_MEDIA_SERVER_FILE_LOG_WRITER_H_
+#define GB_MEDIA_SERVER_FILE_LOG_WRITER_H_
 
-
-#include <iostream>
+#include <atomic>
+#include <condition_variable>
+#include <deque>
+#include <mutex>
+#include <string>
 #include <thread>
-#include <chrono>
-#include <cstring>
-#include <cstdio>
 
-#include "rtc_base/logging.h"
-#include "server/gb_media_service.h"
-#include "libmedia_transfer_protocol/libsip/sip_server.h"
-#include "server/rtc_service.h"
-#include "server/web_service.h"
-#include "server/ws_stats_service.h"
-#include "libmedia_codec/audio_codec/adts_header.h"
 #include "utils/yaml_config.h"
-#include "utils/file_log_writer.h"
 
+namespace gb_media_server {
 
+class FileLogWriter {
+ public:
+  FileLogWriter();
+  ~FileLogWriter();
 
-#if 0
-#include <windows.h>
+  void Configure(const FileLogConfig& cfg);
 
-// 窗口过程函数声明
-LRESULT CALLBACK WindowProcedure(HWND, UINT, WPARAM, LPARAM);
+  /** 非阻塞：拷贝入队，由后台线程写文件与控制台 */
+  void Write(const char* message);
 
-// WinMain函数实现
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR args, int ncmdshow) {
-	WNDCLASSW wc = { 0 };
+ private:
+  void WorkerLoop();
+  void WritePayloadLocked(const std::string& payload);
 
-	wc.hbrBackground = (HBRUSH)COLOR_WINDOW;
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hInstance = hInst;
-	wc.lpszClassName = L"myWindowClass";
-	wc.lpfnWndProc = WindowProcedure;
-#ifdef WIN32
-	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-	{
+  void EnsureCurrentFileLocked();
+  void OpenNewFileLocked();
+  void CloseFileLocked();
+  void MaybeRotateByDateLocked();
+  void MaybeRotateByLinesLocked(size_t lines_added);
+  void PurgeExpiredLogsLocked();
+  static std::string TodayLocalDateString();
+  /** 本地时间，用于文件名：YYYY-MM-DD_HH-MM-SS */
+  static std::string NowLocalDateTimeKeyString();
+  static size_t CountLinesInMessage(const char* message);
+  std::string MakeFilePathLocked() const;
 
-		return 0;
-	}
-#endif // WIN32
-	// 注册窗口类
-	if (!RegisterClassW(&wc)) {
-		return -1;
-	}
+  std::mutex file_mutex_;
+  FileLogConfig cfg_;
+  FILE* file_{nullptr};
+  /** 当前日志段键（含秒）；按行滚动时不变，跨自然日或新进程时更新 */
+  std::string current_time_key_;
+  int part_index_{1};
+  int64_t lines_in_current_file_{0};
 
-	// 创建窗口
-	CreateWindowW(L"myWindowClass", L"Sample Window", WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 500, 500, NULL, NULL, NULL, NULL);
-	gb_media_server::GbMediaService::GetInstance().Start("192.168.1.2", 20001);
-	// 消息循环
-	MSG msg = { 0 };
-	while (GetMessage(&msg, NULL, 0, 0)) {
-		TranslateMessage(&msg);
-		DispatchMessage(&msg);
-	}
+  std::atomic<bool> enabled_{true};
+  std::atomic<bool> echo_stdout_{true};
+  std::atomic<size_t> max_queued_{100000};
 
-	return (int)msg.wParam;
-}
+  std::mutex queue_mutex_;
+  std::condition_variable queue_cv_;
+  std::deque<std::string> queue_;
+  bool worker_shutdown_{false};
+  std::thread worker_;
+};
 
-// 窗口过程函数定义
-LRESULT CALLBACK WindowProcedure(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
-	switch (msg) {
-	case WM_DESTROY:
-		PostQuitMessage(0);
-		break;
-	default:
-		return DefWindowProcW(hWnd, msg, wp, lp);
-	}
-	return 0;
-}
-#endif // 
+}  // namespace gb_media_server
 
-
-
-static bool stoped = false;
-
-
-
-int main(int argc, char *argv[])
-{
-#ifdef WIN32
-	WSADATA wsaData;
-	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-	{
-
-		return 0;
-	}
-#endif // WIN32
-
-	const char* config_file = "gbmedia_server.yaml";
-	if (argc > 1)
-	{
-		config_file = argv[1];
-	}
-
-	
-
-	bool init = gb_media_server::GbMediaService::GetInstance().Init(config_file);
-	if (init)
-	{
-		gb_media_server::GbMediaService::GetInstance().Start();
-
-		
-
-		while (!stoped)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-	}
-	
-	
-	
-	gb_media_server::GbMediaService::GetInstance().Destroy();
-	 
-	 
-
-	return EXIT_SUCCESS;
-}
+#endif
