@@ -60,6 +60,9 @@ struct ConnectionInfo {
     std::string connection_id;
     std::vector<Subscription> subscriptions;
     int64_t last_ping_time;
+    int64_t connected_at;
+    int64_t sent_messages;
+    int64_t sent_bytes;
     bool authenticated;
     void* user_data;  // 用于存储websocket连接句柄
 };

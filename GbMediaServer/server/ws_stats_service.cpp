@@ -11,9 +11,22 @@
 #include "utils/yaml_config.h"
 #include "gb_media_server_log.h"
 #include <chrono>
-#include <sstream>
+#include <nlohmann/json.hpp>
 
 namespace gb_media_server {
+
+namespace {
+const char* SubscriptionTargetToString(SubscriptionTarget target) {
+    switch (target) {
+    case SubscriptionTarget::SYSTEM: return "system";
+    case SubscriptionTarget::SESSIONS: return "sessions";
+    case SubscriptionTarget::SESSION: return "session";
+    case SubscriptionTarget::PRODUCER: return "producer";
+    case SubscriptionTarget::CONSUMER: return "consumer";
+    default: return "unknown";
+    }
+}
+}
 
     /**
      * @author chensong
@@ -116,8 +129,24 @@ namespace gb_media_server {
                 return;
             }
             GBMEDIASERVER_LOG(LS_INFO) << "hdl_to_id_ close connection_id:" << iter->second << " websocket close OK!!!";
-           // hdl_to_id_.erase(hdl);
-            OnClose(iter->second);
+            std::string connection_id = iter->second;
+            hdl_to_id_.erase(iter);
+            id_to_hdl_.erase(connection_id);
+            OnClose(connection_id);
+            });
+        ws_server_->set_message_handler([this](websocketpp::connection_hdl hdl,
+            websocketpp::server<websocketpp::config::asio>::message_ptr msg) {
+                std::string connection_id;
+                {
+                    std::lock_guard<std::mutex> lock(hdl_map_mutex_);
+                    auto iter = hdl_to_id_.find(hdl);
+                    if (iter == hdl_to_id_.end()) {
+                        GBMEDIASERVER_LOG(LS_WARNING) << "message from unknown websocket connection";
+                        return;
+                    }
+                    connection_id = iter->second;
+                }
+                OnMessage(connection_id, msg->get_payload());
             });
         
         websocketpp::lib::error_code  ec ;
@@ -270,10 +299,15 @@ namespace gb_media_server {
         ConnectionInfo conn_info;
         conn_info.connection_id = connection_id;
         conn_info.last_ping_time = rtc::TimeMillis();
+        conn_info.connected_at = rtc::TimeMillis();
+        conn_info.sent_messages = 0;
+        conn_info.sent_bytes = 0;
         conn_info.authenticated = false;
         conn_info.user_data = nullptr;
 
         connections_[connection_id] = conn_info;
+        GBMEDIASERVER_LOG(LS_INFO) << "Connection registered: " << connection_id
+                                   << ", total_connections=" << connections_.size();
     }
 
     /**
@@ -284,7 +318,20 @@ namespace gb_media_server {
      * @param connection_id 连接ID
      */
     void WebSocketStatsService::OnClose(const std::string& connection_id) {
-        GBMEDIASERVER_LOG(LS_INFO) << "WebSocket connection closed: " << connection_id;
+        {
+            std::lock_guard<std::mutex> lock(connections_mutex_);
+            auto* conn_info = GetConnectionInfo(connection_id);
+            if (conn_info) {
+                const int64_t alive_ms = rtc::TimeMillis() - conn_info->connected_at;
+                GBMEDIASERVER_LOG(LS_INFO) << "WebSocket connection closed: " << connection_id
+                    << ", alive_ms=" << alive_ms
+                    << ", sent_messages=" << conn_info->sent_messages
+                    << ", sent_bytes=" << conn_info->sent_bytes
+                    << ", subscriptions=" << conn_info->subscriptions.size();
+            } else {
+                GBMEDIASERVER_LOG(LS_INFO) << "WebSocket connection closed: " << connection_id;
+            }
+        }
 
         RemoveConnection(connection_id);
     }
@@ -383,6 +430,9 @@ namespace gb_media_server {
             if (target_str == "system") {
                 target = SubscriptionTarget::SYSTEM;
             }
+            else if (target_str == "sessions") {
+                target = SubscriptionTarget::SESSIONS;
+            }
             else if (target_str == "session") {
                 target = SubscriptionTarget::SESSION;
                 if (id.empty()) {
@@ -390,7 +440,24 @@ namespace gb_media_server {
                     return;
                 }
             }
-            // ... 其他类型
+            else if (target_str == "producer") {
+                target = SubscriptionTarget::PRODUCER;
+                if (id.empty()) {
+                    SendError(connection_id, 400, "Missing 'id' for producer subscription");
+                    return;
+                }
+            }
+            else if (target_str == "consumer") {
+                target = SubscriptionTarget::CONSUMER;
+                if (id.empty()) {
+                    SendError(connection_id, 400, "Missing 'id' for consumer subscription");
+                    return;
+                }
+            }
+            else {
+                SendError(connection_id, 400, "Unknown subscribe target: " + target_str);
+                return;
+            }
             {
                 std::lock_guard<std::mutex> lock(connections_mutex_);
                 auto* conn_info = GetConnectionInfo(connection_id);
@@ -402,6 +469,11 @@ namespace gb_media_server {
                     sub.interval = interval;
                     sub.last_push_time = 0;
                     conn_info->subscriptions.push_back(sub);
+                    GBMEDIASERVER_LOG(LS_INFO) << "Subscribed: conn=" << connection_id
+                        << ", target=" << target_str
+                        << ", id=" << (id.empty() ? "-" : id)
+                        << ", interval_ms=" << interval
+                        << ", total_subscriptions=" << conn_info->subscriptions.size();
                 }
             }
             // 发送确认
@@ -450,8 +522,10 @@ void WebSocketStatsService::HandleUnsubscribe(const std::string& connection_id, 
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto* conn_info = GetConnectionInfo(connection_id);
     if (conn_info) {
+        const size_t old_count = conn_info->subscriptions.size();
         conn_info->subscriptions.clear();
-        GBMEDIASERVER_LOG(LS_INFO) << "All subscriptions removed for " << connection_id;
+        GBMEDIASERVER_LOG(LS_INFO) << "All subscriptions removed for " << connection_id
+                                   << ", removed_count=" << old_count;
     }
 }
 
@@ -469,9 +543,10 @@ void WebSocketStatsService::HandlePing(const std::string& connection_id) {
         conn_info->last_ping_time = rtc::TimeMillis();
         
         // 发送Pong响应
-        std::string pong_message = "{\"type\":\"pong\",\"timestamp\":" + 
-                                   std::to_string(rtc::TimeMillis()) + "}";
-        SendClientMessage(connection_id, pong_message);
+        nlohmann::json pong;
+        pong["type"] = "pong";
+        pong["timestamp"] = rtc::TimeMillis();
+        SendClientMessage(connection_id, pong.dump());
     }
 }
 
@@ -486,6 +561,7 @@ void WebSocketStatsService::PushStatsTimer() {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     
     int64_t current_time = rtc::TimeMillis();
+    size_t pushed_count = 0;
     
     for (auto& pair : connections_) {
         const std::string& connection_id = pair.first;
@@ -494,6 +570,11 @@ void WebSocketStatsService::PushStatsTimer() {
         for (auto& sub : conn_info.subscriptions) {
             // 检查是否到达推送时间
             if (current_time - sub.last_push_time >= sub.interval) {
+                GBMEDIASERVER_LOG(LS_VERBOSE) << "Push due: conn=" << connection_id
+                    << ", target=" << SubscriptionTargetToString(sub.target)
+                    << ", id=" << (sub.id.empty() ? "-" : sub.id)
+                    << ", elapsed_ms=" << (current_time - sub.last_push_time)
+                    << ", interval_ms=" << sub.interval;
                 // 根据订阅类型推送数据
                 switch (sub.target) {
                     case SubscriptionTarget::SYSTEM:
@@ -514,8 +595,13 @@ void WebSocketStatsService::PushStatsTimer() {
                 }
                 
                 sub.last_push_time = current_time;
+                ++pushed_count;
             }
         }
+    }
+    if (pushed_count > 0) {
+        GBMEDIASERVER_LOG(LS_INFO) << "Push cycle summary: total_connections=" << connections_.size()
+                                   << ", pushed_subscriptions=" << pushed_count;
     }
 }
 
@@ -528,15 +614,14 @@ void WebSocketStatsService::PushStatsTimer() {
  */
 void WebSocketStatsService::PushSystemStats(const std::string& connection_id) {
     try {
-        std::string stats_json = StatisticsManager::GetInstance().GetSystemStatsJson();
-        
-        // 构造响应消息
-        std::ostringstream oss;
-        oss << "{\"type\":\"stats\",\"target\":\"system\",\"timestamp\":" 
-            << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
-        
-        SendClientMessage(connection_id, oss.str());
-        
+        const std::string stats_json = StatisticsManager::GetInstance().GetSystemStatsJson();
+        nlohmann::json data = nlohmann::json::parse(stats_json);
+        nlohmann::json msg;
+        msg["type"] = "stats";
+        msg["target"] = "system";
+        msg["timestamp"] = rtc::TimeMillis();
+        msg["data"] = std::move(data);
+        SendClientMessage(connection_id, msg.dump());
     } catch (const std::exception& e) {
         GBMEDIASERVER_LOG(LS_ERROR) << "Failed to push system stats: " << e.what();
         errors_++;
@@ -552,14 +637,14 @@ void WebSocketStatsService::PushSystemStats(const std::string& connection_id) {
  */
 void WebSocketStatsService::PushSessionsStats(const std::string& connection_id) {
     try {
-        std::string stats_json = StatisticsManager::GetInstance().GetAllSessionsStatsJson();
-        
-        std::ostringstream oss;
-        oss << "{\"type\":\"stats\",\"target\":\"sessions\",\"timestamp\":" 
-            << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
-        
-        SendClientMessage(connection_id, oss.str());
-        
+        const std::string stats_json = StatisticsManager::GetInstance().GetAllSessionsStatsJson();
+        nlohmann::json data = nlohmann::json::parse(stats_json);
+        nlohmann::json msg;
+        msg["type"] = "stats";
+        msg["target"] = "sessions";
+        msg["timestamp"] = rtc::TimeMillis();
+        msg["data"] = std::move(data);
+        SendClientMessage(connection_id, msg.dump());
     } catch (const std::exception& e) {
         GBMEDIASERVER_LOG(LS_ERROR) << "Failed to push sessions stats: " << e.what();
         errors_++;
@@ -576,14 +661,15 @@ void WebSocketStatsService::PushSessionsStats(const std::string& connection_id) 
  */
 void WebSocketStatsService::PushSessionStats(const std::string& connection_id, const std::string& session_name) {
     try {
-        std::string stats_json = StatisticsManager::GetInstance().GetSessionStatsJson(session_name);
-        
-        std::ostringstream oss;
-        oss << "{\"type\":\"stats\",\"target\":\"session\",\"id\":\"" << session_name 
-            << "\",\"timestamp\":" << rtc::TimeMillis() << ",\"data\":" << stats_json << "}";
-        
-        SendClientMessage(connection_id, oss.str());
-        
+        const std::string stats_json = StatisticsManager::GetInstance().GetSessionStatsJson(session_name);
+        nlohmann::json data = nlohmann::json::parse(stats_json);
+        nlohmann::json msg;
+        msg["type"] = "stats";
+        msg["target"] = "session";
+        msg["id"] = session_name;
+        msg["timestamp"] = rtc::TimeMillis();
+        msg["data"] = std::move(data);
+        SendClientMessage(connection_id, msg.dump());
     } catch (const std::exception& e) {
         GBMEDIASERVER_LOG(LS_ERROR) << "Failed to push session stats: " << e.what();
         errors_++;
@@ -599,8 +685,25 @@ void WebSocketStatsService::PushSessionStats(const std::string& connection_id, c
  * @param session_name 会话名称
  */
 void WebSocketStatsService::PushProducerStats(const std::string& connection_id, const std::string& session_name) {
-    // TODO: 实现Producer统计推送
-    GBMEDIASERVER_LOG(LS_VERBOSE) << "Push producer stats for " << session_name;
+    try {
+        auto stats = StatisticsManager::GetInstance().GetProducerStatistics(session_name);
+        if (!stats) {
+            SendError(connection_id, 404, "Producer not found for session: " + session_name);
+            return;
+        }
+
+        nlohmann::json data = nlohmann::json::parse(stats->ToJson());
+        nlohmann::json msg;
+        msg["type"] = "stats";
+        msg["target"] = "producer";
+        msg["id"] = session_name;
+        msg["timestamp"] = rtc::TimeMillis();
+        msg["data"] = std::move(data);
+        SendClientMessage(connection_id, msg.dump());
+    } catch (const std::exception& e) {
+        GBMEDIASERVER_LOG(LS_ERROR) << "Failed to push producer stats: " << e.what();
+        errors_++;
+    }
 }
 
 /**
@@ -612,8 +715,25 @@ void WebSocketStatsService::PushProducerStats(const std::string& connection_id, 
  * @param consumer_id Consumer ID
  */
 void WebSocketStatsService::PushConsumerStats(const std::string& connection_id, const std::string& consumer_id) {
-    // TODO: 实现Consumer统计推送
-    GBMEDIASERVER_LOG(LS_VERBOSE) << "Push consumer stats for " << consumer_id;
+    try {
+        auto stats = StatisticsManager::GetInstance().GetConsumerStatistics(consumer_id);
+        if (!stats) {
+            SendError(connection_id, 404, "Consumer not found: " + consumer_id);
+            return;
+        }
+
+        nlohmann::json data = nlohmann::json::parse(stats->ToJson());
+        nlohmann::json msg;
+        msg["type"] = "stats";
+        msg["target"] = "consumer";
+        msg["id"] = consumer_id;
+        msg["timestamp"] = rtc::TimeMillis();
+        msg["data"] = std::move(data);
+        SendClientMessage(connection_id, msg.dump());
+    } catch (const std::exception& e) {
+        GBMEDIASERVER_LOG(LS_ERROR) << "Failed to push consumer stats: " << e.what();
+        errors_++;
+    }
 }
 
 /**
@@ -625,11 +745,46 @@ void WebSocketStatsService::PushConsumerStats(const std::string& connection_id, 
  * @param message 消息内容
  */
 void WebSocketStatsService::SendClientMessage(const std::string& connection_id, const std::string& message) {
-    // TODO: 使用WebSocket库发送消息
-    // 这里需要实际的WebSocket发送实现
-    
+    bool sent = false;
+#if ENABLE_WEBSOCKET
+    websocketpp::connection_hdl hdl;
+    {
+        std::lock_guard<std::mutex> lock(hdl_map_mutex_);
+        auto it = id_to_hdl_.find(connection_id);
+        if (it != id_to_hdl_.end()) {
+            hdl = it->second;
+        } else {
+            GBMEDIASERVER_LOG(LS_WARNING) << "Send failed, unknown connection id: " << connection_id;
+        }
+    }
+    if (!hdl.expired() && ws_server_) {
+        websocketpp::lib::error_code ec;
+        ws_server_->send(hdl, message, websocketpp::frame::opcode::text, ec);
+        if (ec) {
+            GBMEDIASERVER_LOG(LS_WARNING) << "WebSocket send failed to " << connection_id
+                                          << ", error: " << ec.message();
+        } else {
+            sent = true;
+        }
+    }
+#endif
+    if (!sent) {
+        errors_++;
+        GBMEDIASERVER_LOG(LS_WARNING) << "Send message dropped: conn=" << connection_id
+                                      << ", size=" << message.size();
+        return;
+    }
+
     messages_sent_++;
     bytes_sent_ += message.size();
+    {
+        std::lock_guard<std::mutex> lock(connections_mutex_);
+        auto* conn_info = GetConnectionInfo(connection_id);
+        if (conn_info) {
+            conn_info->sent_messages++;
+            conn_info->sent_bytes += static_cast<int64_t>(message.size());
+        }
+    }
     
     GBMEDIASERVER_LOG(LS_VERBOSE) << "Send message to " << connection_id 
                                   << ", size=" << message.size();
@@ -645,11 +800,11 @@ void WebSocketStatsService::SendClientMessage(const std::string& connection_id, 
  * @param message 错误消息
  */
 void WebSocketStatsService::SendError(const std::string& connection_id, int code, const std::string& message) {
-    std::ostringstream oss;
-    oss << "{\"type\":\"error\",\"code\":" << code 
-        << ",\"message\":\"" << message << "\"}";
-    
-    SendClientMessage(connection_id, oss.str());
+    nlohmann::json err;
+    err["type"] = "error";
+    err["code"] = code;
+    err["message"] = message;
+    SendClientMessage(connection_id, err.dump());
     errors_++;
 }
 

@@ -93,13 +93,14 @@ namespace  gb_media_server
 		http_event_callback_map_["/api/openRtpServer"] = &WebService::HandlerOpenRtpServer;
 		http_event_callback_map_["/api/closeRtpServer"] = &WebService::HandlerCloseRtpServer;
 		
+#if HTTP_API_STATS
 		// 统计接口 - 修改为支持路径前缀匹配
 		http_event_callback_map_["/api/stats/system"] = &WebService::HandlerGetSystemStats;
 		http_event_callback_map_["/api/stats/producer/"] = &WebService::HandlerGetProducerStats;
 		http_event_callback_map_["/api/stats/consumer/"] = &WebService::HandlerGetConsumerStats;
 		http_event_callback_map_["/api/stats/session/"] = &WebService::HandlerGetSessionStats;
 		http_event_callback_map_["/api/stats/sessions"] = &WebService::HandlerGetAllSessionsStats;
-		
+#endif 
 		// RTSP
 		//    创建 RTSP Producer（接收 RTSP 流）：
 			// POST /rtsp/push?streamurl=app/stream
