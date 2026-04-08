@@ -695,7 +695,7 @@ namespace gb_media_server
 		auto rtcp = libmedia_transfer_protocol::librtcp:: RtcpFB::create(libmedia_transfer_protocol::librtcp::RTPFBType::RTCP_RTPFB_TWCC , twcc_fci.data(), twcc_fci.size());
 		rtcp->ssrc = htonl(0);
 		rtcp->ssrc_media = htonl(ssrc);
-		GBMEDIASERVER_LOG(LS_INFO) << "send twcc -- packet size:" << rtcp->getSize();
+		//GBMEDIASERVER_LOG(LS_INFO) << "send twcc -- packet size:" << rtcp->getSize();
 		SendSrtpRtcp((uint8_t*)rtcp.get(), rtcp->getSize());
 
 
