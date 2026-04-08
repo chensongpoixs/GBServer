@@ -36,6 +36,7 @@
 #include "server/session.h" 
 #include "consumer/consumer.h"
 #include "server/stream.h"
+#include "utils/yaml_config.h"
 namespace  gb_media_server
 {
 	/**
@@ -184,6 +185,15 @@ namespace  gb_media_server
 	void ShareResource::SetRemoteAddress(const rtc::SocketAddress & addr)
 	{
 		remote_address_ = addr;
+	}
+	void ShareResource::SetStunTime()
+	{
+		rtc_stun_timestamp_ = rtc::TimeMillis();
+	}
+
+	bool ShareResource::CheckStunTimeOut()
+	{
+		return (rtc::TimeMillis() - rtc_stun_timestamp_) > YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
 	}
 }
 

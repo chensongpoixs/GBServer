@@ -355,7 +355,10 @@ namespace  gb_media_server
 		{
 			return session_;
 		}
-
+		std::shared_ptr<Session> GetSession()  
+		{
+			return session_;
+		}
 		/**
 		*  @author chensong
 		*  @date 2025-10-14
@@ -385,6 +388,10 @@ namespace  gb_media_server
 		{
 			return stream_;
 		}
+		void	SetStunTime();
+
+		//检查当前是否有数据交互
+		bool CheckStunTimeOut();
 
 	protected:
 		std::shared_ptr < Stream> stream_;        ///< 流对象，管理媒体流的生命周期
@@ -395,6 +402,7 @@ namespace  gb_media_server
 		int64_t			start_timestamp_{ 0 };    ///< 创建时间戳（毫秒），用于统计连接时长
 		 
 		std::shared_ptr < Session> session_;      ///< 会话对象，管理客户端会话
+		int64_t			rtc_stun_timestamp_{ 0 };    ///< 创建时间戳（毫秒），用于统计连接时长
 	};
 }
 

@@ -215,15 +215,15 @@ namespace gb_media_server
 
 		//StopCapture();
 
-		//std::string session_name = GetSession()->SessionName();
-		//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-		//	std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
-		//	RtcService::GetInstance().UnregisterRtcInterface(slef);
-		//	//GbMediaService::GetInstance().CloseSession(session_name);
-		//	GetSession()->RemoveConsumer(slef);
-		//});
+		 std::string session_name = GetSession()->SessionName();
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
+			//GbMediaService::GetInstance().CloseSession(session_name);
+			GetSession()->RemoveConsumer(slef);
+		});
 		// 
-		RemoveGlobalData();
+		//RemoveGlobalData();
 	}
 	
 	/**
@@ -251,18 +251,34 @@ namespace gb_media_server
 
 		//StopCapture();
 
-		//std::string session_name = GetSession()->SessionName();
-		//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-		//	std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
-		//	RtcService::GetInstance().UnregisterRtcInterface(slef);
-		//	//GbMediaService::GetInstance().CloseSession(session_name);
-		//	GetSession()->RemoveConsumer(slef);
-		//	
-		//});
+		std::string session_name = GetSession()->SessionName();
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
+			//GbMediaService::GetInstance().CloseSession(session_name);
+			GetSession()->RemoveConsumer(slef);
+			
+		});
 		// 
-		RemoveGlobalData();
+		//RemoveGlobalData();
 	}
-	
+	void RtcConsumer::RemoveGlobalData()
+	{
+		GBMEDIASERVER_LOG(LS_WARNING) << "RemoveGlobalData failed";
+		dtls_done_ = false;
+
+		//StopCapture();
+
+		std::string session_name = GetSession()->SessionName();
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
+			//GbMediaService::GetInstance().CloseSession(session_name);
+			GetSession()->RemoveConsumer(slef);
+
+			});
+		// 
+	}
 	/**
 	*  @brief DTLS应用数据接收回调（DTLS Application Data Received）
 	*  

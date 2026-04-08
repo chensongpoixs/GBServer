@@ -277,18 +277,18 @@ namespace gb_media_server
 		dtls_done_ = false;
 
 		// 获取会话名称
-		//std::string session_name = GetSession()->SessionName();
+		std::string session_name = GetSession()->SessionName();
 		
 		// 在工作线程中执行清理操作
-		//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-		//	// 从RTC服务中注销RTC接口
-		//	std::shared_ptr<RtcInterface> slef = std::dynamic_pointer_cast<RtcInterface>(shared_from_this());
-		//	RtcService::GetInstance().UnregisterRtcInterface(shared_from_this());
-		//	
-		//	// 清空Session的Producer
-		//	GetSession()->SetProducer(nullptr);
-		//});
-		RemoveGlobalData();
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			// 从RTC服务中注销RTC接口
+			std::shared_ptr<RtcInterface> slef = std::dynamic_pointer_cast<RtcInterface>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
+			
+			// 清空Session的Producer
+			GetSession()->SetProducer(nullptr);
+		});
+		//RemoveGlobalData();
 	}
 	
 	/**
@@ -331,19 +331,38 @@ namespace gb_media_server
 		}
 
 		// 获取会话名称
-		//std::string session_name = GetSession()->SessionName();
-		//
-		//// 在工作线程中执行清理操作
-		//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-		//	// 从RTC服务中注销RTC接口
-		//	std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-		//	RtcService::GetInstance().UnregisterRtcInterface(slef);
-		//	
-		//	// 清空Session的Producer
-		//	GetSession()->SetProducer(nullptr);
-		//	
-		//});
-		RemoveGlobalData();
+		std::string session_name = GetSession()->SessionName();
+		
+		// 在工作线程中执行清理操作
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			// 从RTC服务中注销RTC接口
+			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
+			
+			// 清空Session的Producer
+			GetSession()->SetProducer(nullptr);
+			
+		});
+		//RemoveGlobalData();
+	}
+	void RtcProducer::RemoveGlobalData()
+	{
+		GBMEDIASERVER_LOG(LS_WARNING) << "RemoveGlobalData  ";
+		dtls_done_ = false;
+ 
+		// 获取会话名称
+		std::string session_name = GetSession()->SessionName();
+
+		// 在工作线程中执行清理操作
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+			// 从RTC服务中注销RTC接口
+			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
+			RtcService::GetInstance().UnregisterRtcInterface(slef);
+
+			// 清空Session的Producer
+			GetSession()->SetProducer(nullptr);
+
+			});
 	}
 	
 	/**

@@ -103,7 +103,7 @@ namespace gb_media_server {
 	*  auto consumer = std::make_shared<RtcConsumer>(stream, session);
 	*  @endcode
 	*/
-	class RtcInterface  : public libmedia_transfer_protocol::librtc::SctpAssociation::Listener,   public std::enable_shared_from_this<RtcInterface>
+	class RtcInterface  : public libmedia_transfer_protocol::librtc::SctpAssociation::Listener//,   public std::enable_shared_from_this<RtcInterface>
 	{
 	public:
 		/**
@@ -812,12 +812,16 @@ namespace gb_media_server {
 		static uint32_t GetSsrc(int size);
 
 
-		void	SetStunTime();
+		//void	SetStunTime();
 
 		//检查当前是否有数据交互
-		void CheckTimeOut();
+		//bool CheckTimeOut();
 
-		void RemoveGlobalData();
+		virtual void RemoveGlobalData()  = 0  ;
+
+		bool GetDestory();
+		void SetDeskory(bool value);
+		libmedia_transfer_protocol::librtc::RtcSdpType GetSdpType();
 	protected:
 		// ICE相关参数
 		std::string local_ufrag_;              ///< 本地ICE用户名片段，用于ICE连接建立
@@ -854,13 +858,14 @@ namespace gb_media_server {
 
 		// RTP包缓存
 		//std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
-		std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
+		std::map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
 
 		// 定时器相关
-		rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> rtc_task_safety_;
+		//rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> rtc_task_safety_;
 
-		int64_t			rtc_stun_timestamp_{ 0 };    ///< 创建时间戳（毫秒），用于统计连接时长
+	//	int64_t			rtc_stun_timestamp_{ 0 };    ///< 创建时间戳（毫秒），用于统计连接时长
 		std::shared_ptr < Session> session_;      ///< 会话对象，管理客户端会话
+		std::atomic<bool>		   destoy_{false};
 	};
  
 }

@@ -112,6 +112,8 @@ namespace  gb_media_server
 		 */
 		explicit Session(const std::string & session_name);
 		
+
+		void CheckTimeOut();
 		/***
 		 *  @author chensong
 		 *  @date 2025-10-18
@@ -243,7 +245,7 @@ namespace  gb_media_server
 		 *  @note 通常在客户端断开连接时调用
 		 */
 		void RemoveConsumer(const std::shared_ptr<Consumer> & consumer);
-		
+		//void RemoveConsumer(const std::weak_ptr<Consumer>& consumer);
 		/***
 		 *  @author chensong
 		 *  @date 2025-10-18
@@ -575,7 +577,8 @@ namespace  gb_media_server
 		 *  @note 在构造函数和RemoveConsumer中更新
 		 */
 		std::atomic<int64_t>			     player_live_time_;
-
+		// 定时器相关
+		 rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> rtc_task_safety_;
 		//PullerRelay * pull_{ nullptr };
 	};
 }

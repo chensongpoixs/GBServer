@@ -407,6 +407,9 @@ namespace gb_media_server {
 		*  @endcode
 		*/
 		virtual void MayRunDtls();
+
+
+		virtual void RemoveGlobalData() override;
 	public:
 
 

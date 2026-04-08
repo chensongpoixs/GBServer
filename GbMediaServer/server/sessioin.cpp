@@ -55,7 +55,7 @@
 #include "consumer/crtsp_consumer.h"
 #include "gb_media_server_log.h"
 
-
+#include "server/rtc_service.h"
 
 namespace  gb_media_server
 {
@@ -106,9 +106,94 @@ namespace  gb_media_server
 	Session::Session(const std::string & session_name)
 		:consumers_()
 		, session_name_(session_name)
+		, rtc_task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 	{
 		stream_ = std::make_shared<Stream>( *this, session_name);
 		player_live_time_ = rtc::TimeMillis();
+		CheckTimeOut();
+	}
+
+	void Session::CheckTimeOut()
+	{
+		GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(rtc_task_safety_,
+			[this]() {
+				 
+
+				if (producer_ && producer_->ShareResouceType() == kProducerTypeRtc && producer_->CheckStunTimeOut())
+				{
+					// 获取会话名称
+					std::string session_name =  SessionName();
+
+					// 在工作线程中执行清理操作
+					//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+						// 从RTC服务中注销RTC接口
+						std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(producer_);
+						RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
+
+						// 清空Session的Producer
+						 SetProducer(nullptr);
+						//});
+				}
+				std::vector< std::shared_ptr<Consumer>> ccc;
+				for (auto c: consumers_)
+				{
+					if (c && c->ShareResouceType() == kConsumerTypeRTC && c->CheckStunTimeOut())
+					{
+						ccc.push_back(c);
+					}
+				}
+				for (size_t i = 0; i < ccc.size(); ++i)
+				{
+					std::string session_name =  SessionName();
+					//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
+						std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(ccc[i]);
+						RtcService::GetInstance().UnregisterRtcInterface(slef);
+						//GbMediaService::GetInstance().CloseSession(session_name);
+						 RemoveConsumer(slef);
+
+					//	});
+				}
+				//if (rtc::TimeMillis() - rtc_stun_timestamp_ > (YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms * 1)  && !destoy_)
+				//{
+
+				//	// 删除当前rtc 
+				//	GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! diff ms :"<< (rtc::TimeMillis() - rtc_stun_timestamp_) << ",   config ms : " << YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
+				//	//if (!GetDestory())
+				//	{
+
+				//		RemoveGlobalData();
+				//		destoy_ = true;
+				//	}
+				//	//GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+				//		//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				//		//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				//		//	http_ctx->PostRequest(res);
+				//		//	http_ctx->WriteComplete(conn);
+				//		//	});
+
+				//	//auto s = GbMediaService::GetInstance().CreateSession(session_name);
+				//	//if (!s)
+				//	//{
+				//	//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+				//	//	//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+				//	//	//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+				//	//	//	http_ctx->PostRequest(res);
+				//	//	//	http_ctx->WriteComplete(conn);
+				//	//	//	});
+
+				//	//	return;
+				//	//}
+				//	return;
+
+				//}
+				//if (destoy_)
+				//{
+				//	return;
+				//}
+
+				// 递归调用实现定时循环（每5秒）
+				CheckTimeOut();
+			}), 5000);
 	}
 
 	/***
@@ -332,6 +417,24 @@ namespace  gb_media_server
 		  
 		 
 	}
+	//void Session::RemoveConsumer(const std::weak_ptr<Consumer>& consumer)
+	//{
+	//	auto ptr = consumer.lock();
+	//	if (!ptr) return;  // 对象已销毁，直接返回
+	//	{
+	//		std::lock_guard<std::mutex> lk(lock_);
+	//		// ���ʹ������ͷŶ�������� �޸�bug 
+	//		GBMEDIASERVER_LOG(INFO) << "remove consumer,session name:" << session_name_
+	//			<< ",remoteaddr:" << ptr->RemoteAddress().ToString()
+	//			//<< ",elapsed:" << consumer->ElapsedTime()
+	//			//<< ",ReadyTime:" << ReadyTime()
+	//			//<< ",stream time:" << SinceStart() 
+	//			<< ", use_count: " << consumer.use_count();
+	//		consumers_.erase(ptr);
+	//		player_live_time_ = rtc::TimeMillis();
+	//	}
+
+	//}
 	
 	/***
 	 *  @author chensong

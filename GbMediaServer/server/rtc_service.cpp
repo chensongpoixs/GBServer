@@ -48,7 +48,7 @@
 
 #include "gb_media_server_log.h"
 
-
+#include "producer/rtc_producer.h"
 #include "api/task_queue/default_task_queue_factory.h"
 
 namespace  gb_media_server
@@ -246,7 +246,17 @@ namespace  gb_media_server
 			stun.SetMappedPort(addr.port());
 
 			rtc::Buffer packet = stun.Encode();
-			rtc_interface->SetStunTime();
+			if (rtc_interface->GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPlay)
+			{
+				std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(rtc_interface);
+				slef->SetStunTime();
+			}
+			else if (rtc_interface->GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPush)
+			{
+				std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(rtc_interface);
+				slef->SetStunTime();
+			}
+			//rtc_interface->SetStunTime();
 			 socket->SendTo(packet.data(), packet.size(), addr, rtc::PacketOptions());
 			 
 		}

@@ -291,7 +291,7 @@ namespace gb_media_server
 		, rtp_header_()
 		, extension_manager_()
 		, twcc_context_()
-		, rtc_task_safety_(webrtc::PendingTaskSafetyFlag::Create())
+		//, rtc_task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 		//, sctp_(nullptr)
 		, session_(s)
 	{
@@ -314,7 +314,7 @@ namespace gb_media_server
 
 
 
-		CheckTimeOut();
+		//CheckTimeOut();
 
 	}
 
@@ -387,97 +387,161 @@ namespace gb_media_server
 		return rand(mt);
 	}
 
-	void RtcInterface::SetStunTime()
+	//void RtcInterface::SetStunTime()
+	//{
+	//	rtc_stun_timestamp_ = rtc::TimeMillis();
+	//}
+
+	//bool RtcInterface::CheckTimeOut()
+	//{
+	//	return (rtc::TimeMillis() - rtc_stun_timestamp_) >  YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
+	//	//std::weak_ptr<RtcInterface> weak_rtc = shared_from_this();
+	//	//GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(rtc_task_safety_,
+	//	//	[this]() {
+	//	//		 
+
+	//	//		 
+	//	//		if (rtc::TimeMillis() - rtc_stun_timestamp_ > (YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms * 1)  && !destoy_)
+	//	//		{
+
+	//	//			// 删除当前rtc 
+	//	//			GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! diff ms :"<< (rtc::TimeMillis() - rtc_stun_timestamp_) << ",   config ms : " << YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
+	//	//			//if (!GetDestory())
+	//	//			{
+
+	//	//				RemoveGlobalData();
+	//	//				destoy_ = true;
+	//	//			}
+	//	//			//GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+	//	//				//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+	//	//				//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+	//	//				//	http_ctx->PostRequest(res);
+	//	//				//	http_ctx->WriteComplete(conn);
+	//	//				//	});
+
+	//	//			//auto s = GbMediaService::GetInstance().CreateSession(session_name);
+	//	//			//if (!s)
+	//	//			//{
+	//	//			//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+	//	//			//	//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+	//	//			//	//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+	//	//			//	//	http_ctx->PostRequest(res);
+	//	//			//	//	http_ctx->WriteComplete(conn);
+	//	//			//	//	});
+
+	//	//			//	return;
+	//	//			//}
+	//	//			return;
+
+	//	//		}
+	//	//		if (destoy_)
+	//	//		{
+	//	//			return;
+	//	//		}
+
+	//	//		// 递归调用实现定时循环（每5秒）
+	//	//		CheckTimeOut();
+	//	//	}), 5000);
+	//}
+	bool RtcInterface::GetDestory()
 	{
-		rtc_stun_timestamp_ = rtc::TimeMillis();
+		return destoy_.load();
 	}
-
-	void RtcInterface::CheckTimeOut()
+	void RtcInterface::SetDeskory(bool value)
 	{
-		GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(rtc_task_safety_,
-			[this]() {
-				 
-
-				 
-				if (rtc::TimeMillis() - rtc_stun_timestamp_ > (YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms * 1))
-				{
-
-					// 删除当前rtc 
-					GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! diff ms :"<< (rtc::TimeMillis() - rtc_stun_timestamp_) << ",   config ms : " << YamlConfig::GetInstance().GetRtcServerConfig().timeout_ms;
-					RemoveGlobalData();
-					//GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
-						//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-						//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-						//	http_ctx->PostRequest(res);
-						//	http_ctx->WriteComplete(conn);
-						//	});
-
-					//auto s = GbMediaService::GetInstance().CreateSession(session_name);
-					//if (!s)
-					//{
-					//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
-					//	//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-					//	//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-					//	//	http_ctx->PostRequest(res);
-					//	//	http_ctx->WriteComplete(conn);
-					//	//	});
-
-					//	return;
-					//}
-					return;
-
-				}
-				 
-
-				// 递归调用实现定时循环（每5秒）
-				CheckTimeOut();
-			}), 5000);
+		destoy_ = value;
 	}
-	void RtcInterface::RemoveGlobalData()
+	libmedia_transfer_protocol::librtc::RtcSdpType RtcInterface::GetSdpType()
 	{
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this]() {
-
-
-
-			std::string key =  RtcRemoteAddress().ipaddr().ToString() + ":" + std::to_string( RtcRemoteAddress().port());
-			std::string ufrag_name = LocalUFrag();// +":" + LocalPasswd();
-
-			// 
-			// global un
-		//	RtcService::GetInstance().UnregisterRtcInterface(std::dynamic_pointer_cast<RtcInterface>(shared_from_this()));
-			RtcService::GetInstance().UnregisterRtcInterface(ufrag_name, key);
-
-			if (sdp_.GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPlay)
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove consumer stream_name = " << session_->GetStream()->SessionName();
-				//std::shared_ptr<RtcConsumer> consumer = std::dynamic_pointer_cast<RtcConsumer>
-				session_->RemoveConsumer(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
-			}
-			else if (sdp_.GetSdpType() == libmedia_transfer_protocol::librtc::kRtcSdpPush)
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove producer stream_name = " << session_->GetStream()->SessionName();
-				session_->SetProducer(nullptr/*std::dynamic_pointer_cast<RtcProducer>(shared_from_this())*/);
-			}
-			else
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! not find sdp type !!! stream_name = " << session_->GetStream()->SessionName();
-			}
-
-
-			//session_
-			 //auto s = GbMediaService::GetInstance().CreateSession(session_name);
-			//if (!s)
-			//{
-			//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
-				//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
-				//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
-				//	http_ctx->PostRequest(res);
-				//	http_ctx->WriteComplete(conn);
-				//	});
-
-
-			});
+		return sdp_.GetSdpType();
 	}
+	//void RtcInterface::RemoveGlobalData()
+	//{
+	//	if (destoy_)
+	//	{
+	//		return;
+	//	}
+	//	//libmedia_transfer_protocol::librtc::RtcSdpType rtc_sdp_type = sdp_.GetSdpType();
+	//	//std::weak_ptr<RtcInterface> weak_rtc = shared_from_this();
+	//	//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [rtc_sdp_type, weak_rtc]() {
+
+	//	//	auto rtc = weak_rtc.lock();
+	//	//	if (!rtc)
+	//	//	{
+	//	//		return;
+	//	//	}
+	//	//	if (rtc->GetDestory())
+	//	//	{
+	//	//		return;
+	//	//	}
+	//	//	rtc->SetDeskory(true);
+
+	//	//	std::string key = rtc->RtcRemoteAddress().ipaddr().ToString() + ":" + std::to_string(rtc->RtcRemoteAddress().port());
+	//	//	std::string ufrag_name = rtc->LocalUFrag();// +":" + LocalPasswd();
+
+	//	//	// 
+	//	//	// global un
+	//	////	RtcService::GetInstance().UnregisterRtcInterface(std::dynamic_pointer_cast<RtcInterface>(shared_from_this()));
+	//	//	
+	//	//	if (rtc_sdp_type == libmedia_transfer_protocol::librtc::kRtcSdpPlay)
+	//	//	{
+	//	//		
+	//	//		//std::shared_ptr<RtcConsumer> consumer = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
+	//	//		 std::shared_ptr<RtcConsumer>  consumer = std::dynamic_pointer_cast<RtcConsumer>(rtc);// shared_from_this();
+	//	//		 if (consumer)
+	//	//		 {
+	//	//			
+	//	//			 GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove consumer stream_name = " << consumer->GetStream()->SessionName();
+	//	//			 auto s = GbMediaService::GetInstance().CreateSession(consumer->GetSession()->GetStream()->SessionName());
+	//	//			 if (s)
+	//	//			 {
+	//	//				 s->RemoveConsumer(consumer);
+	//	//			 }
+	//	//			 //auto session =  consumer->GetSession();// ->RemoveConsumer(weak_rtc);
+	//	//			 //if (session)
+	//	//			 //{
+	//	//				// session->RemoveConsumer(weak_rtc);
+	//	//			 //}
+	//	//			// session_->RemoveConsumer(weak_rtc);
+	//	//		 }
+	//	//		
+	//	//	}
+	//	//	else if (rtc_sdp_type == libmedia_transfer_protocol::librtc::kRtcSdpPush)
+	//	//	{
+	//	//		std::shared_ptr<RtcProducer>  producer = std::dynamic_pointer_cast<RtcProducer>(rtc);// shared_from_this();
+	//	//		if (producer)
+	//	//		{
+	//	//			GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! remove producer stream_name = " << producer->GetStream()->SessionName();
+	//	//			auto s = GbMediaService::GetInstance().CreateSession(producer->GetStream()->SessionName());
+	//	//			if (s)
+	//	//			{
+	//	//				s->SetProducer(nullptr);
+	//	//			}
+	//	//		}
+
+	//	//		//session_->SetProducer(nullptr/*std::dynamic_pointer_cast<RtcProducer>(shared_from_this())*/);
+	//	//	}
+	//	//	else
+	//	//	{
+	//	//		GBMEDIASERVER_LOG(LS_WARNING) << " rtc time out !!! not find sdp type !!! stream_name = ";// << session_->GetStream()->SessionName();
+	//	//	}
+
+	//	//	RtcService::GetInstance().UnregisterRtcInterface(ufrag_name, key);
+
+	//	//	//session_
+	//	//	 //auto s = GbMediaService::GetInstance().CreateSession(session_name);
+	//	//	//if (!s)
+	//	//	//{
+	//	//	//	GBMEDIASERVER_LOG(LS_WARNING) << "cant create session  name:" << session_name;
+	//	//		//http_server_->network_thread()->PostTask(RTC_FROM_HERE, [=]() {
+	//	//		//	auto res = libmedia_transfer_protocol::libhttp::HttpRequest::NewHttp404Response();
+	//	//		//	http_ctx->PostRequest(res);
+	//	//		//	http_ctx->WriteComplete(conn);
+	//	//		//	});
+
+
+	//	//	});
+	//}
 
 	/**
 	*  @author chensong
