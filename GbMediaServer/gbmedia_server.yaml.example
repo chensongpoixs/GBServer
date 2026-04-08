@@ -1,0 +1,63 @@
+# GBMediaServer配置文件示例
+# 作者: chensong
+# 日期: 2025-10-18
+
+# HTTP服务器配置
+http:
+  port: 8001  # HTTP API端口
+
+# RTC服务器配置
+rtc:
+  ips:
+    - "192.168.1.2"  # RTC服务器监听IP，可以配置多个
+  udp:
+    port: 10001  # UDP端口，用于WebRTC数据传输
+  tcp:
+    port: 10001  # TCP端口（可选）
+  cert: "cert/server.crt"  # DTLS证书公钥文件路径
+  key: "cert/server.key"   # DTLS证书私钥文件路径
+
+# RTP端口范围配置
+rtp:
+  udp:
+    min_port: 40000  # UDP端口范围最小值
+    max_port: 50000  # UDP端口范围最大值
+  tcp:
+    min_port: 40000  # TCP端口范围最小值
+    max_port: 50000  # TCP端口范围最大值
+
+# WebSocket统计服务配置（可选）
+# 用于实时推送统计数据到前端，替代HTTP轮询
+# 需要安装websocketpp和nlohmann/json库才能使用
+websocket_stats:
+  enabled: true           # 是否启用WebSocket服务
+  ip: "0.0.0.0"          # 监听IP，0.0.0.0表示监听所有网卡
+  port: 9998             # WebSocket监听端口
+  push_interval: 1000    # 数据推送间隔（毫秒），1000表示每秒推送一次
+  max_connections: 100   # 最大并发连接数
+  ping_interval: 30000   # Ping心跳间隔（毫秒），30000表示每30秒发送一次心跳
+  ping_timeout: 10000    # Ping超时时间（毫秒），10000表示10秒内未收到Pong则认为超时
+
+# 配置说明：
+# 1. HTTP服务器用于提供REST API接口
+# 2. RTC服务器用于处理WebRTC连接
+# 3. RTP端口范围用于RTSP、GB28181等协议的端口分配
+# 4. WebSocket服务器用于实时推送统计数据（可选功能）
+#
+# WebSocket服务使用说明：
+# - 如果enabled设置为false，将使用HTTP轮询方式获取统计数据
+# - 如果enabled设置为true但未安装websocketpp库，服务将无法启动
+# - push_interval越小，数据更新越实时，但服务器负载越高
+# - max_connections应根据服务器性能合理设置
+#
+# 端口使用说明：
+# - 8001: HTTP API接口
+# - 9998: WebSocket统计服务（可选）
+# - 10001: WebRTC UDP/TCP端口
+# - 40000-50000: RTP/RTCP动态端口范围
+#
+# 确保防火墙已开放相应端口：
+# sudo ufw allow 8001/tcp
+# sudo ufw allow 9998/tcp
+# sudo ufw allow 10001/udp
+# sudo ufw allow 40000:50000/udp

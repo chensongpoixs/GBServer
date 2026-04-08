@@ -1,1 +1,4 @@
 
+[submodule "monitor_dashboard"]
+	path = monitor_dashboard
+	url = https://github.com/chensongpoixs/cmedia_monitor_dashboard
