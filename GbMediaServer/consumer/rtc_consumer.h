@@ -321,7 +321,7 @@ namespace gb_media_server {
 		*  @note DTLS握手失败会导致媒体传输失败
 		*/
 		virtual void MayRunDtls();
-		virtual void RemoveGlobalData() override;
+		//virtual void RemoveGlobalData() override;
 	public:
 
 		/**

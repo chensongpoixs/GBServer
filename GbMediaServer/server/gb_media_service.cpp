@@ -51,6 +51,7 @@
 #include "server/ws_stats_service.h"
 
 #include "utils/file_log_writer.h"
+#include "libmedia_transfer_protocol/libnetwork/local_network_interfaces.h"
 
 
 namespace  gb_media_server
@@ -444,7 +445,18 @@ namespace  gb_media_server
 		//gb_media_server::YamlConfig::GetInstance().LoadFile(config_file);
 		g_file_logger.Configure(gb_media_server::YamlConfig::GetInstance().GetFileLogConfig());
 
+		std::vector<libmedia_transfer_protocol::libnetwork::LocalNetworkInterfaceEntry>  local_ips;
 		
+		bool ret = libmedia_transfer_protocol::libnetwork::EnumerateLocalNetworkInterfaces(&local_ips);
+		if (ret)
+		{
+			for (auto p : local_ips)
+			{
+				GBMEDIASERVER_LOG(LS_INFO) << "adapter_name=" << p.adapter_name <<", address_family =" <<p.address_family << ", ip = " << p.ip;
+			}
+			
+		}
+
 		// init rtc
 		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(
 			YamlConfig::GetInstance().GetRtcServerConfig().cert_public_key.c_str(),

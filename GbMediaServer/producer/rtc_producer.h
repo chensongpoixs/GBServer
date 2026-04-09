@@ -409,7 +409,7 @@ namespace gb_media_server {
 		virtual void MayRunDtls();
 
 
-		virtual void RemoveGlobalData() override;
+		//virtual void RemoveGlobalData() override;
 	public:
 
 

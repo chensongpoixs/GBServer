@@ -817,7 +817,7 @@ namespace gb_media_server {
 		//检查当前是否有数据交互
 		//bool CheckTimeOut();
 
-		virtual void RemoveGlobalData()  = 0  ;
+		//virtual void RemoveGlobalData()  = 0  ;
 
 		bool GetDestory();
 		void SetDeskory(bool value);
