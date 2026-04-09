@@ -613,6 +613,7 @@ namespace  gb_media_server
 
 		if (!producer_)
 		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "request KeyFrame failed !!! --> not find producer --->   session_name:" << session_name_;
 			return;
 		}
 		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,

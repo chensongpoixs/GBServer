@@ -502,7 +502,7 @@ namespace gb_media_server {
 
 
 
-		time_t    request_key_frame_;
+		int64_t     request_key_frame_{0};
 		
 
 

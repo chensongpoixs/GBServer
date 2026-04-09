@@ -1005,11 +1005,15 @@ namespace gb_media_server {
 	*/
 	void RtcProducer::RequestKeyFrame()
 	{
-		if (request_key_frame_ > std::time(nullptr))
+		static const int64_t    RequestKeyFrameMs = 500;
+
+		int64_t  diff_ms = rtc::TimeMillis() - request_key_frame_;
+		if (diff_ms < RequestKeyFrameMs)
 		{
+			GBMEDIASERVER_LOG(LS_WARNING) << "request key frame diff_ms:" << diff_ms;
 			return;
 		}
-		request_key_frame_ = std::time(nullptr) + 3;
+		request_key_frame_ = rtc::TimeMillis();
 		///////////////////////////////////////////////////////////////////////////
 	////                         IDR Request
 
