@@ -312,7 +312,14 @@ namespace gb_media_server
 		// feedback  
 		twcc_context_.setOnSendTwccCB([this](uint32_t ssrc, std::string fci) { onSendTwcc(ssrc, fci); });
 
-
+		//sdp_.SetFingerprint(dtls_.Fingerprint());
+		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
+		// 本地ip port 
+		sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
+		sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		sdp_.SetServerExternAddr(YamlConfig::GetInstance().GetRtcServerConfig().extern_ip);
+		sdp_.SetServerExternPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 		//CheckTimeOut();
 

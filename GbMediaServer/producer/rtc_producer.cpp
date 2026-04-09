@@ -143,13 +143,15 @@ namespace gb_media_server {
 
 
 		//sdp_.SetFingerprint(dtls_.Fingerprint());
-		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
-		// 本地ip port 
-		//sdp_.SetServerAddr(GbMediaService::GetInstance().RtpWanIp());
-		//sdp_.SetServerPort(GbMediaService::GetInstance().RtpPort());
-		sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
-		sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
-		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
+		//sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
+		//// 本地ip port 
+		////sdp_.SetServerAddr(GbMediaService::GetInstance().RtpWanIp());
+		////sdp_.SetServerPort(GbMediaService::GetInstance().RtpPort());
+		//sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
+		//sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetServerExternAddr(YamlConfig::GetInstance().GetRtcServerConfig().extern_ip);
+		//sdp_.SetServerExternPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 		nal_parse_ = libmedia_codec::NalParseFactory::Create( 
 			libmedia_codec::ENalParseType::ENalH264Prase );;
 		

@@ -141,12 +141,14 @@ namespace gb_media_server
 
 
 
-		//sdp_.SetFingerprint(dtls_.Fingerprint());
-		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
-		// 本地ip port 
-		sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
-		sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
-		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
+		////sdp_.SetFingerprint(dtls_.Fingerprint());
+		//sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
+		//// 本地ip port 
+		//sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
+		//sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetServerExternAddr(YamlConfig::GetInstance().GetRtcServerConfig().extern_ip);
+		//sdp_.SetServerExternPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 
 		// 创建统计对象并注册到统计管理器（Create statistics object and register to manager）

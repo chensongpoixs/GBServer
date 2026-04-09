@@ -172,13 +172,19 @@ namespace  gb_media_server
 			}
 
 			if (node["rtc"]) {
+				if (node["rtc"]["extern_ip"])
+				{
+					rtc_server_config_.extern_ip = node["rtc"]["extern_ip"].as<std::string>();;
+				}
 				rtc_server_config_.ips = node["rtc"]["ips"].as<std::vector<std::string>>();
+				
 				rtc_server_config_.udp_port = node["rtc"]["udp"]["port"].as<uint16_t>();
 				rtc_server_config_.tcp_port = node["rtc"]["tcp"]["port"].as<uint16_t>();
 				rtc_server_config_.cert_public_key = node["rtc"]["cert"] .as<std::string>();;
 				rtc_server_config_.cert_private_key = node["rtc"]["key"].as<std::string>();;
 				rtc_server_config_.timeout_ms = node["rtc"]["timeout_ms"].as<int64_t>();;
 				std::ostringstream cmd;
+				cmd << " extern_ip:" << rtc_server_config_.extern_ip ;
 				cmd << " ips:[";
 				for (const auto& ip : rtc_server_config_.ips)
 				{
