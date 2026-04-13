@@ -252,8 +252,19 @@ namespace  gb_media_server
 				if (fl["max_queued_messages"]) {
 					file_log_config_.max_queued_messages = fl["max_queued_messages"].as<size_t>();
 				}
+				if (fl["level"])
+				{
+					file_log_config_.level = fl["level"].as<size_t>();
+
+					if (file_log_config_.level > 4 || file_log_config_.level < 0)
+					{
+						GBMEDIASERVER_LOG(LS_INFO) << "read config file log level = " << file_log_config_.level;
+						file_log_config_.level = rtc::LS_WARNING;
+					}
+				}
 				GBMEDIASERVER_LOG(LS_INFO) << "file_log: enabled=" << (file_log_config_.enabled ? "true" : "false")
 					<< ", directory=" << file_log_config_.directory
+					<< ", level=" << file_log_config_.level
 					<< ", max_lines_per_file=" << file_log_config_.max_lines_per_file
 					<< ", retention_days=" << file_log_config_.retention_days
 					<< ", echo_to_stdout=" << (file_log_config_.echo_to_stdout ? "true" : "false")

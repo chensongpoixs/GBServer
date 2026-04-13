@@ -216,6 +216,7 @@ namespace  gb_media_server
 		bool echo_to_stdout{true};
 		/** 队列上限条数，超出则丢弃最旧；0 表示不限制 */
 		size_t max_queued_messages{100000};
+		int  level{rtc::LS_WARNING};
 	};
 	
 	/**

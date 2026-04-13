@@ -433,6 +433,8 @@ namespace  gb_media_server
 	 */
 	bool GbMediaService::Init(const char* config_file)
 	{
+		rtc::LogMessage::LogThreads();
+		rtc::LogMessage::LogTimestamps();
 		rtc::SetRtcLogOutCallback(&RtcLogCallback);
 		bool init = YamlConfig::GetInstance().LoadFile(config_file);
 		//gb_media_server::YamlConfig::GetInstance().LoadFile(config_file);

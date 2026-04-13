@@ -119,6 +119,7 @@ void FileLogWriter::Configure(const FileLogConfig& cfg) {
     current_time_key_.clear();
     part_index_ = 1;
     lines_in_current_file_ = 0;
+    rtc::LogMessage::LogToDebug( static_cast<rtc::LoggingSeverity>( cfg_.level));
   }
   enabled_.store(cfg_.enabled, std::memory_order_relaxed);
   echo_stdout_.store(cfg_.echo_to_stdout, std::memory_order_relaxed);

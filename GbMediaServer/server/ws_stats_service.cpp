@@ -149,7 +149,8 @@ const char* SubscriptionTargetToString(SubscriptionTarget target) {
                 OnMessage(connection_id, msg->get_payload());
             });
         
-        websocketpp::lib::error_code  ec ;
+        websocketpp::lib::error_code  ec ; 
+         
         ws_server_->listen(config.port, ec);
         ws_server_->start_accept();
 
@@ -558,50 +559,65 @@ void WebSocketStatsService::HandlePing(const std::string& connection_id) {
  * 遍历所有连接，检查订阅并推送数据
  */
 void WebSocketStatsService::PushStatsTimer() {
-    std::lock_guard<std::mutex> lock(connections_mutex_);
-    
+    // 收集需要推送的订阅信息（避免在持有锁时调用推送函数）
+    struct PushTask {
+        std::string connection_id;
+        SubscriptionTarget target;
+        std::string id;
+    };
+    std::vector<PushTask> tasks;
+
     int64_t current_time = rtc::TimeMillis();
-    size_t pushed_count = 0;
-    
-    for (auto& pair : connections_) {
-        const std::string& connection_id = pair.first;
-        ConnectionInfo& conn_info = pair.second;
-        
-        for (auto& sub : conn_info.subscriptions) {
-            // 检查是否到达推送时间
-            if (current_time - sub.last_push_time >= sub.interval) {
-                GBMEDIASERVER_LOG(LS_VERBOSE) << "Push due: conn=" << connection_id
-                    << ", target=" << SubscriptionTargetToString(sub.target)
-                    << ", id=" << (sub.id.empty() ? "-" : sub.id)
-                    << ", elapsed_ms=" << (current_time - sub.last_push_time)
-                    << ", interval_ms=" << sub.interval;
-                // 根据订阅类型推送数据
-                switch (sub.target) {
-                    case SubscriptionTarget::SYSTEM:
-                        PushSystemStats(connection_id);
-                        break;
-                    case SubscriptionTarget::SESSIONS:
-                        PushSessionsStats(connection_id);
-                        break;
-                    case SubscriptionTarget::SESSION:
-                        PushSessionStats(connection_id, sub.id);
-                        break;
-                    case SubscriptionTarget::PRODUCER:
-                        PushProducerStats(connection_id, sub.id);
-                        break;
-                    case SubscriptionTarget::CONSUMER:
-                        PushConsumerStats(connection_id, sub.id);
-                        break;
+
+    {
+        std::lock_guard<std::mutex> lock(connections_mutex_);
+
+        for (auto& pair : connections_) {
+            const std::string& connection_id = pair.first;
+            ConnectionInfo& conn_info = pair.second;
+
+            for (auto& sub : conn_info.subscriptions) {
+                // 检查是否到达推送时间
+                if (current_time - sub.last_push_time >= sub.interval) {
+                    GBMEDIASERVER_LOG(LS_VERBOSE) << "Push due: conn=" << connection_id
+                        << ", target=" << SubscriptionTargetToString(sub.target)
+                        << ", id=" << (sub.id.empty() ? "-" : sub.id)
+                        << ", elapsed_ms=" << (current_time - sub.last_push_time)
+                        << ", interval_ms=" << sub.interval;
+
+                    // 记录推送任务
+                    tasks.push_back({connection_id, sub.target, sub.id});
+                    sub.last_push_time = current_time;
                 }
-                
-                sub.last_push_time = current_time;
-                ++pushed_count;
             }
         }
     }
-    if (pushed_count > 0) {
+    // 锁已释放，现在执行推送任务
+
+    for (const auto& task : tasks) {
+        switch (task.target) {
+            case SubscriptionTarget::SYSTEM:
+                PushSystemStats(task.connection_id);
+                break;
+            case SubscriptionTarget::SESSIONS:
+                PushSessionsStats(task.connection_id);
+                break;
+            case SubscriptionTarget::SESSION:
+                PushSessionStats(task.connection_id, task.id);
+                break;
+            case SubscriptionTarget::PRODUCER:
+                PushProducerStats(task.connection_id, task.id);
+                break;
+            case SubscriptionTarget::CONSUMER:
+                PushConsumerStats(task.connection_id, task.id);
+                break;
+        }
+    }
+
+    if (!tasks.empty()) {
+        std::lock_guard<std::mutex> lock(connections_mutex_);
         GBMEDIASERVER_LOG(LS_INFO) << "Push cycle summary: total_connections=" << connections_.size()
-                                   << ", pushed_subscriptions=" << pushed_count;
+                                   << ", pushed_subscriptions=" << tasks.size();
     }
 }
 
@@ -748,16 +764,18 @@ void WebSocketStatsService::SendClientMessage(const std::string& connection_id, 
     bool sent = false;
 #if ENABLE_WEBSOCKET
     websocketpp::connection_hdl hdl;
+    bool hdl_valid = false;
     {
         std::lock_guard<std::mutex> lock(hdl_map_mutex_);
         auto it = id_to_hdl_.find(connection_id);
         if (it != id_to_hdl_.end()) {
             hdl = it->second;
+            hdl_valid = true;
         } else {
             GBMEDIASERVER_LOG(LS_WARNING) << "Send failed, unknown connection id: " << connection_id;
         }
     }
-    if (!hdl.expired() && ws_server_) {
+    if (hdl_valid && !hdl.expired() && ws_server_) {
         websocketpp::lib::error_code ec;
         ws_server_->send(hdl, message, websocketpp::frame::opcode::text, ec);
         if (ec) {
@@ -766,6 +784,8 @@ void WebSocketStatsService::SendClientMessage(const std::string& connection_id, 
         } else {
             sent = true;
         }
+    } else if (hdl_valid) {
+        GBMEDIASERVER_LOG(LS_WARNING) << "WebSocket connection expired or server not ready: " << connection_id;
     }
 #endif
     if (!sent) {
@@ -785,8 +805,8 @@ void WebSocketStatsService::SendClientMessage(const std::string& connection_id, 
             conn_info->sent_bytes += static_cast<int64_t>(message.size());
         }
     }
-    
-    GBMEDIASERVER_LOG(LS_VERBOSE) << "Send message to " << connection_id 
+
+    GBMEDIASERVER_LOG(LS_VERBOSE) << "Send message to " << connection_id
                                   << ", size=" << message.size();
 }
 
