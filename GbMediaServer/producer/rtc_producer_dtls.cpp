@@ -393,7 +393,7 @@ namespace gb_media_server
 	void RtcProducer::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
 	{
 		// 记录日志，标记接收到DTLS应用数据
-		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
+		GBMEDIASERVER_LOG(LS_INFO) << "DTLS application data recice data ";
 		
 		// 如果SCTP关联存在，将数据传递给SCTP处理
 		if (sctp_)

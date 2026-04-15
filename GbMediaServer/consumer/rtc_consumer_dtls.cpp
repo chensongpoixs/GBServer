@@ -291,7 +291,7 @@ namespace gb_media_server
 	void RtcConsumer::OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls *dtls, const uint8_t* data, size_t len)
 	{
 		// Pass it to the parent transport.
-		GBMEDIASERVER_LOG(LS_WARNING) << "DTLS application data recice data ";
+		GBMEDIASERVER_LOG(LS_INFO) << "DTLS application data recice data ";
 		if (sctp_)
 		{
 			sctp_->ProcessSctpData(data, len);
