@@ -128,7 +128,7 @@ namespace gb_media_server
 		*  @note 1000个包约占用1-2MB内存（假设每个包1-2KB）
 		*  @note 缓存过多会占用内存，缓存过少会导致NACK重传失败
 		*/
-		static const uint32_t    kMaxVideoPacketSize = 1000;
+		static const uint32_t    kMaxVideoPacketSize = 2048;// 1000;
 	}
  
 
@@ -898,87 +898,148 @@ namespace gb_media_server
 	*/
 	void RtcInterface::RequestNack(const libmedia_transfer_protocol::rtcp::Nack& nack)
 	{
-		GBMEDIASERVER_LOG_T_F(LS_INFO) << "media_ssrc:" << nack.media_ssrc();
-		if (nack.media_ssrc() != sdp_.VideoSsrc())
-		{
-			GBMEDIASERVER_LOG_T_F(LS_INFO) << "[media_ssrc:" << nack.media_ssrc() << ", != " << sdp_.VideoSsrc() << " ]";
-			return;
-		}
+		/*
+		#
+# Fatal error in: /mnt/d/Work/crtc/GBServer/../libwebrtc/rtc_base/buffer.h, line 150
+# last system error: 0
+# Check failed: IsConsistent()
+# malloc(): unsorted double linked list corrupted
 
-		for (const auto& packetid : nack.packet_ids())
-		{
-			//GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid
-				//<< ", original_seq:" << original_seq
-			//	<< ", rtx_seq:" << video_rtx_seq_;
-				//<< ", original_pt:" << (int)original_packet->PayloadType()
-				//<< ", original_ssrc:" << original_packet->Ssrc();
-#if 1
-			auto iter =  rtp_video_packets_.find(packetid);
-			if (iter != rtp_video_packets_.end())
-			{
-				if (iter->second)
+Thread 6 "pc_network_thre" received signal SIGABRT, Aborted.
+[Switching to Thread 0x7ffff624f640 (LWP 914232)]
+__pthread_kill_implementation (no_tid=0, signo=6, threadid=140737323005504) at ./nptl/pthread_kill.c:44
+44      ./nptl/pthread_kill.c: No such file or directory.
+(gdb) bt
+#0  __pthread_kill_implementation (no_tid=0, signo=6, threadid=140737323005504) at ./nptl/pthread_kill.c:44
+#1  __pthread_kill_internal (signo=6, threadid=140737323005504) at ./nptl/pthread_kill.c:78
+#2  __GI___pthread_kill (threadid=140737323005504, signo=signo@entry=6) at ./nptl/pthread_kill.c:89
+#3  0x00007ffff7a9b476 in __GI_raise (sig=sig@entry=6) at ../sysdeps/posix/raise.c:26
+#4  0x00007ffff7a817f3 in __GI_abort () at ./stdlib/abort.c:79
+#5  0x0000555555869a75 in (anonymous namespace)::WriteFatalLogAndAbort(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&) ()
+#6  0x000055555586a410 in rtc::webrtc_checks_impl::FatalLog(char const*, int, char const*, rtc::webrtc_checks_impl::CheckArgType const*, ...) ()
+#7  0x00005555555db77c in rtc::BufferT<unsigned char, false>::capacity() const ()
+#8  0x00005555555db187 in rtc::CopyOnWriteBuffer::IsConsistent() const ()
+#9  0x00005555555db080 in rtc::CopyOnWriteBuffer::operator=(rtc::CopyOnWriteBuffer&&) ()
+#10 0x000055555582f9c4 in libmedia_transfer_protocol::RtpPacket::CopyHeaderFrom(libmedia_transfer_protocol::RtpPacket const&) ()
+#11 0x0000555555732f5c in gb_media_server::RtcInterface::RequestNack(libmedia_transfer_protocol::rtcp::Nack const&) ()
+#12 0x00005555555ee62c in gb_media_server::RtcConsumer::OnSrtpRtcp(unsigned char*, unsigned long) ()
+#13 0x0000555555628aa2 in gb_media_server::RtcService::OnRtcp(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#14 0x00005555556209f6 in void sigslot::_opaque_connection::emitter<gb_media_server::RtcService, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>(sigslot::_opaque_connection const*, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#15 0x00005555557d724b in void sigslot::_opaque_connection::emit<rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) const ()
+#16 0x00005555557d6e21 in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>::emit(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#17 0x00005555557d69f4 in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>::operator()(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#18 0x00005555557d4275 in libmedia_transfer_protocol::librtc::RtcServer::OnRecvPacket(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#19 0x00005555557d70b4 in void sigslot::_opaque_connection::emitter<libmedia_transfer_protocol::librtc::RtcServer, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>(sigslot::_opaque_connection const*, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#20 0x00005555557d724b in void sigslot::_opaque_connection::emit<rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) const ()
+#21 0x00005555557d6e21 in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>::emit(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#22 0x00005555557d69f4 in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&>::operator()(rtc::AsyncPacketSocket*, unsigned char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#23 0x0000555555850486 in libmedia_transfer_protocol::libnetwork::UdpServer::OnRecvPacket(rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#24 0x000055555585253b in void sigslot::_opaque_connection::emitter<libmedia_transfer_protocol::libnetwork::UdpServer, rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&>(sigslot::_opaque_connection const*, rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#25 0x000055555586ca2d in void sigslot::_opaque_connection::emit<rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&>(rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&) const ()
+#26 0x000055555586c785 in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&>::emit(rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#27 0x000055555586c4da in sigslot::signal_with_thread_policy<sigslot::single_threaded, rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&>::operator()(rtc::AsyncPacketSocket*, char const*, unsigned long, rtc::SocketAddress const&, long const&) ()
+#28 0x000055555586c21a in rtc::AsyncUDPSocket::OnReadEvent(rtc::Socket*) ()
+#29 0x000055555586c97e in void sigslot::_opaque_connection::emitter<rtc::AsyncUDPSocket, rtc::Socket*>(sigslot::_opaque_connection const*, rtc::Socket*) ()
+#30 0x00005555558bfe25 in void sigslot::_opaque_connection::emit<rtc::Socket*>(rtc::Socket*) const ()
+#31 0x00005555558bf020 in sigslot::signal_with_thread_policy<sigslot::multi_threaded_local, rtc::Socket*>::emit(rtc::Socket*) ()
+#32 0x00005555558be497 in sigslot::signal_with_thread_policy<sigslot::multi_threaded_local, rtc::Socket*>::operator()(rtc::Socket*) ()
+#33 0x00005555558b925b in rtc::SocketDispatcher::OnEvent(unsigned int, int) ()
+#34 0x00005555558ba96c in rtc::ProcessEvents(rtc::Dispatcher*, bool, bool, bool) ()
+#35 0x00005555558bc9f6 in rtc::PhysicalSocketServer::WaitEpoll(int) ()
+#36 0x00005555558ba7d2 in rtc::PhysicalSocketServer::Wait(int, bool) ()
+#37 0x0000555555890db8 in rtc::Thread::Get(rtc::Message*, int, bool) ()
+#38 0x0000555555895401 in rtc::Thread::ProcessMessages(int) ()
+#39 0x0000555555893473 in rtc::Thread::Run() ()
+#40 0x0000555555893438 in rtc::Thread::PreRun(void*) ()
+#41 0x00007ffff7aedac3 in start_thread (arg=<optimized out>) at ./nptl/pthread_create.c:442
+#42 0x00007ffff7b7f8d0 in clone3 () at ../sysdeps/unix/sysv/linux/x86_64/clone3.S:81
+
+		
+		*/
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,
+			[this, nack]() {
+				GBMEDIASERVER_LOG_T_F(LS_INFO) << "media_ssrc:" << nack.media_ssrc();
+				if (nack.media_ssrc() != sdp_.VideoSsrc())
 				{
-					// 获取原始RTP包（不修改它）
-					auto original_packet = iter->second;
-					uint16_t original_seq = original_packet->SequenceNumber();
-					
-					GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid 
-					                           << ", original_seq:" << original_seq
-					                           << ", rtx_seq:" << video_rtx_seq_
-					                           << ", original_pt:" << (int)original_packet->PayloadType()
-					                           << ", original_ssrc:" << original_packet->Ssrc();
-					
-					// 创建新的RTX包对象（深拷贝）
-					auto rtx_packet = std::make_shared<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
-					
-					// 复制原始包的头部信息（不包括Payload）
-					rtx_packet->CopyHeaderFrom(*original_packet);
-					
-					// 设置RTX包的头部字段
-					rtx_packet->SetPayloadType(sdp_.GetVideoPayloadRtxType());
-					rtx_packet->SetSsrc(sdp_.VideoRtxSsrc());
-					rtx_packet->SetSequenceNumber(video_rtx_seq_++);
-					
-					// 构建RTX Payload：原始序列号（2字节，大端序）+ 原始Payload
-					size_t original_payload_size = original_packet->payload_size();
-					uint8_t* rtx_payload = rtx_packet->AllocatePayload(2 + original_payload_size);
-					
-					if (rtx_payload)
+					GBMEDIASERVER_LOG_T_F(LS_INFO) << "[media_ssrc:" << nack.media_ssrc() << ", != " << sdp_.VideoSsrc() << " ]";
+					return;
+				}
+
+				for (const auto& packetid : nack.packet_ids())
+				{
+					//GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid
+						//<< ", original_seq:" << original_seq
+					//	<< ", rtx_seq:" << video_rtx_seq_;
+						//<< ", original_pt:" << (int)original_packet->PayloadType()
+						//<< ", original_ssrc:" << original_packet->Ssrc();
+#if 1
+					auto iter = rtp_video_packets_.find(packetid);
+					if (iter != rtp_video_packets_.end())
 					{
-						// 写入原始序列号（大端序，网络字节序）
-						rtx_payload[0] = (original_seq >> 8) & 0xFF;
-						rtx_payload[1] = original_seq & 0xFF;
-						
-						// 复制原始Payload数据
-						if (original_payload_size > 0)
+						if (iter->second)
 						{
-							memcpy(rtx_payload + 2, 
-							       original_packet->payload().data(), 
-							       original_payload_size);
+							// 获取原始RTP包（不修改它）
+							auto original_packet = iter->second;
+							uint16_t original_seq = original_packet->SequenceNumber();
+
+							GBMEDIASERVER_LOG(LS_INFO) << "NACK request for seq:" << packetid
+								<< ", original_seq:" << original_seq
+								<< ", rtx_seq:" << video_rtx_seq_
+								<< ", original_pt:" << (int)original_packet->PayloadType()
+								<< ", original_ssrc:" << original_packet->Ssrc();
+
+							// 创建新的RTX包对象（深拷贝）
+							auto rtx_packet = std::make_shared<libmedia_transfer_protocol::RtpPacketToSend>(&extension_manager_);
+
+							// 复制原始包的头部信息（不包括Payload）
+							rtx_packet->CopyHeaderFrom(*original_packet);
+
+							// 设置RTX包的头部字段
+							rtx_packet->SetPayloadType(sdp_.GetVideoPayloadRtxType());
+							rtx_packet->SetSsrc(sdp_.VideoRtxSsrc());
+							rtx_packet->SetSequenceNumber(video_rtx_seq_++);
+
+							// 构建RTX Payload：原始序列号（2字节，大端序）+ 原始Payload
+							size_t original_payload_size = original_packet->payload_size();
+							uint8_t* rtx_payload = rtx_packet->AllocatePayload(2 + original_payload_size);
+
+							if (rtx_payload)
+							{
+								// 写入原始序列号（大端序，网络字节序）
+								rtx_payload[0] = (original_seq >> 8) & 0xFF;
+								rtx_payload[1] = original_seq & 0xFF;
+
+								// 复制原始Payload数据
+								if (original_payload_size > 0)
+								{
+									memcpy(rtx_payload + 2,
+										original_packet->payload().data(),
+										original_payload_size);
+								}
+
+								GBMEDIASERVER_LOG(LS_INFO) << "RTX packet created: rtx_seq:" << (video_rtx_seq_ - 1)
+									<< ", rtx_pt:" << (int)rtx_packet->PayloadType()
+									<< ", rtx_ssrc:" << rtx_packet->Ssrc()
+									<< ", rtx_payload_size:" << rtx_packet->payload_size()
+									<< ", original_seq_in_payload:" << original_seq;
+
+								// 发送RTX包
+								SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
+							}
+							else
+							{
+								GBMEDIASERVER_LOG(LS_ERROR) << "Failed to allocate RTX payload for seq:" << packetid;
+							}
 						}
-						
-						GBMEDIASERVER_LOG(LS_INFO) << "RTX packet created: rtx_seq:" << (video_rtx_seq_ - 1)
-						                           << ", rtx_pt:" << (int)rtx_packet->PayloadType()
-						                           << ", rtx_ssrc:" << rtx_packet->Ssrc()
-						                           << ", rtx_payload_size:" << rtx_packet->payload_size()
-						                           << ", original_seq_in_payload:" << original_seq;
-						
-						// 发送RTX包
-						SendSrtpRtp((uint8_t*)rtx_packet->data(), rtx_packet->size());
 					}
 					else
 					{
-						GBMEDIASERVER_LOG(LS_ERROR) << "Failed to allocate RTX payload for seq:" << packetid;
+						GBMEDIASERVER_LOG(LS_WARNING) << "NACK request for seq:" << packetid
+							<< " but packet not found in cache";
 					}
-				}
-			}
-			else
-			{
-				GBMEDIASERVER_LOG(LS_WARNING) << "NACK request for seq:" << packetid 
-				                              << " but packet not found in cache";
-			}
 #endif 
-		}
+				}
+			});
 
 	}
 }

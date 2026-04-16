@@ -262,7 +262,14 @@ namespace gb_media_server
 	*/
 	void RtcConsumer::RequestKeyFrame()
 	{
-		GetSession()->ConsumerRequestKeyFrame();
+		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,
+			[this]() {
+				if (GetSession())
+				{
+					GetSession()->ConsumerRequestKeyFrame();
+				}
+				
+		});
 	}
 	/**
 	*  @author chensong
@@ -622,8 +629,9 @@ namespace gb_media_server
 						  if (statistics_) {
 							  statistics_->OnNackSent(nack.packet_ids().size());
 						  }
-
-						  RequestNack(nack);
+						 
+						RequestNack(nack);
+							  
 						  break;
 					  }
 					  case libmedia_transfer_protocol::rtcp::Tmmbr::kFeedbackMessageType:
