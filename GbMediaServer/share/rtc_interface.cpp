@@ -285,7 +285,7 @@ namespace gb_media_server
 	*/
 	RtcInterface::RtcInterface(const std::shared_ptr<Session>& s)
 		//: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
-		: dtls_( s->GetRtcService()->GetTaskQueueFactory())
+		: dtls_(RtcServiceMgr::GetInstance().GetRtcService(s->GetRtcServiceIndex())->GetTaskQueueFactory() /*s->GetRtcService()->GetTaskQueueFactory()*/)
 		//, rtp_header_extension_map_() 
 		, srtp_send_session_(nullptr)
 		, srtp_recv_session_(nullptr)
@@ -338,7 +338,7 @@ namespace gb_media_server
 	*  
 	*  @note SRTP会话、DTLS对象等资源由派生类负责清理
 	*/
-	RtcInterface::~RtcInterface() {}
+	RtcInterface::~RtcInterface() { dtls_done_ = false; }
 
 	/**
 	*  @author chensong

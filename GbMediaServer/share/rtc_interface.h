@@ -835,7 +835,7 @@ namespace gb_media_server {
 
 		// DTLS相关
 		libmedia_transfer_protocol::libssl::Dtls   dtls_;  ///< DTLS对象，用于密钥交换和加密
-		bool dtls_done_{ false };              ///< DTLS握手完成标志
+		std::atomic_bool dtls_done_{ false };              ///< DTLS握手完成标志
 
 		// 网络地址
 		rtc::SocketAddress             rtc_remote_address_;  ///< 远程客户端地址（IP和端口）

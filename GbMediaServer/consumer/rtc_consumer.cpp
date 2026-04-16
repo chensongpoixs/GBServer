@@ -1039,8 +1039,8 @@ namespace gb_media_server
 
 	  void RtcConsumer::OnTimer()
 	  {
-		  GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
-			  [this]() {
+		 /* GbMediaService::GetInstance().worker_thread()->PostDelayedTask(ToQueuedTask(task_safety_,
+			  [this]() {*/
 				  if (!dtls_done_) {
 					  return;
 				  }
@@ -1062,8 +1062,8 @@ namespace gb_media_server
 				  }
 
 				  // 递归调用实现定时循环（每5秒）
-				  OnTimer();
-			  }), 5000);
+				//  OnTimer();
+			  //}), 5000);
 	  }
 
 	  void RtcConsumer::InitBandwidthEstimation()

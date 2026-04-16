@@ -146,6 +146,11 @@ namespace  gb_media_server
 					{
 						ccc.push_back(c);
 					}
+					else if (c && c->ShareResouceType() == kConsumerTypeRTC)
+					{
+						std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(c);
+						slef->OnTimer();
+					}
 				}
 				for (size_t i = 0; i < ccc.size(); ++i)
 				{

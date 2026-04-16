@@ -665,7 +665,8 @@ namespace gb_media_server {
 		*  @note 该方法用于类型识别和资源管理
 		*/
 		virtual ShareResourceType ShareResouceType() const   { return kConsumerTypeRTC; }
-		 
+		// 定时器回调
+		void OnTimer();
 	private:
 		//static std::string GetUFrag(int size);
 		//static uint32_t GetSsrc(int size);
@@ -708,8 +709,7 @@ namespace gb_media_server {
 		// 带宽探测
 		void StartBandwidthProbe(int target_bitrate_bps);
 
-		// 定时器回调
-		void OnTimer();
+		
 
 		// JitterBuffer for video frames
 		JitterBuffer video_jitter_buffer_;

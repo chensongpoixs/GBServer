@@ -165,6 +165,9 @@ namespace gb_media_server
 
 		RequestKeyFrame();
 		// 启动定时器，开始发送Sender Report
+
+		 
+
 		OnTimer();
 	}
 	
@@ -192,9 +195,9 @@ namespace gb_media_server
 		rtc::Buffer buffer(data, len);
 		//GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 
-		//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, d = std::move(buffer)]() {
-			GetSession()->GetRtcService()->GetServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());;
-		//	});
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, d = std::move(buffer)]() {
+			GetSession()->GetRtcService()->GetServer()->SendPacketTo(d, rtc_remote_address_, rtc::PacketOptions());;
+			});
 		
 	}
 	
