@@ -838,13 +838,22 @@ namespace gb_media_server
 	*  @note 该方法在发送视频RTP包后调用
 	*  @note 缓存大小限制为1000个包，约占用1-2MB内存
 	*/
-	void RtcInterface::AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet)
+	void RtcInterface::AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> &&  rtp_packet)
 	{
-		rtp_video_packets_[rtp_packet->SequenceNumber()] = rtp_packet;
-		auto it = rtp_video_packets_.lower_bound(rtp_packet->SequenceNumber() - kMaxVideoPacketSize);
+		uint32_t  seq_number = rtp_packet->SequenceNumber();
+		rtp_video_packets_[seq_number] = rtp_packet;
+		auto it = rtp_video_packets_.lower_bound(seq_number - kMaxVideoPacketSize);
 		rtp_video_packets_.erase(rtp_video_packets_.begin(), it);
 	}
-
+#if 0
+	void RtcInterface::AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet)
+	{
+		uint32_t  seq_number = rtp_packet->SequenceNumber();
+		rtp_video_packets_[seq_number] = rtp_packet;
+		auto it = rtp_video_packets_.lower_bound(seq_number - kMaxVideoPacketSize);
+		rtp_video_packets_.erase(rtp_video_packets_.begin(), it);
+	}
+#endif // 
 	/**
 	*  @author chensong
 	*  @date 2025-10-18

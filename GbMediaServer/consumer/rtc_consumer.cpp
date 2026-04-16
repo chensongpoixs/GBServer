@@ -816,7 +816,7 @@ namespace gb_media_server
 				  }
 
 #endif  
-				  AddVideoPacket(single_packet);
+				  AddVideoPacket(std::move(single_packet));
 			  }
 		  }
 

@@ -597,7 +597,10 @@ namespace gb_media_server {
 		*  rtc_interface->AddVideoPacket(rtp_packet);
 		*  @endcode
 		*/
+		void AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>&& rtp_packet);
+#if 0
 		void AddVideoPacket(std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend> rtp_packet);
+#endif //
 
 		/**
 		*  @author chensong
