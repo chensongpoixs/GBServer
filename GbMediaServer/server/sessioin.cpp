@@ -666,6 +666,10 @@ namespace  gb_media_server
 	{
 		return session_name_;
 	}
+	std::string Session::SessionName()
+	{
+		return session_name_;
+	}
 	
 	/***
 	 *  @author chensong

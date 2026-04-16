@@ -419,6 +419,7 @@ namespace  gb_media_server
 		*  // session_name 可能是 "live/stream1"
 		*  @endcode
 		*/
+		std::string SessionName();
 		const std::string &SessionName()const;
 		 
 		/**

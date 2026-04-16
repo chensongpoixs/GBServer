@@ -466,6 +466,10 @@ namespace gb_media_server
 	{
 		return sdp_.GetSdpType();
 	}
+	const std::string& RtcInterface::GetSessionName() const
+	{
+		return session_->SessionName();
+	}
 	//void RtcInterface::RemoveGlobalData()
 	//{
 	//	if (destoy_)
@@ -1042,7 +1046,7 @@ __pthread_kill_implementation (no_tid=0, signo=6, threadid=140737323005504) at .
 					}
 					else
 					{
-						GBMEDIASERVER_LOG(LS_WARNING) << "NACK request for seq:" << packetid
+						GBMEDIASERVER_LOG(LS_WARNING) << "session: "<< GetSessionName() << ",  NACK request for seq:" << packetid
 							<< " but packet not found in cache";
 					}
 #endif 
