@@ -244,7 +244,8 @@ namespace gb_media_server
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 		 
 		//锟斤拷锟斤拷锟斤拷锟轿?stun锟斤拷锟斤拷时锟斤拷要锟斤拷证锟矫伙拷锟斤拷锟斤拷锟斤拷锟斤拷 锟斤拷锟斤拷锟斤拷要锟街碉拷全锟斤拷锟斤拷rtc锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷去
-		RtcService::GetInstance().RegisterRtcInterface(producer);
+		//RtcService::GetInstance().RegisterRtcInterface(producer);
+		s->GetRtcService()->RegisterRtcInterface(producer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player producer : count : " << producer.use_count();
 
 	}
@@ -439,7 +440,8 @@ namespace gb_media_server
 		//	consumer->SetCapture(capture_value.asInt() > 0 ? true : false);
 		//}
 		//锟斤拷锟斤拷锟斤拷锟轿?stun锟斤拷锟斤拷时锟斤拷要锟斤拷证锟矫伙拷锟斤拷锟斤拷锟斤拷锟斤拷 锟斤拷锟斤拷锟斤拷要锟街碉拷全锟斤拷锟斤拷rtc锟斤拷锟斤拷锟斤拷锟斤拷锟斤拷去
-		RtcService::GetInstance().RegisterRtcInterface(consumer);
+		//RtcService::GetInstance().RegisterRtcInterface(consumer);
+		  s->GetRtcService()->RegisterRtcInterface(consumer);
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc player consumer : count : " << consumer.use_count();
 
 	}

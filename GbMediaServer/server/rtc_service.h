@@ -119,30 +119,44 @@ namespace  gb_media_server
 		*  @note 析构函数会自动调用，不需要手动释放资源
 		*/
 		virtual	~RtcService() ;
-	public:
-		/**
-		*  @author chensong
-		*  @date 2025-10-14
-		*  @brief 获取单例实例（Get Instance）
-		*  
-		*  该方法用于获取RtcService的单例实例。采用线程安全的单例模式实现，
-		*  确保整个系统中只有一个RtcService实例。
-		*  
-		*  @return 返回RtcService单例实例的引用
-		*  @note 该方法线程安全，使用C++11的静态局部变量实现单例模式
-		*  @note 单例实例在第一次调用时创建，程序结束时自动销毁
-		*  
-		*  使用示例：
-		*  @code
-		*  RtcService& service = RtcService::GetInstance();
-		*  service.AddConsumer(rtc_consumer);
-		*  @endcode
-		*/
-		static RtcService & GetInstance()
-		{
-			static RtcService   instance;
-			return instance;
+
+		
+
+
+
+		bool Startup(uint32_t port);
+
+
+		uint32_t GetLocalListenUdpPort() const {
+			return  rtc_server_->GetListenUdpPort();
 		}
+
+		libmedia_transfer_protocol::librtc::RtcServer* GetServer() { return rtc_server_.get(); }
+		const libmedia_transfer_protocol::librtc::RtcServer* GetServer() const { return rtc_server_.get(); }
+	public:
+		///**
+		//*  @author chensong
+		//*  @date 2025-10-14
+		//*  @brief 获取单例实例（Get Instance）
+		//*  
+		//*  该方法用于获取RtcService的单例实例。采用线程安全的单例模式实现，
+		//*  确保整个系统中只有一个RtcService实例。
+		//*  
+		//*  @return 返回RtcService单例实例的引用
+		//*  @note 该方法线程安全，使用C++11的静态局部变量实现单例模式
+		//*  @note 单例实例在第一次调用时创建，程序结束时自动销毁
+		//*  
+		//*  使用示例：
+		//*  @code
+		//*  RtcService& service = RtcService::GetInstance();
+		//*  service.AddConsumer(rtc_consumer);
+		//*  @endcode
+		//*/
+		//static RtcService & GetInstance()
+		//{
+		//	static RtcService   instance;
+		//	return instance;
+		//}
 
 		/**
 		*  @author chensong
@@ -221,6 +235,7 @@ namespace  gb_media_server
 		*  @endcode
 		*/
 		webrtc::TaskQueueFactory*  GetTaskQueueFactory();
+		 // webrtc::TaskQueueFactory* GetTaskQueueFactory() const ;
 	//	oatpp::Object<RtcApiDto>   CreateOfferAnswer(const oatpp::Object<RtcApiDto>& dto);
 	public:
 
@@ -576,6 +591,8 @@ namespace  gb_media_server
 		*  @note 多个RTC接口可以共享同一个任务队列工厂
 		*/
 		std::unique_ptr<webrtc::TaskQueueFactory>                       task_queue_factory_;
+
+		std::unique_ptr<libmedia_transfer_protocol::librtc::RtcServer>  rtc_server_;// (new libmedia_transfer_protocol::librtc::RtcServer());
 	};
 }
 

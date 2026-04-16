@@ -71,8 +71,22 @@ namespace  gb_media_server
 	RtcService::RtcService()
 		:  task_queue_factory_(webrtc::CreateDefaultTaskQueueFactory())
 		, name_rtc_ufrag_()
-	{
-		
+		, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
+	{ 
+			//static libmedia_transfer_protocol::librtc::RtcServer r;
+			rtc_server_->SignalStunPacket.connect(this, &RtcService::OnStun);
+			rtc_server_->SignalDtlsPacket.connect(this, &RtcService::OnDtls);
+			rtc_server_->SignalRtpPacket.connect(this, &RtcService::OnRtp);
+			rtc_server_->SignalRtcpPacket.connect(this, &RtcService::OnRtcp);
+
+			/// <summary>
+			/// 
+			/// </summary>
+			rtc_server_->SignalSyncStunPacket.connect(this, &RtcService::OnStun);
+			rtc_server_->SignalSyncDtlsPacket.connect(this, &RtcService::OnDtls);
+			rtc_server_->SignalSyncRtpPacket.connect(this, &RtcService::OnRtp);
+			rtc_server_->SignalSyncRtcpPacket.connect(this, &RtcService::OnRtcp);
+		 
 	}
 	
 	/***
@@ -87,7 +101,21 @@ namespace  gb_media_server
 	 */
 	RtcService::~RtcService()
 	{
-		
+		GBMEDIASERVER_LOG_F(LS_INFO);
+		rtc_server_->SignalStunPacket.disconnect_all();
+		//....
+	}
+
+
+
+	bool RtcService::Startup(uint32_t port)
+	{
+		return  rtc_server_->network_thread()->Invoke<bool>(RTC_FROM_HERE, [this, port]() {
+			 
+		return 	rtc_server_->Start("0.0.0.0", port);
+				 
+		});
+		//  return false;
 	}
 	 
 	 /***
@@ -190,7 +218,10 @@ namespace  gb_media_server
 	 {
 		 return task_queue_factory_.get();
 	 }
-
+	 /*  webrtc::TaskQueueFactory* GetTaskQueueFactory() const
+	 {
+		 return task_queue_factory_.get();
+	 }*/
 	 /***
 	  *  @author chensong
 	  *  @date 2025-10-18
@@ -465,7 +496,7 @@ namespace  gb_media_server
 		}
 		else
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "not find  UFrag: " << ufrag_name;
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "not find  UFrag: " << ufrag_name;
 			//return;
 		}
 

@@ -247,7 +247,8 @@ namespace gb_media_server
 		rtc::Buffer buffer(data, len);
 		
 		// 通过RTC服务器发送数据包
-		GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
+		//GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
+		GetSession()->GetRtcService()->GetServer()-> SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 	}
 	
 	/**
@@ -283,8 +284,8 @@ namespace gb_media_server
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			// 从RTC服务中注销RTC接口
 			std::shared_ptr<RtcInterface> slef = std::dynamic_pointer_cast<RtcInterface>(shared_from_this());
-			RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
-			
+			//RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
+			GetSession()->GetRtcService()->RegisterRtcInterface(slef);
 			// 清空Session的Producer
 			GetSession()->SetProducer(nullptr);
 		});
@@ -337,8 +338,8 @@ namespace gb_media_server
 		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 			// 从RTC服务中注销RTC接口
 			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			RtcService::GetInstance().UnregisterRtcInterface(slef);
-			
+			//RtcService::GetInstance().UnregisterRtcInterface(slef);
+			GetSession()->GetRtcService()->RegisterRtcInterface(slef);
 			// 清空Session的Producer
 			GetSession()->SetProducer(nullptr);
 			

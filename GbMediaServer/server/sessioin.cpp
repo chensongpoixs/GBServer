@@ -56,6 +56,9 @@
 #include "gb_media_server_log.h"
 
 #include "server/rtc_service.h"
+#include "server/rtc_service_mgr.h"
+
+
 
 namespace  gb_media_server
 {
@@ -103,10 +106,12 @@ namespace  gb_media_server
 	 *  @note Stream对象在构造时创建，确保会话始终有流对象
 	 *  @note 播放器活跃时间用于检测会话超时
 	 */
-	Session::Session(const std::string & session_name)
+	Session::Session(const std::string & session_name, uint64_t  rtc_service_index)
 		:consumers_()
 		, session_name_(session_name)
 		, rtc_task_safety_(webrtc::PendingTaskSafetyFlag::Create())
+		, rtc_service_index_(rtc_service_index)
+		, rtc_service_(RtcServiceMgr::GetInstance().GetRtcService(rtc_service_index_))
 	{
 		stream_ = std::make_shared<Stream>( *this, session_name);
 		player_live_time_ = rtc::TimeMillis();
@@ -128,7 +133,7 @@ namespace  gb_media_server
 					//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 						// 从RTC服务中注销RTC接口
 						std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(producer_);
-						RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
+						rtc_service_->UnregisterRtcInterface(slef);// shared_from_this());
 
 						// 清空Session的Producer
 						 SetProducer(nullptr);
@@ -147,7 +152,7 @@ namespace  gb_media_server
 					std::string session_name =  SessionName();
 					//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
 						std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(ccc[i]);
-						RtcService::GetInstance().UnregisterRtcInterface(slef);
+						rtc_service_->UnregisterRtcInterface(slef);
 						//GbMediaService::GetInstance().CloseSession(session_name);
 						 RemoveConsumer(slef);
 

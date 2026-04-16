@@ -112,6 +112,7 @@ namespace  gb_media_server
 	{
 		std::vector<std::string> ips{ "127.0.0.1" };  // RTC服务器监听IP列表，支持多网卡
 		std::string     extern_ip{""};                //公网ip
+		uint32_t        num_workers{ 1 };
 		uint16_t        udp_port{10001};              // UDP监听端口，用于WebRTC数据传输
 		uint16_t        tcp_port{10001};              // TCP监听端口，用于TCP传输模式
 		std::string     cert_public_key{""};          // DTLS证书公钥文件路径

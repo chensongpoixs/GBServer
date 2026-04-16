@@ -176,6 +176,16 @@ namespace  gb_media_server
 				{
 					rtc_server_config_.extern_ip = node["rtc"]["extern_ip"].as<std::string>();;
 				}
+				if (node["rtc"]["num_workers"])
+				{
+					rtc_server_config_.num_workers = node["rtc"]["num_workers"].as<uint32_t>();;
+					if (rtc_server_config_.num_workers < 1)
+					{
+						
+						GBMEDIASERVER_LOG(LS_WARNING) << " read config num_workers = " << rtc_server_config_.num_workers << "  set num workers 1";
+						rtc_server_config_.num_workers = 1;
+					}
+				}
 				rtc_server_config_.ips = node["rtc"]["ips"].as<std::vector<std::string>>();
 				
 				rtc_server_config_.udp_port = node["rtc"]["udp"]["port"].as<uint16_t>();
@@ -184,6 +194,7 @@ namespace  gb_media_server
 				rtc_server_config_.cert_private_key = node["rtc"]["key"].as<std::string>();;
 				rtc_server_config_.timeout_ms = node["rtc"]["timeout_ms"].as<int64_t>();;
 				std::ostringstream cmd;
+				cmd << " num_workers:" << rtc_server_config_.num_workers;
 				cmd << " extern_ip:" << rtc_server_config_.extern_ip ;
 				cmd << " ips:[";
 				for (const auto& ip : rtc_server_config_.ips)
@@ -258,7 +269,7 @@ namespace  gb_media_server
 
 					if (file_log_config_.level > 4 || file_log_config_.level < 0)
 					{
-						GBMEDIASERVER_LOG(LS_INFO) << "read config file log level = " << file_log_config_.level;
+						GBMEDIASERVER_LOG(LS_WARNING) << "read config file log level = " << file_log_config_.level;
 						file_log_config_.level = rtc::LS_WARNING;
 					}
 				}

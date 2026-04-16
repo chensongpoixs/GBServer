@@ -49,7 +49,7 @@ namespace  gb_media_server
 	//class Consumer;
 	//class Producer;
 	//class Stream;
-	
+	class RtcService;
 	/***
 	 *  @author chensong
 	 *  @date 2025-10-18
@@ -110,7 +110,7 @@ namespace  gb_media_server
 		 *  @note 使用explicit防止隐式类型转换
 		 *  @note 会话名称在创建后不可更改
 		 */
-		explicit Session(const std::string & session_name);
+		explicit Session(const std::string & session_name, uint64_t  rtc_service_index= 0);
 		
 
 		void CheckTimeOut();
@@ -466,6 +466,12 @@ namespace  gb_media_server
 		*/
 		void Clear();
 	
+
+		uint64_t      GetRtcServiceIndex() const { return rtc_service_index_; }
+		  RtcService* GetRtcService()   { return rtc_service_; }
+
+		const RtcService* GetRtcService() const { return rtc_service_; }
+
 	private: 
 	private:
 		/***
@@ -577,6 +583,11 @@ namespace  gb_media_server
 		 *  @note 在构造函数和RemoveConsumer中更新
 		 */
 		std::atomic<int64_t>			     player_live_time_;
+
+
+
+		uint64_t							 rtc_service_index_{0};
+		RtcService* rtc_service_;
 		// 定时器相关
 		 rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> rtc_task_safety_;
 		//PullerRelay * pull_{ nullptr };

@@ -552,10 +552,10 @@ namespace  gb_media_server
 		*  }
 		*  @endcode
 		*/
-		 libmedia_transfer_protocol::librtc::RtcServer* GetRtcServer()const
+		/* libmedia_transfer_protocol::librtc::RtcServer* GetRtcServer()const
 		{
 			return rtc_server_.get();
-		}
+		}*/
 	private:
 		//EventLoopThreadPool * pool_{ nullptr };
 		//std::vector<TcpServer*> servers_;
@@ -563,7 +563,10 @@ namespace  gb_media_server
 		std::mutex lock_;
 		std::unordered_map<std::string, std::shared_ptr < Session>> sessions_;
 
-		std::unique_ptr<libmedia_transfer_protocol::librtc::RtcServer>   rtc_server_;
+		//std::unique_ptr<libmedia_transfer_protocol::librtc::RtcServer>   rtc_server_;
+
+
+		std::vector< std::unique_ptr<libmedia_transfer_protocol::librtc::RtcServer> >   rtc_servers_;
 
 
 
@@ -575,6 +578,7 @@ namespace  gb_media_server
 
 
 		std::unique_ptr< WebService>										web_service_;
+		uint64_t															rtc_service_index_{0};
 	};
 }
 

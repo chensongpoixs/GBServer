@@ -112,7 +112,7 @@
 #include "share/statistics_manager.h"
 #include "gb_media_server_log.h"
 #include "producer/rtc_producer.h"
-
+#include "server/rtc_service_mgr.h"
 
 namespace gb_media_server
 {
@@ -284,7 +284,8 @@ namespace gb_media_server
 	*  @note TWCC回调函数会在接收到足够的RTP包后触发
 	*/
 	RtcInterface::RtcInterface(const std::shared_ptr<Session>& s)
-		: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
+		//: dtls_(RtcService::GetInstance().GetTaskQueueFactory())
+		: dtls_( s->GetRtcService()->GetTaskQueueFactory())
 		//, rtp_header_extension_map_() 
 		, srtp_send_session_(nullptr)
 		, srtp_recv_session_(nullptr)
@@ -299,7 +300,7 @@ namespace gb_media_server
 		local_ufrag_ = GetUFrag(8);
 		int32_t count = 0;
 		//防止突出的
-		while (RtcService::GetInstance().FindUfragName(local_ufrag_) && ++count<=10)
+		while (session_->GetRtcService()->FindUfragName(local_ufrag_) && ++count<=10)
 		{
 			GBMEDIASERVER_LOG(LS_WARNING) << "random local ufrag count = " << count;
 			local_ufrag_ = GetUFrag(8);
@@ -316,9 +317,12 @@ namespace gb_media_server
 		sdp_.SetLocalFingerprint(libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Fingerprints());
 		// 本地ip port 
 		sdp_.SetServerAddr(YamlConfig::GetInstance().GetRtcServerConfig().ips.at(0));
-		sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetServerPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		sdp_.SetServerPort(session_->GetRtcService()->GetLocalListenUdpPort());
+
 		sdp_.SetServerExternAddr(YamlConfig::GetInstance().GetRtcServerConfig().extern_ip);
-		sdp_.SetServerExternPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		//sdp_.SetServerExternPort(YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
+		sdp_.SetServerExternPort(session_->GetRtcService()->GetLocalListenUdpPort());
 		sdp_.SetStreamName(s->SessionName()/*s->SessionName()*/);
 
 		//CheckTimeOut();
@@ -614,9 +618,11 @@ namespace gb_media_server
 		}
 
 
-		GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, size),
-			rtc_remote_address_, rtc::PacketOptions());
+		/*GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+			rtc_remote_address_, rtc::PacketOptions());*/
 
+		session_->GetRtcService()->GetServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+			rtc_remote_address_, rtc::PacketOptions());
 
 		return true;
 	}
@@ -689,8 +695,10 @@ namespace gb_media_server
 		}
 		//GBMEDIASERVER_LOG(LS_INFO) << "hex:" << rtc::hex_encode((const char*)data, size);
 
-		GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
-			rtc_remote_address_, rtc::PacketOptions());
+		//GbMediaService::GetInstance().GetRtcServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+		//	rtc_remote_address_, rtc::PacketOptions());
+		session_->GetRtcService()->GetServer()->SendRtcpPacketTo(rtc::CopyOnWriteBuffer(data, size),
+			 	rtc_remote_address_, rtc::PacketOptions());
 		return true;
 	}
 

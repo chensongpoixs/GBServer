@@ -52,7 +52,7 @@
 
 #include "utils/file_log_writer.h"
 #include "libmedia_transfer_protocol/libnetwork/local_network_interfaces.h"
-
+#include "server/rtc_service_mgr.h"
 
 namespace  gb_media_server
 {
@@ -103,9 +103,12 @@ namespace  gb_media_server
 	 */
 	GbMediaService::GbMediaService()
 		: context_  ( libp2p_peerconnection::ConnectionContext::Create())
-		, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
+		//, rtc_server_(new libmedia_transfer_protocol::librtc::RtcServer())
+		, rtc_servers_()
 		, web_service_(new WebService)
+		, rtc_service_index_(0)
 	{
+#if 0
 		rtc_server_->SignalStunPacket.connect(&RtcService::GetInstance(), &RtcService::OnStun);
 		rtc_server_->SignalDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
 		rtc_server_->SignalRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
@@ -118,6 +121,7 @@ namespace  gb_media_server
 		rtc_server_->SignalSyncDtlsPacket.connect(&RtcService::GetInstance(), &RtcService::OnDtls);
 		rtc_server_->SignalSyncRtpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtp);
 		rtc_server_->SignalSyncRtcpPacket.connect(&RtcService::GetInstance(), &RtcService::OnRtcp);
+#endif 
 	}
 	
 	/***
@@ -180,11 +184,11 @@ namespace  gb_media_server
 		}
 		 
 		
-		auto s = std::make_shared<Session>(session_name);
+		auto s = std::make_shared<Session>(session_name, rtc_service_index_++);
 		//s->SetAppInfo(app_info);
 		//sessions_[session_name] = s;
 		sessions_.emplace(session_name, s);
-		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << " now:" << rtc::TimeMillis();
+		GBMEDIASERVER_LOG(LS_INFO) << "create session success. session_name:" << session_name << ", rtc_service_index:" << rtc_service_index_ << ", now:" << rtc::TimeMillis();
 		return s;
 	}
 	
@@ -459,6 +463,7 @@ namespace  gb_media_server
 			
 		}
 
+		 
 		// init rtc
 		libmedia_transfer_protocol::libssl::DtlsCerts::GetInstance().Init(
 			YamlConfig::GetInstance().GetRtcServerConfig().cert_public_key.c_str(),
@@ -467,6 +472,21 @@ namespace  gb_media_server
 		//	"privkey.pem"
 		);
 		libmedia_transfer_protocol::libsrtp::SrtpSession::InitSrtpLibrary();
+
+
+		GBMEDIASERVER_LOG(LS_INFO) << " srtp init OK !!!";
+
+
+
+
+		init = RtcServiceMgr::GetInstance().init();
+		if (!init)
+		{
+			GBMEDIASERVER_LOG_T_F(LS_WARNING) << "rtc Service Mgr init failed !!!";
+			return init;
+		}
+
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc Service Mgr init OK !!!";
 		return init;
 		 
 	}
@@ -493,6 +513,7 @@ namespace  gb_media_server
 	void GbMediaService::Start(/*const char * ip, uint16_t port*/)
 	{
 		// start rtc server 
+#if 0
 		rtc_server_->network_thread()->Invoke<void>(RTC_FROM_HERE, [this]() {
 			 
 			
@@ -500,8 +521,11 @@ namespace  gb_media_server
 				YamlConfig::GetInstance().GetRtcServerConfig().udp_port);
 			//	GBMEDIASERVER_LOG(LS_INFO) << "gb media start  "<< local_ip << ":"<<port<<"  OK !!!";
 		});
-		 
+#else 
+		RtcServiceMgr::GetInstance().startup();
 
+		GBMEDIASERVER_LOG(LS_INFO) << "rtc service Mgr Start OK !!!";
+#endif // 
 		web_service_->StartWebServer("0.0.0.0", 
 			YamlConfig::GetInstance().GetHttpServerConfig().port);
 
