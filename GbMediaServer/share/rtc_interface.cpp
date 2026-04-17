@@ -128,7 +128,7 @@ namespace gb_media_server
 		*  @note 1000个包约占用1-2MB内存（假设每个包1-2KB）
 		*  @note 缓存过多会占用内存，缓存过少会导致NACK重传失败
 		*/
-		static const uint32_t    kMaxVideoPacketSize = 2048;// 1000;
+		static const uint32_t    kMaxVideoPacketSize = 1000;// 1000;
 	}
  
 
@@ -466,10 +466,10 @@ namespace gb_media_server
 	{
 		return sdp_.GetSdpType();
 	}
-	const std::string& RtcInterface::GetSessionName() const
+	/*const std::string& RtcInterface::GetSessionName() const
 	{
 		return session_->SessionName();
-	}
+	}*/
 	//void RtcInterface::RemoveGlobalData()
 	//{
 	//	if (destoy_)
@@ -1046,7 +1046,7 @@ __pthread_kill_implementation (no_tid=0, signo=6, threadid=140737323005504) at .
 					}
 					else
 					{
-						GBMEDIASERVER_LOG(LS_WARNING) << "session: "<< GetSessionName() << ",  NACK request for seq:" << packetid
+						GBMEDIASERVER_LOG(LS_WARNING) << "session:   NACK request for seq:" << packetid
 							<< " but packet not found in cache";
 					}
 #endif 

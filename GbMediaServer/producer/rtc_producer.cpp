@@ -1010,7 +1010,7 @@ namespace gb_media_server {
 		int64_t  diff_ms = rtc::TimeMillis() - request_key_frame_;
 		if (diff_ms < RequestKeyFrameMs)
 		{
-			GBMEDIASERVER_LOG(LS_WARNING) << "session: " << GetSessionName()<< "request key frame diff_ms : " << diff_ms;
+			GBMEDIASERVER_LOG(LS_WARNING) << "session: session_->SessionName() "<< "request key frame diff_ms : " << diff_ms;
 			return;
 		}
 		request_key_frame_ = rtc::TimeMillis();
@@ -1028,7 +1028,7 @@ namespace gb_media_server {
 			std::unique_ptr< libmedia_transfer_protocol::rtcp::Pli> pli = std::make_unique< libmedia_transfer_protocol::rtcp::Pli>();
 			pli->SetSenderSsrc(sdp_.VideoSsrc());
 			pli->SetMediaSsrc(sdp_.VideoSsrc());
-			GBMEDIASERVER_LOG(LS_INFO) << "session: " << GetSessionName() << ", send rquest pli ";
+			GBMEDIASERVER_LOG(LS_INFO) << " send rquest pli ";
 			libmedia_transfer_protocol::rtcp::CompoundPacket compound;               // Builds a compound RTCP packet with
 		    compound.Append(std::move(pli));                  // a receiver report, report block
 		   // compound.Append(&fir);                 // and fir message.

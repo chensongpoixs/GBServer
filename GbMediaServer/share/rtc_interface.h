@@ -827,7 +827,7 @@ namespace gb_media_server {
 		libmedia_transfer_protocol::librtc::RtcSdpType GetSdpType();
 
 
-		const std::string& GetSessionName() const;
+		//const std::string& GetSessionName() const;
 	protected:
 		// ICE相关参数
 		std::string local_ufrag_;              ///< 本地ICE用户名片段，用于ICE连接建立
