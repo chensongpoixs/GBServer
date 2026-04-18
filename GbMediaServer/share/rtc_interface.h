@@ -36,6 +36,8 @@
 #define _C_GB_MEDIA_SERVER_RTC_INTERFACE_H_
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 
 #include "absl/types/optional.h"
 #include "rtc_base/system/rtc_export.h"
@@ -865,6 +867,14 @@ namespace gb_media_server {
 		// RTP包缓存
 		//std::unordered_map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
 		std::map<uint32_t, std::shared_ptr<libmedia_transfer_protocol::RtpPacketToSend>>   rtp_video_packets_;  ///< 视频RTP包缓存，用于NACK重传
+		mutable std::mutex rtp_video_packets_mutex_;   ///< 保护 rtp_video_packets_（发送线程与 RTCP 线程）
+		std::mutex outbound_srtp_mutex_;               ///< 保护 SRTP 发送（EncryptRtp 非线程安全）
+
+		/// transport-cc：每个外发 RTP/RTX 包唯一递增（与 libwebrtc 发送端一致）
+		std::atomic<uint16_t> outbound_transport_seq_{1};
+
+		/** 分配下一个传输层序号（16 位回绕） */
+		uint16_t NextOutboundTransportSequenceNumber();
 
 		// 定时器相关
 		//rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> rtc_task_safety_;

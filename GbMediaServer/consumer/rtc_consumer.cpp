@@ -798,9 +798,10 @@ namespace gb_media_server
 				  {
 					  break;
 				  }
-				  //  //int16_t   packet_id = transprot_seq_++;
 				  single_packet->SetSequenceNumber(video_seq_++);
 				  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kVideo);
+				  single_packet->SetExtension<libmedia_transfer_protocol::TransportSequenceNumber>(
+					  NextOutboundTransportSequenceNumber());
 
 
 #if  0
@@ -892,6 +893,8 @@ namespace gb_media_server
 	 
 		  single_packet->SetSequenceNumber(audio_seq_++);
 		  single_packet->set_packet_type(libmedia_transfer_protocol::RtpPacketMediaType::kAudio);
+		  single_packet->SetExtension<libmedia_transfer_protocol::TransportSequenceNumber>(
+			  NextOutboundTransportSequenceNumber());
 
 		  uint8_t* audio_ptr =  single_packet->AllocatePayload(frame.size());
 		  if (audio_ptr)
