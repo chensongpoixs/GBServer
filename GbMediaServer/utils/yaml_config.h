@@ -119,6 +119,23 @@ namespace  gb_media_server
 		std::string     cert_private_key{ "" };       // DTLS证书私钥文件路径
 		int64_t		timeout_ms{15}; // 
 	};
+
+	/**
+	*  @author chensong
+	*  @date 2026-04-18
+	*  @brief RtcConsumer 出站 RTP 丢包模拟配置（仅测试用，默认关闭）
+	*
+	*  详见 GBServer/GbMediaServer/docs/rtc_consumer_outbound_loss_test.md
+	*/
+	struct RtcConsumerOutboundLossTestConfig
+	{
+		bool        enabled{ false };
+		std::string mode{ "bernoulli" };  // bernoulli | burst
+		int         loss_percent{ 0 };    // 0-100，bernoulli 模式
+		double      burst_enter_probability{ 0.002 };   // burst：每包进入突发段概率 0-1
+		int         burst_loss_percent{ 40 };           // burst：突发段内丢包率 0-100
+		double      burst_leave_probability{ 0.15 };    // burst：每包离开突发段概率 0-1
+	};
 	
 	/**
 	*  @author chensong
@@ -353,6 +370,11 @@ namespace  gb_media_server
 		*  @note 返回的是常量引用，不能修改配置
 		*/
 		const RtcServerConfig& GetRtcServerConfig() const { return rtc_server_config_; }
+
+		const RtcConsumerOutboundLossTestConfig& GetRtcConsumerOutboundLossTestConfig() const
+		{
+			return rtc_consumer_outbound_loss_test_;
+		}
 		
 		/**
 		*  @author chensong
@@ -383,6 +405,7 @@ namespace  gb_media_server
 	public:
 		HttpServerConfig     http_server_config_;   // HTTP服务器配置
 		RtcServerConfig      rtc_server_config_;    // RTC服务器配置
+		RtcConsumerOutboundLossTestConfig rtc_consumer_outbound_loss_test_;
 		RtpPortConfig       rtp_port_config_;       // RTP端口配置
 		WebSocketStatsConfig websocket_stats_config_;  // WebSocket统计服务配置
 		FileLogConfig        file_log_config_;

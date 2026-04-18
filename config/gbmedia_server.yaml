@@ -32,7 +32,25 @@ rtc:
     key:  privkey.pem
     timeout_ms: 15000
 
-
+    # [可选] RtcConsumer 出站 RTP 丢包模拟（仅测试 NACK/RTX，生产务必保持 enabled: false）
+    # 详见 GBServer/GbMediaServer/docs/rtc_consumer_outbound_loss_test.md
+    #consumer_outbound_loss_test:
+    #  enabled: false
+    #  mode: bernoulli          # bernoulli | burst
+    #  loss_percent: 5          # Bernoulli：0-100
+    #  burst:
+    #    enter_probability: 0.002
+    #    loss_percent: 40
+    #    leave_probability: 0.15
+ 
+  consumer_outbound_loss_test:
+    enabled: true
+    mode: burst    # 或 burst
+    loss_percent: 5
+    burst:
+      enter_probability: 0.002 # 每包进入突发段概率 0-1
+      loss_percent: 40 # 突发段内丢包率 0-100
+      leave_probability: 0.15 # 每包离开突发段概率 0-1
 
 rtp:
     

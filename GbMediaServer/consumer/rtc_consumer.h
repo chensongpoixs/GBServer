@@ -58,6 +58,7 @@
 #include "consumer/consumer_statistics.h"
 #include "consumer/jitter_buffer.h"
 #include "consumer/bandwidth_estimation.h"
+#include "share/rtp_outbound_loss_simulator.h"
 
 namespace gb_media_server {
 	/**
@@ -696,6 +697,9 @@ namespace gb_media_server {
 		// 用于收集和管理Consumer的统计数据
 		// @date 2025-10-18
 		std::shared_ptr<ConsumerStatistics> statistics_;
+
+		/// 出站 RTP 丢包模拟（yaml: rtc.consumer_outbound_loss_test，默认关闭）
+		RtpOutboundLossSimulator outbound_loss_sim_;
 		
 		// SR发送相关
 		uint32_t sr_rtp_timestamp_ = 0;
@@ -728,6 +732,7 @@ namespace gb_media_server {
 		
 		// 处理带宽估计更新
 		void OnBandwidthEstimationUpdate(int32_t bitrate_bps);
+		time_t           current_time_packet_{std::time(NULL) + 3};
 	};
 }
 

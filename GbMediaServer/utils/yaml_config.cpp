@@ -59,6 +59,7 @@ namespace  gb_media_server
 	YamlConfig::YamlConfig()
 		: http_server_config_()   // 使用默认构造函数初始化HTTP服务器配置
 		, rtc_server_config_()    // 使用默认构造函数初始化RTC服务器配置
+		, rtc_consumer_outbound_loss_test_()
 		, rtp_port_config_()      // 使用默认构造函数初始化RTP端口配置
 		, websocket_stats_config_()  // 使用默认构造函数初始化WebSocket统计服务配置
 		, file_log_config_()
@@ -209,6 +210,45 @@ namespace  gb_media_server
 				cmd << ", timeout_ms:" << rtc_server_config_.timeout_ms;
 
 				GBMEDIASERVER_LOG(LS_INFO) << " rtc server config : \n " << cmd.str();
+
+				// RtcConsumer 出站 RTP 丢包模拟（测试用，默认关闭）
+				if (node["rtc"]["consumer_outbound_loss_test"])
+				{
+					const YAML::Node& t = node["rtc"]["consumer_outbound_loss_test"];
+					if (t["enabled"]) {
+						rtc_consumer_outbound_loss_test_.enabled = t["enabled"].as<bool>();
+					}
+					if (t["mode"]) {
+						rtc_consumer_outbound_loss_test_.mode = t["mode"].as<std::string>();
+					}
+					if (t["loss_percent"]) {
+						rtc_consumer_outbound_loss_test_.loss_percent = t["loss_percent"].as<int>();
+					}
+					if (t["burst"])
+					{
+						const YAML::Node& b = t["burst"];
+						if (b["enter_probability"]) {
+							rtc_consumer_outbound_loss_test_.burst_enter_probability =
+							    b["enter_probability"].as<double>();
+						}
+						if (b["loss_percent"]) {
+							rtc_consumer_outbound_loss_test_.burst_loss_percent =
+							    b["loss_percent"].as<int>();
+						}
+						if (b["leave_probability"]) {
+							rtc_consumer_outbound_loss_test_.burst_leave_probability =
+							    b["leave_probability"].as<double>();
+						}
+					}
+					GBMEDIASERVER_LOG(LS_WARNING)
+					    << "rtc consumer_outbound_loss_test: enabled="
+					    << (rtc_consumer_outbound_loss_test_.enabled ? "true" : "false")
+					    << " mode=" << rtc_consumer_outbound_loss_test_.mode
+					    << " loss_percent=" << rtc_consumer_outbound_loss_test_.loss_percent
+					    << " burst_enter=" << rtc_consumer_outbound_loss_test_.burst_enter_probability
+					    << " burst_loss%=" << rtc_consumer_outbound_loss_test_.burst_loss_percent
+					    << " burst_leave=" << rtc_consumer_outbound_loss_test_.burst_leave_probability;
+				}
 			}
 			if (node["rtp"])
 			{

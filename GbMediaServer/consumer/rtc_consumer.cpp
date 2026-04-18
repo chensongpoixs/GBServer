@@ -110,7 +110,7 @@ namespace gb_media_server
 	, Consumer(stream, s)
 	, task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 	, current_target_bitrate_bps_(0)
-	
+	, outbound_loss_sim_(YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig())
 	{
 	
 		
@@ -173,6 +173,12 @@ namespace gb_media_server
 			"H264"
 		);
 		statistics_->SetAudioInfo(audio_ssrc, "OPUS");
+
+		if (YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig().enabled) {
+			GBMEDIASERVER_LOG(LS_WARNING)
+			    << "RtcConsumer outbound RTP loss simulation ENABLED (test only), session="
+			    << s->SessionName();
+		}
 	
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
@@ -816,12 +822,18 @@ namespace gb_media_server
 				  GbMediaService::GetInstance().GetRtcServer()->SendRtpPacketTo(rtc::CopyOnWriteBuffer(data, len), rtc_remote_address_, rtc::PacketOptions());
 				  //packets.push_back( std::move(single_packet));
 #else
-				  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
-
-				  // 统计RTP包发送（Statistics RTP packet sent）
-				  // @date 2025-10-18
-				  if (statistics_) {
-					  statistics_->OnRtpPacketSent(true, single_packet->size());
+				  // 出站丢包模拟：丢弃时不 SendSrtpRtp，仍 AddVideoPacket 以便 NACK/RTX 测试闭环
+				  //if (!outbound_loss_sim_.ShouldDropOutboundRtp()) 
+				  if (current_time_packet_ > std::time(NULL))
+				  {
+					  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
+					  if (statistics_) {
+						  statistics_->OnRtpPacketSent(true, single_packet->size());
+					  }
+				  }
+				  else
+				  {
+					  current_time_packet_ = std::time(NULL) + 3;
 				  }
 
 #endif  
@@ -916,12 +928,12 @@ namespace gb_media_server
 		  //packets.push_back( std::move(single_packet));
 #else 
 
-		  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
-
-		  // 统计RTP包发送（Statistics RTP packet sent）
-		  // @date 2025-10-18
-		  if (statistics_) {
-			  statistics_->OnRtpPacketSent(false, single_packet->size());
+		  //if (!outbound_loss_sim_.ShouldDropOutboundRtp())
+		  {
+			  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
+			  if (statistics_) {
+				  statistics_->OnRtpPacketSent(false, single_packet->size());
+			  }
 		  }
 #endif //
 	  }
