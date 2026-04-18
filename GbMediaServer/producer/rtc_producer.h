@@ -60,6 +60,7 @@
 
 #include "libmedia_codec/video_codecs/nal_parse_factory.h"
 #include "producer/producer_statistics.h"
+#include "share/nack_generator.h"
 
 namespace gb_media_server {
 
@@ -512,6 +513,30 @@ namespace gb_media_server {
 		// 用于收集和管理Producer的统计数据
 		// @date 2025-10-18
 		std::shared_ptr<ProducerStatistics> statistics_;
+
+		// ========== NACK 生成器（2025-11-12 新增）==========
+		// 服务端作为 WebRTC 接收方时，检测推流端丢包并发送 RTCP NACK。
+		//
+		// 线程模型：所有方法均在 RtcService 的 worker_thread 上串行调用，
+		// OnSrtpRtp（网络线程）仅 PostTask 投递 {seq, now_ms} 到 worker_thread。 
+		std::unique_ptr<NackGenerator>  video_nack_generator_;
+		std::unique_ptr<NackGenerator>  audio_nack_generator_;
+
+		/// NACK 功能开关（默认开启；future 可从 yaml 配置切换）
+		bool  nack_enabled_ = true;
+
+		/**
+		 * @brief 在 worker_thread 上处理一个 RTP 到达事件，必要时发 NACK。
+		 * @param is_video true=视频，false=音频
+		 * @param seq RTP 16 位 seq
+		 * @param media_ssrc 对端媒体 SSRC（构造 NACK 包时用作 media_ssrc）
+		 * @param now_ms 投递时刻（网络线程采样的时间戳）
+		 * @note 仅 worker_thread 调用；构造 rtcp::Nack 并调 SendSrtpRtcp
+		 */
+		void ProcessIncomingSeqOnWorker(bool is_video,
+		                                uint16_t seq,
+		                                uint32_t media_ssrc,
+		                                int64_t now_ms);
 	};
 }
 

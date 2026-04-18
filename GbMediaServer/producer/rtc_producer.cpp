@@ -55,6 +55,7 @@
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/pli.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/compound_packet.h"
 #include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/stream.h"
+#include "libmedia_transfer_protocol/rtp_rtcp/rtcp_packet/nack.h"
 #include "share/statistics_manager.h"
 
 namespace gb_media_server {
@@ -168,7 +169,13 @@ namespace gb_media_server {
 		);
 		StatisticsManager::GetInstance().RegisterProducer(s->SessionName(), statistics_);
 		statistics_->SetState("created");
-	
+
+		// NACK 生成器：Producer 作为接收方，检测推流端丢包并发 NACK 
+		// @date 2025-11-12
+		if (nack_enabled_) {
+			video_nack_generator_ = std::make_unique<NackGenerator>();
+			audio_nack_generator_ = std::make_unique<NackGenerator>();
+		}
 	}
 	/**
 	*  @author chensong
@@ -662,6 +669,39 @@ namespace gb_media_server {
 				statistics_->OnRtpPacketReceived(is_video, size);
 			}
 
+			// ========== NACK 检测（post 到 worker_thread）==========
+			// 2025-11-12：网络线程只做"采样"，所有 NACK 状态更新与 RTCP 发送都集中
+			// 到 worker_thread 上下文，避免跨线程访问 NackGenerator 状态。
+			if (nack_enabled_) {
+				const uint16_t seq        = rtp_packet_received.SequenceNumber();
+				const uint32_t ssrc       = rtp_packet_received.Ssrc();
+				const int64_t  now_ms     = rtc::TimeMillis();
+				const int32_t  audio_pt   = sdp_.GetAudioPayloadType();
+
+				// 仅对 video_ssrc / audio_ssrc 两条流生成 NACK；RTX/其它 PT 忽略
+				const bool nack_video = is_video && video_nack_generator_
+					&& (ssrc == sdp_.VideoSsrc());
+				const bool nack_audio = (!is_video) && audio_nack_generator_
+					&& (audio_pt != -1)
+					&& (rtp_packet_received.PayloadType() == audio_pt)
+					&& (ssrc == sdp_.AudioSsrc());
+
+				if (nack_video || nack_audio) {
+					const bool post_is_video = nack_video;
+					auto worker = GbMediaService::GetInstance().worker_thread();
+					if (worker) {
+						// task_safety_ 保证 Producer 析构后 task 被安全丢弃；
+						// 用 PostDelayedTask(..., 0) 与项目既有 OnTimer 同一 API 风格，
+						// 避免不同 webrtc 分支下 PostTask(unique_ptr<QueuedTask>) 是否可用的风险
+						worker->PostDelayedTask(ToQueuedTask(
+							task_safety_,
+							[this, post_is_video, seq, ssrc, now_ms]() {
+								ProcessIncomingSeqOnWorker(post_is_video, seq, ssrc, now_ms);
+							}), 0);
+					}
+				}
+			}
+
 			if (rtp_packet_received.PayloadType() != sdp_.GetVideoPayloadType()) 
 			{
 				
@@ -941,6 +981,65 @@ namespace gb_media_server {
 			}
 		}
 		//OnRecv(data, size);
+	}
+
+	/**
+	 * @author chensong
+	 * @date   2025-11-12
+	 * @brief  worker_thread 上处理一个 RTP seq 事件，并在必要时发 NACK
+	 *
+	 * 执行线程：RtcService 的 worker_thread（严格串行，与 OnTimer、AddVideoFrame
+	 *           等投递任务同线程）。NackGenerator 的成员访问因此无需加锁。
+	 *
+	 * 流程：
+	 *   1. 按 is_video 选 video_nack_generator_ / audio_nack_generator_
+	 *   2. generator->OnReceivedPacket(seq, now_ms)       // 更新待补表
+	 *   3. batch = generator->GetNackBatch(now_ms)        // 取待发 NACK 列表
+	 *   4. batch 非空 → 构造 rtcp::Nack（sender_ssrc=media_ssrc 与 mediasoup 一致）
+	 *      → 压入 CompoundPacket → SendSrtpRtcp（内部 outbound_srtp_mutex_ 保护）
+	 */
+	void RtcProducer::ProcessIncomingSeqOnWorker(bool is_video,
+	                                             uint16_t seq,
+	                                             uint32_t media_ssrc,
+	                                             int64_t now_ms)
+	{
+		if (!dtls_done_) {
+			// DTLS 尚未完成不能加密发送；NACK 记录也无意义，直接丢
+			return;
+		}
+
+		NackGenerator* generator = is_video ? video_nack_generator_.get()
+		                                    : audio_nack_generator_.get();
+		if (!generator) {
+			return;
+		}
+
+		generator->OnReceivedPacket(seq, now_ms);
+		std::vector<uint16_t> batch = generator->GetNackBatch(now_ms);
+		if (batch.empty()) {
+			return;
+		}
+
+		// 构造 RTCP Generic NACK
+		// sender_ssrc 用 media_ssrc：WebRTC 栈对此容忍度高（libwebrtc/Chrome/mediasoup 同例）
+		auto nack_pkt = std::make_unique<libmedia_transfer_protocol::rtcp::Nack>();
+		nack_pkt->SetSenderSsrc(media_ssrc);
+		nack_pkt->SetMediaSsrc(media_ssrc);
+		nack_pkt->SetPacketIds(batch);
+
+		libmedia_transfer_protocol::rtcp::CompoundPacket compound;
+		compound.Append(std::move(nack_pkt));
+		rtc::Buffer packet = compound.Build();
+
+		SendSrtpRtcp(packet.data(), packet.size());
+
+		GBMEDIASERVER_LOG(LS_INFO)
+			<< "NACK sent kind:" << (is_video ? "video" : "audio")
+			<< " ssrc:" << media_ssrc
+			<< " count:" << batch.size()
+			<< " first_seq:" << batch.front()
+			<< " last_seq:" << batch.back()
+			<< " pending:" << generator->PendingSize();
 	}
 
 #if 0
