@@ -110,7 +110,7 @@ namespace gb_media_server
 	, Consumer(stream, s)
 	, task_safety_(webrtc::PendingTaskSafetyFlag::Create())
 	, current_target_bitrate_bps_(0)
-	, outbound_loss_sim_(YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig())
+	//, outbound_loss_sim_(YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig())
 	{
 	
 		
