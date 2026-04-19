@@ -99,35 +99,60 @@ GbMediaServer 是一个高性能的流媒体服务器，支持多种流媒体协
 ## 📦 项目结构
 
 ```
-GBServer/
-├── GbMediaServer/              # 主程序模块
-│   ├── main.cpp               # 程序入口
-│   ├── server/                # 服务器模块
-│   │   ├── gb_media_service.h/cpp    # 核心服务类
-│   │   ├── rtc_service.h/cpp         # RTC服务
-│   │   ├── web_service.h/cpp          # Web服务
-│   │   ├── session.h/cpp              # 会话管理
-│   │   └── stream.h/cpp               # 流管理
-│   ├── producer/              # 生产者模块
-│   │   ├── producer.h/cpp             # 生产者基类
-│   │   ├── gb28181_producer.h/cpp     # GB28181生产者
-│   │   ├── rtc_producer.h/cpp         # WebRTC生产者
-│   │   ├── crtsp_producer.h/cpp       # RTSP生产者
-│   │   └── crtmp_producer.h/cpp       # RTMP生产者
-│   ├── consumer/              # 消费者模块
-│   │   ├── consumer.h/cpp             # 消费者基类
-│   │   ├── rtc_consumer.h/cpp          # WebRTC消费者
-│   │   ├── flv_consumer.h/cpp          # FLV消费者
-│   │   ├── crtsp_consumer.h/cpp       # RTSP消费者
-│   │   └── crtmp_consumer.h/cpp        # RTMP消费者
-│   ├── share/                 # 共享资源模块
-│   │   ├── rtc_interface.h/cpp         # RTC接口
-│   │   └── share_resource.h/cpp       # 共享资源
-│   └── utils/                 # 工具模块
-│       ├── yaml_config.h/cpp          # YAML配置解析
-│       └── string_utils.h/cpp          # 字符串工具
-└── README.md                  # 项目文档
+GBServer/                              # 仓库根（根 CMake 当前仅启用 GbMediaServer）
+├── CMakeLists.txt                     # 顶层构建入口
+├── README.md                          # 项目说明与开发指引
+├── GbMediaServer/                     # ★ C++ 流媒体服务（主工程）
+│   ├── main.cpp
+│   ├── CMakeLists.txt
+│   ├── gbmedia_server.yaml.example    # 配置文件模板
+│   ├── README.md                      # GbMediaServer 子模块说明
+│   ├── build_standalone.ps1           # Windows 独立编译脚本
+│   ├── download_websocket_libs.sh/.ps1 # WebSocket 依赖拉取（Linux / Windows）
+│   ├── third_party/                   # websocketpp、nlohmann/json、ASIO（可自动下载）
+│   ├── docs/                          # 设计与审计文档（NACK/RTX、下行丢包等）
+│   ├── server/                        # 服务与会话
+│   │   ├── gb_media_service.h/cpp     # 全局服务入口
+│   │   ├── rtc_service.h/cpp          # RTC 连接与 DTLS
+│   │   ├── rtc_service_mgr.h/cpp      # RTC 服务管理
+│   │   ├── web_service.h/cpp          # HTTP 路由与 API
+│   │   ├── web_service_handler.cpp    # 请求处理（FLV/HLS/GB28181 等）
+│   │   ├── web_service_stats.cpp      # 统计相关 HTTP
+│   │   ├── ws_stats_service.h/cpp     # WebSocket 统计（可选，ENABLE_WEBSOCKET）
+│   │   ├── session.h / sessioin.cpp   # 会话（单路流生命周期）
+│   │   └── stream.h/cpp               # 流、HLS Muxer 等
+│   ├── producer/                      # 推流 / 接入
+│   │   ├── producer.h/cpp
+│   │   ├── producer_statistics.h/cpp
+│   │   ├── gb28181_producer.h/cpp
+│   │   ├── rtc_producer.h/cpp / rtc_producer_dtls.cpp
+│   │   ├── crtsp_producer.h/cpp
+│   │   └── crtmp_producer.h/cpp
+│   ├── consumer/                      # 拉流 / 分发
+│   │   ├── consumer.h/cpp
+│   │   ├── consumer_statistics.h/cpp
+│   │   ├── rtc_consumer.h/cpp / rtc_consumer_dtls.cpp
+│   │   ├── flv_consumer.h/cpp
+│   │   ├── crtsp_consumer.h/cpp
+│   │   ├── crtmp_consumer.h/cpp
+│   │   └── bandwidth_estimation.h     # 带宽估计（消费侧）
+│   ├── share/                         # RTC 抽象、统计、NACK、抓屏等
+│   │   ├── rtc_interface.h/cpp
+│   │   ├── rtc_interface_sctp_handler.cpp
+│   │   ├── share_resource.h/cpp
+│   │   ├── statistics_manager.h/cpp / statistics_base.*
+│   │   ├── nack_generator.h/cpp
+│   │   └── capture.h/cpp
+│   └── utils/                         # YAML、日志、JSON、字符串等
+│       ├── yaml_config.h/cpp
+│       ├── file_log_writer.h/cpp
+│       ├── json_utils.h/cpp
+│       └── string_utils.h/cpp 
 ```
+
+说明：
+
+- **WebRTC**：CMake 会引用 `../libwebrtc` 等包含路径；实际库目录常放在仓库外，构建时通过 `-DWebRTC_ROOT=...` 指向你的 libwebrtc 安装或编译输出。
 
 ## 🚀 快速开始
 
@@ -172,33 +197,55 @@ GBServer/
 
 ### 配置文件
 
-创建配置文件 `gbmedia_server.yaml`：
+创建配置文件 `gbmedia_server.yaml`（完整字段与注释以仓库内示例为准）：
 
 ```yaml
-# HTTP服务器配置
+# 文件日志：RTC 等日志写入磁盘；按自然日切文件，行数超限同日内滚动序号
+# 需 C++17（std::filesystem）以支持按日期清理
+file_log:
+  enabled: true
+  directory: "logs"
+  max_lines_per_file: 100000
+  retention_days: 7
+  echo_to_stdout: true       # 控制台由后台写线程输出，主线程只入队
+  max_queued_messages: 100000 # 队列满则丢弃最旧；0 表示不限制
+
+# HTTP 服务器
 http:
   port: 8001
 
-# RTC服务器配置
+# RTC / DTLS
 rtc:
   ips:
-    - 192.168.1.100
+    - "192.168.1.100"
   udp:
     port: 10001
   tcp:
-    port: 20001
-  cert: fullchain.pem
-  key: privkey.pem
+    port: 10001
+  cert: "cert/server.crt"
+  key: "cert/server.key"
 
-# RTP端口配置
+# RTP 动态端口（GB28181、RTSP 等分配）
 rtp:
-  tcp:
-    min_port: 20000
-    max_port: 30000
   udp:
-    min_port: 20000
-    max_port: 30000
+    min_port: 40000
+    max_port: 50000
+  tcp:
+    min_port: 40000
+    max_port: 50000
+
+# 可选：WebSocket 实时统计（需 websocketpp、nlohmann/json、ASIO；见 GbMediaServer CMake 与 ws_stats_service）
+websocket_stats:
+  enabled: true
+  ip: "0.0.0.0"
+  port: 9998
+  push_interval: 1000
+  max_connections: 100
+  ping_interval: 30000
+  ping_timeout: 10000
 ```
+
+参考副本：`GbMediaServer/gbmedia_server.yaml.example`。启用 WebSocket 统计时，请同时开放 HTTP 端口、`rtc` 端口、`rtp` 范围及可选的 `websocket_stats.port`（如 9998）。
 
 ## 📖 使用说明
 
@@ -288,19 +335,34 @@ navigator.mediaDevices.getUserMedia({ video: true, audio: true })
 
 ### 配置项说明
 
+#### 文件日志（file_log）
+- `enabled`：是否写入文件日志
+- `directory`：日志目录
+- `max_lines_per_file`：单文件最大行数，超过后同日内序号递增生成新文件
+- `retention_days`：按文件名中的日期删除早于「今天 0 点往前推 N 天」的旧日志
+- `echo_to_stdout`：是否同时输出到控制台
+- `max_queued_messages`：异步写队列长度上限；超出则丢弃最旧；`0` 表示不限制
+
 #### HTTP服务器配置
 - `port`：HTTP服务器监听端口，默认8001
 
 #### RTC服务器配置
 - `ips`：RTC服务器绑定的IP地址列表
-- `udp.port`：UDP端口，用于STUN、DTLS、RTP/RTCP
-- `tcp.port`：TCP端口，用于TCP模式的RTC连接
+- `udp.port`：UDP端口，用于WebRTC 数据传输、DTLS 等
+- `tcp.port`：TCP端口，用于TCP模式的RTC连接（可与 UDP 相同或按需区分）
 - `cert`：DTLS证书文件路径（公钥）
 - `key`：DTLS证书文件路径（私钥）
 
 #### RTP端口配置
 - `tcp.min_port` / `tcp.max_port`：TCP RTP端口范围
 - `udp.min_port` / `udp.max_port`：UDP RTP端口范围
+
+#### WebSocket 统计服务（websocket_stats，可选）
+- `enabled`：是否启用；关闭后监控前端可退化为 HTTP 轮询（若支持）
+- `ip` / `port`：WebSocket 监听地址与端口
+- `push_interval`：推送间隔（毫秒）
+- `max_connections`：最大并发连接数
+- `ping_interval` / `ping_timeout`：心跳与超时（毫秒）
 
 ## 📝 API 文档
 
