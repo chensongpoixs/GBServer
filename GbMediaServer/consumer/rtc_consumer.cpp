@@ -174,11 +174,11 @@ namespace gb_media_server
 		);
 		statistics_->SetAudioInfo(audio_ssrc, "OPUS");
 
-		if (YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig().enabled) {
+		/*if (YamlConfig::GetInstance().GetRtcConsumerOutboundLossTestConfig().enabled) {
 			GBMEDIASERVER_LOG(LS_WARNING)
 			    << "RtcConsumer outbound RTP loss simulation ENABLED (test only), session="
 			    << s->SessionName();
-		}
+		}*/
 	
 		//rtp_header_extension_map_.Register<libmedia_transfer_protocol::TransportSequenceNumber>(libmedia_transfer_protocol::kRtpExtensionTransportSequenceNumber);
 	}
