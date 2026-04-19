@@ -103,14 +103,6 @@ GBServer/                              # 仓库根（根 CMake 当前仅启用 G
 ├── CMakeLists.txt                     # 顶层构建入口
 ├── README.md                          # 项目说明与开发指引
 ├── GbMediaServer/                     # ★ C++ 流媒体服务（主工程）
-│   ├── main.cpp
-│   ├── CMakeLists.txt
-│   ├── gbmedia_server.yaml.example    # 配置文件模板
-│   ├── README.md                      # GbMediaServer 子模块说明
-│   ├── build_standalone.ps1           # Windows 独立编译脚本
-│   ├── download_websocket_libs.sh/.ps1 # WebSocket 依赖拉取（Linux / Windows）
-│   ├── third_party/                   # websocketpp、nlohmann/json、ASIO（可自动下载）
-│   ├── docs/                          # 设计与审计文档（NACK/RTX、下行丢包等）
 │   ├── server/                        # 服务与会话
 │   │   ├── gb_media_service.h/cpp     # 全局服务入口
 │   │   ├── rtc_service.h/cpp          # RTC 连接与 DTLS
@@ -148,6 +140,13 @@ GBServer/                              # 仓库根（根 CMake 当前仅启用 G
 │       ├── file_log_writer.h/cpp
 │       ├── json_utils.h/cpp
 │       └── string_utils.h/cpp 
+│   ├── main.cpp
+│   ├── CMakeLists.txt
+│   ├── gbmedia_server.yaml.example    # 配置文件模板
+│   ├── README.md                      # GbMediaServer 子模块说明
+│   ├── build_standalone.ps1           # Windows 独立编译脚本
+│   ├── download_websocket_libs.sh/.ps1 # WebSocket 依赖拉取（Linux / Windows）
+│   ├── third_party/                   # websocketpp、nlohmann/json、ASIO（可自动下载） 
 ```
 
 说明：
