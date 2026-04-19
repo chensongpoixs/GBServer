@@ -31,8 +31,7 @@
  *安静，淡然，代码就是我的一切，写代码就是我本心回归的最好方式，我还没找到本心猎手，但我相信，顺着这个线索，我一定能顺藤摸瓜，把他揪出来。
  *
  *******************************************************************************/
- 
-#include "server/session.h" 
+
 #include "server/session.h"
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
@@ -47,85 +46,90 @@
 #include "gb_media_server_log.h"
 #include "server/rtc_service.h"
 
-namespace  gb_media_server
+namespace gb_media_server
 {
+
 	RtcServiceMgr::RtcServiceMgr()
 		: rtc_services_()
 	{
-
 	}
+
 	RtcServiceMgr::~RtcServiceMgr()
 	{
-
 	}
 
-
- 
-
-
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 初始化 RTC 工作池实现
+	*
+	*  从 YAML 读取 `rtc.num_workers`（见 `GetRtcServerConfig().num_workers`），循环创建 `RtcService` 并
+	*  `emplace_back` 到 `rtc_services_`。此时未调用 `RtcService::Startup`，网络未监听。
+	*/
 	bool RtcServiceMgr::init()
 	{
-		uint32_t num_workers = gb_media_server::YamlConfig::GetInstance().GetRtcServerConfig().num_workers;
+		const uint32_t num_workers = gb_media_server::YamlConfig::GetInstance().GetRtcServerConfig().num_workers;
 		GBMEDIASERVER_LOG(LS_INFO) << " rtc service mgr init ...  num_works =" << num_workers;
-		//GBMEDIASERVER_LOG(LS_INFO) << " rtc service mgr init ...  num_works =" << num_workers;
 
-		for (size_t i = 0; i < num_workers; ++i)
-		{
-
-			std::unique_ptr<RtcService>  rtc_service_ptr(new RtcService());
+		for (size_t i = 0; i < num_workers; ++i) {
+			std::unique_ptr<RtcService> rtc_service_ptr(new RtcService());
 			rtc_services_.emplace_back(std::move(rtc_service_ptr));
 		}
-
-
-
 
 		GBMEDIASERVER_LOG(LS_INFO) << "rtc service init OK ...";
 		return true;
 	}
+
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 启动所有 RTC 监听端口实现
+	*
+	*  对第 i 个服务调用 `Startup(udp_port + i)`，使多路 worker 分别绑定连续 UDP 端口（基址来自 YAML `rtc.udp.port`）。
+	*  单路 `Startup` 返回 false 时记录 WARNING，不中断后续路数的启动尝试。
+	*/
 	bool RtcServiceMgr::startup()
 	{
-		uint32_t num_workers = gb_media_server::YamlConfig::GetInstance().GetRtcServerConfig().num_workers;
+		const uint32_t num_workers = gb_media_server::YamlConfig::GetInstance().GetRtcServerConfig().num_workers;
 
+		for (size_t i = 0; i < num_workers; ++i) {
+			const uint32_t cur_port = YamlConfig::GetInstance().GetRtcServerConfig().udp_port + static_cast<uint32_t>(i);
+			const bool ret = rtc_services_[i]->Startup(cur_port);
 
-		for (size_t i = 0; i < num_workers; ++i)
-		{
-			uint32_t cur_port = YamlConfig::GetInstance().GetRtcServerConfig().udp_port + i;
-			bool ret = rtc_services_[i]->Startup(cur_port);
-			//rtc_servers_[i]->network_thread()->Invoke<void>(RTC_FROM_HERE, [this, i, cur_port]() {
-
-
-			//	rtc_servers_[i]->Start("0.0.0.0", cur_port);
-			//	//	GBMEDIASERVER_LOG(LS_INFO) << "gb media start  "<< local_ip << ":"<<port<<"  OK !!!";
-			//	});
-			if (ret)
-			{
-
-				GBMEDIASERVER_LOG(LS_INFO) << "gb rtc media  start  " << " port :" << cur_port << "  OK !!!";
-			}
-			else
-			{
-
-				GBMEDIASERVER_LOG(LS_WARNING) << "gb rtc media  start  " << " port :" << cur_port << "  failed  !!!";
+			if (ret) {
+				GBMEDIASERVER_LOG(LS_INFO) << "gb rtc media  start  "
+				                           << " port :" << cur_port << "  OK !!!";
+			} else {
+				GBMEDIASERVER_LOG(LS_WARNING) << "gb rtc media  start  "
+				                              << " port :" << cur_port << "  failed  !!!";
 			}
 		}
 
 		return true;
 	}
 
-
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 销毁占位实现
+	*
+	*  预留：应在此处依次停止各 `RtcService`、join 网络线程、释放资源。当前无操作。
+	*/
 	void RtcServiceMgr::destroy()
 	{
-
 	}
 
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief 按索引选取 RtcService 实现
+	*
+	*  `index % rtc_services_.size()` 将任意索引归一化到 [0, size)，避免调用方越界；当 size 为 0 时取模未定义，
+	*  需保证 `init()` 已执行且 `num_workers >= 1`。
+	*/
 	RtcService* RtcServiceMgr::GetRtcService(uint32_t index)
 	{
-
-
-
 		return rtc_services_[index % rtc_services_.size()].get();
 	}
 
-}
-
- 
+}  // namespace gb_media_server

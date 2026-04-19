@@ -120,18 +120,55 @@ namespace  gb_media_server
 		*/
 		virtual	~RtcService() ;
 
-		
-
-
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 启动 RTC 底层监听（Startup）
+		*
+		*  在指定 UDP 端口上启动内部 `RtcServer`（ICE Lite / STUN、DTLS、RTP/RTCP 收发等），
+		*  使本 `RtcService` 可接收来自客户端的媒体与控制报文。通常由 `RtcServiceMgr::startup()` 按
+		*  `udp_port + worker_index` 依次调用。
+		*
+		*  @param port 本路服务绑定的本地 UDP 端口号（主机字节序）
+		*  @return true 表示启动成功；false 表示端口占用或底层初始化失败（见日志）
+		*  @note 重复调用行为取决于 `RtcServer::Start` 实现，一般应保证每实例只 Startup 一次
+		*/
 		bool Startup(uint32_t port);
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取当前实际监听的 UDP 端口（GetLocalListenUdpPort）
+		*
+		*  透传底层 `RtcServer::GetListenUdpPort()`，用于 SDP/ICE 中声明与本地 socket 一致的端口，
+		*  或在多 worker 场景下确认本路实例绑定的端口。
+		*
+		*  @return 当前监听的 UDP 端口号；若尚未 Startup 或失败，返回值以 `RtcServer` 约定为准
+		*/
 		uint32_t GetLocalListenUdpPort() const {
 			return  rtc_server_->GetListenUdpPort();
 		}
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取底层 RtcServer 指针（非 const）（GetServer）
+		*
+		*  供发送 RTP/RTCP、查询 socket 等需要修改或非 const 接口的场景使用（例如 `SendRtpPacketTo`）。
+		*
+		*  @return 非空 `RtcServer*`；生命周期由 `RtcService` 持有，勿在外部 delete
+		*/
 		libmedia_transfer_protocol::librtc::RtcServer* GetServer() { return rtc_server_.get(); }
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取底层 RtcServer 指针（const 重载）（GetServer）
+		*
+		*  在 const 上下文中只读访问底层服务器对象（例如查询端口、统计信息）。
+		*
+		*  @return 非空 `const RtcServer*`；生命周期由 `RtcService` 持有
+		*/
 		const libmedia_transfer_protocol::librtc::RtcServer* GetServer() const { return rtc_server_.get(); }
 	public:
 		///**

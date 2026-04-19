@@ -108,6 +108,16 @@ namespace gb_media_server {
 	*  @note 视频帧会被解析为H264格式
 	*  @note 音频帧会被解析为OPUS或PCMU格式
 	*  @note 支持RTP分片重组，将分片的RTP包重组为完整的媒体帧
+	*
+	*  上行 NACK（推流侧补包）：
+	*  - 服务端作为 RTP **接收方**，若检测到序号空洞，由 `NackGenerator` 生成 RTCP Generic NACK，
+	*    请求浏览器/推流端对缺失序号进行 RTX 重传（详见 `share/nack_generator.*`、`docs/producer_nack_design.md`）。
+	*  - 视频、音频各维护一份 `NackGenerator`，状态仅在 `RtcService` 的 worker_thread 上更新；
+	*    `OnSrtpRtp` 所在网络线程只负责解密与投递任务，避免在 IO 线程做重逻辑。
+	*
+	*  线程与生命周期：
+	*  - `task_safety_`（`PendingTaskSafetyFlag`）用于 PostTask 到 worker 后，Producer 已销毁时丢弃回调，防止 UAF。
+	*  - `recv_buffer_` 用于 `OnRecv` 粘包/半包拼装，与网络线程绑定，需注意与 worker 投递的边界。
 	*  
 	*  使用示例：
 	*  @code
@@ -413,10 +423,50 @@ namespace gb_media_server {
 		//virtual void RemoveGlobalData() override;
 	public:
 
-
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS 明文回调：收到对端 DTLS 记录层数据（OnDtlsRecv）
+		*
+		*  在 DTLS 握手或应用数据阶段，底层将解密前/协商中的 DTLS 记录交给 `Dtls` 状态机处理。
+		*  通常由 `RtcInterface` / `RtcServer` 在解析 UDP 载荷后根据内容类型路由到此。
+		*
+		*  @param buf DTLS 记录字节流起始指针
+		*  @param size 字节长度
+		*  @note 调用线程一般为 RTC 网络/工作线程，勿在回调内长时间阻塞
+		*/
 		virtual void OnDtlsRecv(const uint8_t* buf, size_t size);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief SRTP 解密后的 RTP 媒体包入口（OnSrtpRtp）
+		*
+		*  处理流程概要：
+		*  1. SRTP 解密成功后得到 RTP payload，解析 SSRC、seq、PT、扩展（如 TWCC transport-wide seq）；
+		*  2. 视频路径：NAL 解析、拼帧，回调 `Session`/`Stream` 推送编码帧；
+		*  3. 若启用 NACK：将 `{seq, media_ssrc, now_ms}` Post 到 worker_thread，在 `ProcessIncomingSeqOnWorker`
+		*     中驱动 `NackGenerator` 并可能 `SendSrtpRtcp` 发出 RTCP NACK；
+		*  4. 非视频/非协商 SSRC 的包应过滤，避免误入 NACK 与统计。
+		*
+		*  @param data 已解密 RTP 缓冲区（可能被原地修改，取决于 SRTP API）
+		*  @param size 缓冲区长度
+		*  @note 热点路径：应避免在此处做重计算；与 `ProcessIncomingSeqOnWorker` 分工见实现文件
+		*/
 		virtual void OnSrtpRtp(  uint8_t* data, size_t size);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief SRTP 解密后的 RTCP 控制包入口（OnSrtpRtcp）
+		*
+		*  典型处理：RR、SDES、TransportFeedback（TWCC）、PLI/FIR 等。用于更新 RTT、丢包统计、
+		*  `RtcpContextRecv` 内部状态等（具体字段以 rtc_producer.cpp 为准）。
+		*
+		*  @param data 已解密 RTCP 复合包缓冲区
+		*  @param size 长度
+		*  @note 与 `OnSrtpRtp` 相同，一般在网络线程调用；复合包内需循环解析多个 RTCP chunk
+		*/
 		virtual void OnSrtpRtcp(  uint8_t* data, size_t size);
 	public:
 		//virtual void OnVideoFrame(const libmedia_codec::EncodedImage& frame);
@@ -426,7 +476,30 @@ namespace gb_media_server {
 
 
 	public:
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：开始握手/协商（OnDtlsConnecting）
+		*  @param dtls 当前关联的 `Dtls` 实例指针
+		*  @note 可在此打日志或更新 UI 状态；密钥尚未就绪
+		*/
 		virtual void OnDtlsConnecting(libmedia_transfer_protocol::libssl::Dtls* dtls);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：握手成功，导出 SRTP 密钥（OnDtlsConnected）
+		*
+		*  使用协商出的 `srtpLocalKey` / `srtpRemoteKey` 初始化 `SrtpSession`，之后方可 `DecryptRtp`/`EncryptRtcp`。
+		*
+		*  @param dtls DTLS 实例
+		*  @param srtpCryptoSuite 选中的 SRTP 加密套件
+		*  @param srtpLocalKey 本端导出密钥材料
+		*  @param srtpLocalKeyLen 本端密钥长度
+		*  @param srtpRemoteKey 对端导出密钥材料
+		*  @param srtpRemoteKeyLen 对端密钥长度
+		*  @param remote_cert 对端证书 PEM（输出/填充由实现约定）
+		*/
 		virtual void OnDtlsConnected(libmedia_transfer_protocol::libssl::Dtls* dtls,
 			libmedia_transfer_protocol::libsrtp::CryptoSuite srtpCryptoSuite,
 			uint8_t* srtpLocalKey,
@@ -434,18 +507,72 @@ namespace gb_media_server {
 			uint8_t* srtpRemoteKey,
 			size_t srtpRemoteKeyLen,
 			std::string& remote_cert);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：需要向对端发送握手/告警等记录（OnDtlsSendPakcet）
+		*  @param dtls DTLS 实例
+		*  @param data 待发送的 DTLS 记录明文或密文（依实现）
+		*  @param len 长度
+		*  @note 实现中应通过 ICE 将数据发到当前选中的远端 `rtc_remote_address_`
+		*/
 		virtual void OnDtlsSendPakcet(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len);
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：连接正常关闭（OnDtlsClosed）
+		*  @param dtls DTLS 实例
+		*/
 		virtual void OnDtlsClosed(libmedia_transfer_protocol::libssl::Dtls* dtls);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：握手或验证失败（OnDtlsFailed）
+		*  @param dtls DTLS 实例
+		*  @note 应停止媒体收发并通知上层 Session 失败
+		*/
 		virtual void OnDtlsFailed(libmedia_transfer_protocol::libssl::Dtls* dtls);
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief DTLS：收到应用层数据（SCTP 建立前极少使用）（OnDtlsApplicationDataReceived）
+		*  @param dtls DTLS 实例
+		*  @param data 应用数据指针
+		*  @param len 长度
+		*/
 		virtual void OnDtlsApplicationDataReceived(libmedia_transfer_protocol::libssl::Dtls* dtls, const uint8_t* data, size_t len);
 
 	public:
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 数据通道：本端主动或被动打开流时的消息回调（OnDataChannel）
+		*
+		*  @param params SCTP 流参数（流 id、可靠性等）
+		*  @param ppid SCTP Payload Protocol Identifier
+		*  @param msg 消息体
+		*  @param len 消息长度
+		*/
 		virtual  void OnDataChannel(
 			const  libmedia_transfer_protocol::librtc::SctpStreamParameters& params,
 			uint32_t ppid, const uint8_t* msg, size_t len);
 
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief SCTP：收到对端 DATA chunk 组装后的用户消息（OnSctpAssociationMessageReceived）
+		*
+		*  @param sctpAssociation SCTP 关联指针
+		*  @param streamId SCTP 流 ID
+		*  @param ppid 负载协议标识
+		*  @param msg 消息缓冲区
+		*  @param len 长度
+		*/
 		virtual void OnSctpAssociationMessageReceived(
 			libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
 			uint16_t streamId,
@@ -484,55 +611,90 @@ namespace gb_media_server {
 
 	private:
 
-
 		//std::unique_ptr< libmedia_transfer_protocol::libmpeg::MpegDecoder>    mpeg_decoder_;
+
+		/**
+		*  @brief 异步任务安全标志（libwebrtc PendingTaskSafetyFlag）
+		*
+		*  `RtcProducer` 析构时置位，worker_thread 上已 Post 的 lambda 执行前检查，
+		*  避免访问已释放的 `this`（UAF 防护）。
+		*/
 		const rtc::scoped_refptr<webrtc::PendingTaskSafetyFlag> task_safety_;
-		//webrtc::ScopedTaskSafety task_safety_;
-		//rtc::Buffer recv_buffer_;
+
+		/**
+		*  @brief 接收侧拼包缓冲区（与 recv_buffer_size_ 成对）
+		*
+		*  `OnRecv` 可能多次收到同一 DTLS/SRTP 片段或一次 UDP 多包，需累积后再解析。
+		*/
 		std::unique_ptr<uint8_t[]> recv_buffer_;
+		/// `recv_buffer_` 分配的总字节数；写入游标见 .cpp
 		int32_t recv_buffer_size_;
 
-
+		/**
+		*  @brief H.264 NAL 解析与拼帧（NalParseFactory 创建具体实现）
+		*/
 		std::unique_ptr<libmedia_codec::NalParseInterface>  nal_parse_;
 
+		/**
+		*  @brief RTCP 接收上下文（RR、扩展报告等，与带宽/RTT 统计联动）
+		*/
 		std::unique_ptr<libmedia_transfer_protocol::librtcp::RtcpContextRecv>   rtcp_context_recv_;
+
+		/**
+		*  @brief 因解析失败等跳过的 RTP/RTCP 包计数（可观测性）
+		*/
 		int32_t   num_skipped_packets_ = 0;
 
-
+		/**
+		*  @brief 最近一次 RR 相关时间戳（毫秒，语义以 .cpp 为准）
+		*/
 		int64_t    rtcp_rr_timestamp_;
 
-
-
+		/**
+		*  @brief 最近一次请求关键帧的时间戳（毫秒），用于节流 PLI/FIR
+		*/
 		int64_t     request_key_frame_{0};
-		
 
-
+		/**
+		*  @brief 是否继续向 Stream 转发解析后的帧（无观众时可 false 省资源）
+		*/
 		bool       stream_status_ = true;
 
-		// 统计数据对象（Statistics Object）
-		// 用于收集和管理Producer的统计数据
-		// @date 2025-10-18
+		/**
+		*  @author chensong
+		*  @date 2025-10-18
+		*  @brief 推流端统计（码率、帧数、NACK 次数等）
+		*/
 		std::shared_ptr<ProducerStatistics> statistics_;
 
-		// ========== NACK 生成器（2025-11-12 新增）==========
-		// 服务端作为 WebRTC 接收方时，检测推流端丢包并发送 RTCP NACK。
-		//
-		// 线程模型：所有方法均在 RtcService 的 worker_thread 上串行调用，
-		// OnSrtpRtp（网络线程）仅 PostTask 投递 {seq, now_ms} 到 worker_thread。 
+		/**
+		*  @brief 视频 RTP 序号空洞检测与 RTCP Generic NACK（见 producer_nack_design.md）
+		*
+		*  仅在 worker_thread 上操作状态；网络线程只投递任务。
+		*/
 		std::unique_ptr<NackGenerator>  video_nack_generator_;
+
+		/**
+		*  @brief 音频 RTP NACK 生成器（与视频 SSRC 空间分离）
+		*/
 		std::unique_ptr<NackGenerator>  audio_nack_generator_;
 
-		/// NACK 功能开关（默认开启；future 可从 yaml 配置切换）
+		/**
+		*  @brief 是否启用上行 NACK（默认 true；可接 YAML）
+		*/
 		bool  nack_enabled_ = true;
 
 		/**
-		 * @brief 在 worker_thread 上处理一个 RTP 到达事件，必要时发 NACK。
-		 * @param is_video true=视频，false=音频
-		 * @param seq RTP 16 位 seq
-		 * @param media_ssrc 对端媒体 SSRC（构造 NACK 包时用作 media_ssrc）
-		 * @param now_ms 投递时刻（网络线程采样的时间戳）
-		 * @note 仅 worker_thread 调用；构造 rtcp::Nack 并调 SendSrtpRtcp
-		 */
+		*  @author chensong
+		*  @date 2025-11-12
+		*  @brief 在 worker_thread 上处理一次 RTP 到达：更新 NackGenerator，必要时发送 RTCP NACK
+		*
+		*  @param is_video true=视频 SSRC，false=音频 SSRC
+		*  @param seq RTP 16 位序号
+		*  @param media_ssrc 填入 RTCP NACK 的 media_ssrc
+		*  @param now_ms 网络线程采样时间，用于节流与冷却
+		*  @note 仅 worker_thread 调用；内部可能 `SendSrtpRtcp`
+		*/
 		void ProcessIncomingSeqOnWorker(bool is_video,
 		                                uint16_t seq,
 		                                uint32_t media_ssrc,

@@ -34,7 +34,6 @@
 #ifndef _C_RTC_SERVICE_MGR_H_
 #define _C_RTC_SERVICE_MGR_H_
 
-#include "server/session.h" 
 #include "server/session.h"
 #include "server/stream.h"
 #include "libmedia_transfer_protocol/librtc/rtc_server.h"
@@ -43,46 +42,123 @@
 #include "consumer/rtc_consumer.h"
 //#include "swagger/dto/RtcApiDto.hpp"
 #include "share/rtc_interface.h"
-namespace  gb_media_server
+
+namespace gb_media_server
 {
 
-
-
+	/**
+	*  @author chensong
+	*  @date 2025-10-14
+	*  @brief RTC 服务管理器（RtcService Manager）
+	*
+	*  RtcServiceMgr 是 GBMediaServer 中 **多路 RTC 工作线程/监听端口** 的集中入口，采用 **Meyers 单例**，
+	*  与 `RtcService`（单路 UDP 收发与 RtcInterface 路由）配合使用：本类持有 `num_workers` 个 `RtcService` 实例，
+	*  在 `init()` 中按配置创建，在 `startup()` 中为每个实例绑定 **递增 UDP 端口**（`udp_port + i`），
+	*  供推流/拉流会话按索引选取，实现 **多端口并行** 分担 ICE/DTLS/RTP 负载。
+	*
+	*  职责概要：
+	*  1. 从 `YamlConfig::GetRtcServerConfig()` 读取 `num_workers`、`udp_port` 等；
+	*  2. `init()`：构造 `num_workers` 个 `RtcService` 并放入 `rtc_services_`；
+	*  3. `startup()`：依次对每个 `RtcService` 调用 `Startup(udp_port + i)`，启动底层 `RtcServer` 监听；
+	*  4. `GetRtcService(index)`：按会话或哈希索引选取一路 `RtcService`（下标对 `size()` 取模，便于负载分散）。
+	*
+	*  典型调用顺序（进程启动）：
+	*  @code
+	*  RtcServiceMgr::GetInstance().init();
+	*  RtcServiceMgr::GetInstance().startup();
+	*  // 会话创建后：
+	*  RtcService* svc = RtcServiceMgr::GetInstance().GetRtcService(session_index);
+	*  @endcode
+	*
+	*  @note 与 `RtcService` 单例不同：本管理器是 **多实例** 容器；`GetRtcService` 返回的指针在进程存活期内有效。
+	*  @note `destroy()` 当前为空实现，若后续需要优雅停机，应在此停止各 `RtcService` 并释放资源。
+	*  @see RtcService
+	*  @see YamlConfig::GetRtcServerConfig()
+	*/
 	class RtcServiceMgr
 	{
 	public:
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 构造函数（Constructor）
+		*
+		*  初始化空的 `rtc_services_` 向量，不创建 `RtcService`；实际 worker 数量在 `init()` 中按配置分配。
+		*/
 		explicit RtcServiceMgr();
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 析构函数（Destructor）
+		*
+		*  释放管理器对象；当前未在析构中显式停止各 `RtcService`，与 `destroy()` 行为一致，依赖进程退出清理。
+		*/
 		virtual ~RtcServiceMgr();
 
-
-		static RtcServiceMgr & GetInstance()
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 获取全局唯一管理器实例（Meyers Singleton）
+		*
+		*  @return RtcServiceMgr& 进程内单例引用
+		*/
+		static RtcServiceMgr& GetInstance()
 		{
-			static RtcServiceMgr   instance;
+			static RtcServiceMgr instance;
 			return instance;
 		}
-	public:
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 初始化 RTC 工作池（init）
+		*
+		*  根据配置 `num_workers` 创建对应数量的 `RtcService`，并加入 `rtc_services_`。
+		*  此时仅完成对象构造，**尚未**绑定端口或启动网络线程，需再调用 `startup()`。
+		*
+		*  @return true 表示分配成功；当前实现恒为 true
+		*/
 		bool init();
+
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 启动所有 RTC 服务监听（startup）
+		*
+		*  对 `rtc_services_[i]` 调用 `Startup(udp_port + i)`，使第 i 路服务监听独立 UDP 端口。
+		*  若某路启动失败会打 WARNING 日志，但函数仍返回 true（与现有实现一致）。
+		*
+		*  @return true 表示流程走完；单路失败请查看日志
+		*/
 		bool startup();
 
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 销毁/停机占位（destroy）
+		*
+		*  预留接口：用于将来统一停止各 `RtcService`、释放端口与线程。当前为空实现。
+		*/
 		void destroy();
 
-	public:
-
-
+		/**
+		*  @author chensong
+		*  @date 2025-10-14
+		*  @brief 按索引选取一路 RtcService（GetRtcService）
+		*
+		*  使用 `index % rtc_services_.size()` 将任意无符号索引映射到有效下标，便于会话 ID、哈希或轮询分散到多路 worker。
+		*
+		*  @param index 逻辑索引（可与 Session 编号、哈希等相关联）
+		*  @return RtcService* 非空指针；若 `rtc_services_` 为空则取模未定义（配置应保证 `num_workers >= 1`）
+		*/
 		RtcService* GetRtcService(uint32_t index);
 
-
 	private:
-
-		// RtcServer
-		std::vector< std::unique_ptr<RtcService> >   rtc_services_;
-
+		/// 多路 RTC 服务实例，下标 i 对应 UDP 端口 `udp_port + i`（由 startup 传入）
+		std::vector<std::unique_ptr<RtcService>> rtc_services_;
 	};
-}
 
+}  // namespace gb_media_server
 
-#endif // 
+#endif  // _C_RTC_SERVICE_MGR_H_
