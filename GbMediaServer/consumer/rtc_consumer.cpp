@@ -824,17 +824,17 @@ namespace gb_media_server
 #else
 				  // 出站丢包模拟：丢弃时不 SendSrtpRtp，仍 AddVideoPacket 以便 NACK/RTX 测试闭环
 				  //if (!outbound_loss_sim_.ShouldDropOutboundRtp()) 
-				  if (current_time_packet_ > std::time(NULL))
-				  {
+				 /* if (current_time_packet_ > std::time(NULL))
+				  {*/
 					  SendSrtpRtp((uint8_t*)single_packet->data(), single_packet->size());
 					  if (statistics_) {
 						  statistics_->OnRtpPacketSent(true, single_packet->size());
 					  }
-				  }
+				  /*}
 				  else
 				  {
 					  current_time_packet_ = std::time(NULL) + 3;
-				  }
+				  }*/
 
 #endif  
 				  AddVideoPacket(std::move(single_packet));
