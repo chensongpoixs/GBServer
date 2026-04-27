@@ -210,15 +210,15 @@ namespace gb_media_server
 	RtcConsumer:: ~RtcConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 
+		// 先断开 DTLS 信号，防止析构期间 DTLS 任务队列触发回调访问已释放的资源
+		dtls_done_ = false;
+		dtls_.disconnect_all();
+
 		// 从统计管理器注销（Unregister from statistics manager）
 		// @date 2025-10-18
 		if (statistics_) {
 			StatisticsManager::GetInstance().UnregisterConsumer(statistics_->GetConsumerId());
 		}
-		
-		//dtls_.SignalDtlsSendPakcet.disconnect(this);
-		//dtls_.SignalDtlsHandshakeDone.disconnect(this);
-		//dtls_.SignalDtlsClose.disconnect(this);
 
 		if (srtp_send_session_)
 		{
@@ -231,23 +231,11 @@ namespace gb_media_server
 			srtp_recv_session_ = nullptr;
 		}
 
-		dtls_done_ = false;
 		if (muxer_)
 		{
 			delete muxer_;
 			muxer_ = nullptr;
 		}
-		if (srtp_send_session_)
-		{
-			srtp_send_session_->RemoveStream(sdp_.VideoSsrc());
-			srtp_send_session_->RemoveStream(sdp_.AudioSsrc());
-		}
-		dtls_.disconnect_all();
-		
-		
-
-		
-		
 	}
 
 	/**
@@ -268,11 +256,16 @@ namespace gb_media_server
 	*/
 	void RtcConsumer::RequestKeyFrame()
 	{
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcConsumer>(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
 		gb_media_server::GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE,
-			[this]() {
-				if (GetSession())
+			[self = std::move(self)]() {
+				auto me = self.lock();
+				if (!me) return;
+				auto session = me->GetSession();
+				if (session)
 				{
-					GetSession()->ConsumerRequestKeyFrame();
+					session->ConsumerRequestKeyFrame();
 				}
 				
 		});

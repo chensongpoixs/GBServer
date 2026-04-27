@@ -281,13 +281,15 @@ namespace gb_media_server
 		std::string session_name = GetSession()->SessionName();
 		
 		// 在工作线程中执行清理操作
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			// 从RTC服务中注销RTC接口
-			std::shared_ptr<RtcInterface> slef = std::dynamic_pointer_cast<RtcInterface>(shared_from_this());
-			//RtcService::GetInstance().UnregisterRtcInterface(slef);// shared_from_this());
-			GetSession()->GetRtcService()->RegisterRtcInterface(slef);
-			// 清空Session的Producer
-			GetSession()->SetProducer(nullptr);
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcProducer>(std::dynamic_pointer_cast<RtcProducer>(shared_from_this()));
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [self = std::move(self)]() {
+			auto me = self.lock();
+			if (!me || me->GetDestory()) return;
+			auto session = me->GetSession();
+			if (!session) return;
+			session->GetRtcService()->UnregisterRtcInterface(me);
+			session->SetProducer(nullptr);
 		});
 		//RemoveGlobalData();
 	}
@@ -334,14 +336,15 @@ namespace gb_media_server
 		// 获取会话名称
 		std::string session_name = GetSession()->SessionName();
 		
-		// 在工作线程中执行清理操作
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			// 从RTC服务中注销RTC接口
-			std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(shared_from_this());
-			//RtcService::GetInstance().UnregisterRtcInterface(slef);
-			GetSession()->GetRtcService()->RegisterRtcInterface(slef);
-			// 清空Session的Producer
-			GetSession()->SetProducer(nullptr);
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcProducer>(std::dynamic_pointer_cast<RtcProducer>(shared_from_this()));
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [self = std::move(self)]() {
+			auto me = self.lock();
+			if (!me || me->GetDestory()) return;
+			auto session = me->GetSession();
+			if (!session) return;
+			session->GetRtcService()->UnregisterRtcInterface(me);
+			session->SetProducer(nullptr);
 			
 		});
 		//RemoveGlobalData();

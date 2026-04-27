@@ -195,8 +195,14 @@ namespace gb_media_server
 		rtc::Buffer buffer(data, len);
 		//GbMediaService::GetInstance().GetRtcServer()->SendPacketTo(std::move(buffer), rtc_remote_address_, rtc::PacketOptions());
 
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, d = std::move(buffer)]() {
-			GetSession()->GetRtcService()->GetServer()->SendPacketTo(d, rtc_remote_address_, rtc::PacketOptions());;
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcConsumer>(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [self = std::move(self), d = std::move(buffer)]() {
+			auto me = self.lock();
+			if (!me || me->GetDestory()) return;
+			auto session = me->GetSession();
+			if (!session) return;
+			session->GetRtcService()->GetServer()->SendPacketTo(d, me->RtcRemoteAddress(), rtc::PacketOptions());
 			});
 		
 	}
@@ -226,17 +232,20 @@ namespace gb_media_server
 
 		//StopCapture();
 
-		std::string session_name = GetSession()->SessionName();
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
-			GetSession()->GetRtcService()->UnregisterRtcInterface(slef);
-			//GbMediaService::GetInstance().CloseSession(session_name);
-			GetSession()->RemoveConsumer(slef);
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcConsumer>(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [self = std::move(self)]() {
+			auto me = self.lock();
+			if (!me || me->GetDestory()) return;
+			auto session = me->GetSession();
+			if (!session) return;
+			session->GetRtcService()->UnregisterRtcInterface(me);
+			session->RemoveConsumer(me);
 		});
-		// 
+		//
 		//RemoveGlobalData();
 	}
-	
+
 	/**
 	*  @brief DTLS连接失败回调（DTLS Failed）
 	*  
@@ -262,13 +271,15 @@ namespace gb_media_server
 
 		//StopCapture();
 
-		std::string session_name = GetSession()->SessionName();
-		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-			std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(shared_from_this());
-			GetSession()->GetRtcService()->UnregisterRtcInterface(slef);
-			//GbMediaService::GetInstance().CloseSession(session_name);
-			GetSession()->RemoveConsumer(slef);
-			
+		// 使用 weak_ptr 捕获，防止 this 在 lambda 执行前被销毁导致崩溃
+		auto self = std::weak_ptr<RtcConsumer>(std::dynamic_pointer_cast<RtcConsumer>(shared_from_this()));
+		GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [self = std::move(self)]() {
+			auto me = self.lock();
+			if (!me || me->GetDestory()) return;
+			auto session = me->GetSession();
+			if (!session) return;
+			session->GetRtcService()->UnregisterRtcInterface(me);
+			session->RemoveConsumer(me);
 		});
 		// 
 		//RemoveGlobalData();

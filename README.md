@@ -135,11 +135,11 @@ GBServer/                              # 仓库根（根 CMake 当前仅启用 G
 │   │   ├── statistics_manager.h/cpp / statistics_base.*
 │   │   ├── nack_generator.h/cpp
 │   │   └── capture.h/cpp
-│   └── utils/                         # YAML、日志、JSON、字符串等
-│       ├── yaml_config.h/cpp
-│       ├── file_log_writer.h/cpp
-│       ├── json_utils.h/cpp
-│       └── string_utils.h/cpp 
+│   ├── utils/                         # YAML、日志、JSON、字符串等
+│   │   ├── yaml_config.h/cpp
+│   │   ├── file_log_writer.h/cpp
+│   │   ├── json_utils.h/cpp
+│   │   └── string_utils.h/cpp 
 │   ├── main.cpp
 │   ├── CMakeLists.txt
 │   ├── gbmedia_server.yaml.example    # 配置文件模板

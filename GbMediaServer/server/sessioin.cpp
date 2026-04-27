@@ -124,32 +124,38 @@ namespace  gb_media_server
 			[this]() {
 				 
 
-				if (producer_ && producer_->ShareResouceType() == kProducerTypeRtc && producer_->CheckStunTimeOut())
+			{
+				std::shared_ptr<Producer> timed_out_producer;
 				{
-					// 获取会话名称
-					std::string session_name =  SessionName();
-
-					// 在工作线程中执行清理操作
-					//GbMediaService::GetInstance().worker_thread()->PostTask(RTC_FROM_HERE, [this, session_name]() {
-						// 从RTC服务中注销RTC接口
-						std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(producer_);
-						rtc_service_->UnregisterRtcInterface(slef);// shared_from_this());
-
-						// 清空Session的Producer
-						 SetProducer(nullptr);
-						//});
-				}
-				std::vector< std::shared_ptr<Consumer>> ccc;
-				for (auto c: consumers_)
-				{
-					if (c && c->ShareResouceType() == kConsumerTypeRTC && c->CheckStunTimeOut())
+					std::lock_guard<std::mutex> lk(lock_);
+					if (producer_ && producer_->ShareResouceType() == kProducerTypeRtc && producer_->CheckStunTimeOut())
 					{
-						ccc.push_back(c);
+						timed_out_producer = producer_;
 					}
-					else if (c && c->ShareResouceType() == kConsumerTypeRTC)
+				}
+				if (timed_out_producer)
+				{
+					std::shared_ptr<RtcProducer> slef = std::dynamic_pointer_cast<RtcProducer>(timed_out_producer);
+					rtc_service_->UnregisterRtcInterface(slef);
+
+					// 清空Session的Producer
+					 SetProducer(nullptr);
+				}
+			}
+				std::vector< std::shared_ptr<Consumer>> ccc;
+				{
+					std::lock_guard<std::mutex> lk(lock_);
+					for (auto c: consumers_)
 					{
-						std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(c);
-						slef->OnTimer();
+						if (c && c->ShareResouceType() == kConsumerTypeRTC && c->CheckStunTimeOut())
+						{
+							ccc.push_back(c);
+						}
+						else if (c && c->ShareResouceType() == kConsumerTypeRTC)
+						{
+							std::shared_ptr<RtcConsumer> slef = std::dynamic_pointer_cast<RtcConsumer>(c);
+							slef->OnTimer();
+						}
 					}
 				}
 				for (size_t i = 0; i < ccc.size(); ++i)
