@@ -203,9 +203,14 @@ namespace gb_media_server
 	*/
 	void RtcInterface::OnSctpAssociationSendData(
 	libmedia_transfer_protocol::librtc::SctpAssociation* sctpAssociation,
-	const uint8_t* data, size_t len)  
+	const uint8_t* data, size_t len)
 	{
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
+		// 检查是否正在销毁，防止析构后 SCTP 回调访问已释放的 DTLS 对象导致崩溃
+		if (destoy_ || !dtls_done_)
+		{
+			return;
+		}
 		dtls_.SendApplicationData(data, len);
 	}
 

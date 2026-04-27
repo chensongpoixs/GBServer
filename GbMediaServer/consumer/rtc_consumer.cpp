@@ -210,8 +210,11 @@ namespace gb_media_server
 	RtcConsumer:: ~RtcConsumer(){
 		GBMEDIASERVER_LOG_T_F(LS_INFO);
 
-		// 先断开 DTLS 信号，防止析构期间 DTLS 任务队列触发回调访问已释放的资源
+		// 先释放 SCTP 关联，防止析构期间 SCTP 回调触发 DTLS 操作
+		// （SctpAssociation 持有裸 RtcInterface* 指针，reset 后 pending callback 检查 weak_ptr 会过期）
 		dtls_done_ = false;
+		sctp_.reset();
+		// 再断开 DTLS 信号，此时已没有 SCTP 回调能触发 DTLS 信号发射
 		dtls_.disconnect_all();
 
 		// 从统计管理器注销（Unregister from statistics manager）
